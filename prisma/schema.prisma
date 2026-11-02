@@ -13,15 +13,24 @@ datasource db {
 }
 
 model User {
-  id            String    @id
-  name          String
-  email         String
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
+  id                       String              @id
+  name                     String
+  email                    String
+  emailVerified            Boolean             @default(false)
+  image                    String?
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
+  sessions                 Session[]
+  accounts                 Account[]
+  ownedFinancialAccounts   FinancialAccount[]  @relation("FinancialAccountOwner")
+  createdFinancialAccounts FinancialAccount[]  @relation("FinancialAccountCreator")
+  financialMemberships     AccountMembership[]
+  wallets                  Wallet[]
+  transactions             Transaction[]
+  recurrenceRules          RecurrenceRule[]
+  ownedBudgets             Budget[]
+  budgetMemberships        BudgetMembership[]
+  transactionChanges       TransactionChange[]
 
   @@unique([email])
   @@map("user")
@@ -73,4 +82,359 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+// DOMAIN DRAFT: see prisma/SCHEMA_NOTES.md before generating a migration.
+// Domain money uses exact Decimal values. Round to each currency's minor units.
+// No balance cache: sum LedgerEntry.amount where transaction.status = POSTED.
+
+enum AccountRole {
+  COLLABORATOR
+  VIEWER
+}
+
+enum WalletType {
+  BANK
+  CASH
+  OTHER
+}
+
+enum TransactionStatus {
+  PENDING
+  POSTED
+}
+
+enum TransactionType {
+  EXPENSE
+  INCOME
+  TRANSFER
+  OPENING_BALANCE
+  ADJUSTMENT
+}
+
+enum CategoryType {
+  EXPENSE
+  INCOME
+}
+
+enum BudgetRole {
+  COLLABORATOR
+  VIEWER
+}
+
+enum BudgetVisibility {
+  FULL
+  SUMMARY
+}
+
+enum RecurrenceFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+model FinancialAccount {
+  id                String              @id @default(cuid())
+  name              String
+  // Owner is stored once, separate from non-owner memberships.
+  ownerId           String
+  owner             User                @relation("FinancialAccountOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  createdById       String
+  createdBy         User                @relation("FinancialAccountCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  // Conversion/display currency only; wallets can use other currencies.
+  reportingCurrency String              @db.VarChar(3)
+  archivedAt        DateTime?           @db.Timestamptz(3)
+  createdAt         DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime            @updatedAt @db.Timestamptz(3)
+  memberships       AccountMembership[]
+  wallets           AccountWallet[]
+  categories        Category[]
+  budgetScopes      BudgetAccount[]
+
+  @@index([ownerId])
+  @@index([createdById])
+  @@map("financial_account")
+}
+
+model AccountMembership {
+  financialAccountId String
+  userId             String
+  role               AccountRole
+  financialAccount   FinancialAccount @relation(fields: [financialAccountId], references: [id], onDelete: Cascade)
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt          DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime         @updatedAt @db.Timestamptz(3)
+
+  @@id([financialAccountId, userId])
+  @@index([userId])
+  @@map("account_membership")
+}
+
+model Wallet {
+  id          String          @id @default(cuid())
+  ownerId     String
+  owner       User            @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  name        String
+  type        WalletType
+  // ISO 4217; immutable after first financial movement.
+  currency    String          @db.VarChar(3)
+  archivedAt  DateTime?       @db.Timestamptz(3)
+  createdAt   DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime        @updatedAt @db.Timestamptz(3)
+  allocations AccountWallet[]
+
+  @@index([ownerId])
+  @@map("wallet")
+}
+
+model AccountWallet {
+  id                    String           @id @default(cuid())
+  financialAccountId    String
+  walletId              String
+  financialAccount      FinancialAccount @relation(fields: [financialAccountId], references: [id], onDelete: Restrict)
+  wallet                Wallet           @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  archivedAt            DateTime?        @db.Timestamptz(3)
+  createdAt             DateTime         @default(now()) @db.Timestamptz(3)
+  entries               LedgerEntry[]
+  recurringSources      RecurrenceRule[] @relation("RecurringSource")
+  recurringDestinations RecurrenceRule[] @relation("RecurringDestination")
+
+  @@unique([id, financialAccountId])
+  @@unique([financialAccountId, walletId])
+  @@index([walletId])
+  @@map("account_wallet")
+}
+
+model Category {
+  id                 String           @id @default(cuid())
+  financialAccountId String
+  financialAccount   FinancialAccount @relation(fields: [financialAccountId], references: [id], onDelete: Restrict)
+  name               String
+  type               CategoryType
+  parentId           String?
+  // Composite FK prevents a subcategory from belonging to another account.
+  parent             Category?        @relation("CategoryHierarchy", fields: [parentId, financialAccountId], references: [id, financialAccountId], onDelete: Restrict, onUpdate: NoAction)
+  children           Category[]       @relation("CategoryHierarchy")
+  archivedAt         DateTime?        @db.Timestamptz(3)
+  createdAt          DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime         @updatedAt @db.Timestamptz(3)
+  entries            LedgerEntry[]
+  recurrenceRules    RecurrenceRule[]
+  budgetFilters      BudgetCategory[]
+
+  @@unique([id, financialAccountId])
+  @@index([financialAccountId, type])
+  @@index([parentId, financialAccountId])
+  @@map("category")
+}
+
+model Transaction {
+  id               String                @id @default(cuid())
+  type             TransactionType
+  // Explicit choice, never inferred or automatically changed from date.
+  status           TransactionStatus
+  name             String
+  notes            String?               @db.Text
+  occurredAt       DateTime              @db.Timestamptz(3)
+  createdById      String
+  createdBy        User                  @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  // Scoped to creator; optional for manually created transactions.
+  idempotencyKey   String?
+  version          Int                   @default(1)
+  createdAt        DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime              @updatedAt @db.Timestamptz(3)
+  entries          LedgerEntry[]
+  occurrence       RecurrenceOccurrence?
+  changes          TransactionChange[]
+  budgetValuations BudgetValuation[]
+
+  @@unique([createdById, idempotencyKey])
+  @@index([status, occurredAt])
+  @@index([createdById, occurredAt])
+  @@map("transaction")
+}
+
+model LedgerEntry {
+  id                 String        @id @default(cuid())
+  transactionId      String
+  transaction        Transaction   @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  accountWalletId    String
+  financialAccountId String
+  accountWallet      AccountWallet @relation(fields: [accountWalletId, financialAccountId], references: [id, financialAccountId], onDelete: Restrict)
+  // Signed amount in the wallet currency: outgoing negative, incoming positive.
+  amount             Decimal       @db.Decimal(24, 8)
+  // Select either root category or subcategory; parent is derived, not duplicated.
+  categoryId         String?
+  category           Category?     @relation(fields: [categoryId, financialAccountId], references: [id, financialAccountId], onDelete: Restrict, onUpdate: NoAction)
+
+  @@unique([transactionId, accountWalletId])
+  @@index([accountWalletId])
+  @@index([categoryId, financialAccountId])
+  @@map("ledger_entry")
+}
+
+model RecurrenceRule {
+  id                String                 @id @default(cuid())
+  createdById       String
+  createdBy         User                   @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  // Template: EXPENSE, INCOME or TRANSFER only. Amounts are positive.
+  type              TransactionType
+  name              String
+  notes             String?                @db.Text
+  sourceId          String
+  source            AccountWallet          @relation("RecurringSource", fields: [sourceId], references: [id], onDelete: Restrict)
+  destinationId     String?
+  destination       AccountWallet?         @relation("RecurringDestination", fields: [destinationId], references: [id], onDelete: Restrict)
+  amount            Decimal                @db.Decimal(24, 8)
+  // Required for cross-currency transfer templates; actual amount confirmed at posting.
+  destinationAmount Decimal?               @db.Decimal(24, 8)
+  categoryId        String?
+  category          Category?              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  // Creation preference, independent from recurrence timing and editable per occurrence.
+  occurrenceStatus  TransactionStatus      @default(PENDING)
+  frequency         RecurrenceFrequency
+  interval          Int                    @default(1)
+  timezone          String
+  startsAt          DateTime               @db.Timestamptz(3)
+  endsAt            DateTime?              @db.Timestamptz(3)
+  nextOccurrenceAt  DateTime?              @db.Timestamptz(3)
+  pausedAt          DateTime?              @db.Timestamptz(3)
+  createdAt         DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime               @updatedAt @db.Timestamptz(3)
+  occurrences       RecurrenceOccurrence[]
+
+  @@index([createdById])
+  @@index([pausedAt, nextOccurrenceAt])
+  @@index([sourceId])
+  @@index([destinationId])
+  @@index([categoryId])
+  @@map("recurrence_rule")
+}
+
+model RecurrenceOccurrence {
+  id            String         @id @default(cuid())
+  ruleId        String
+  rule          RecurrenceRule @relation(fields: [ruleId], references: [id], onDelete: Restrict)
+  // Stable original slot, even if the user later changes the transaction date.
+  scheduledFor  DateTime       @db.Timestamptz(3)
+  transactionId String?        @unique
+  transaction   Transaction?   @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  // Retain this row after deletion/skipping to prevent regeneration.
+  skippedAt     DateTime?      @db.Timestamptz(3)
+  createdAt     DateTime       @default(now()) @db.Timestamptz(3)
+
+  @@unique([ruleId, scheduledFor])
+  @@map("recurrence_occurrence")
+}
+
+model Budget {
+  id          String             @id @default(cuid())
+  ownerId     String
+  owner       User               @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  name        String
+  currency    String             @db.VarChar(3)
+  timezone    String
+  archivedAt  DateTime?          @db.Timestamptz(3)
+  createdAt   DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime           @updatedAt @db.Timestamptz(3)
+  memberships BudgetMembership[]
+  accounts    BudgetAccount[]
+  periods     BudgetPeriod[]
+
+  @@index([ownerId])
+  @@map("budget")
+}
+
+model BudgetMembership {
+  budgetId   String
+  userId     String
+  role       BudgetRole
+  // Collaborators must use FULL; viewers may use FULL or SUMMARY.
+  visibility BudgetVisibility
+  budget     Budget           @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime         @updatedAt @db.Timestamptz(3)
+
+  @@id([budgetId, userId])
+  @@index([userId])
+  @@map("budget_membership")
+}
+
+model BudgetAccount {
+  budgetId           String
+  financialAccountId String
+  budget             Budget           @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  financialAccount   FinancialAccount @relation(fields: [financialAccountId], references: [id], onDelete: Restrict)
+  // Empty category list means all expense categories in this account.
+  categories         BudgetCategory[]
+
+  @@id([budgetId, financialAccountId])
+  @@index([financialAccountId])
+  @@map("budget_account")
+}
+
+model BudgetCategory {
+  budgetId           String
+  financialAccountId String
+  categoryId         String
+  scope              BudgetAccount @relation(fields: [budgetId, financialAccountId], references: [budgetId, financialAccountId], onDelete: Cascade)
+  category           Category      @relation(fields: [categoryId, financialAccountId], references: [id, financialAccountId], onDelete: Restrict, onUpdate: NoAction)
+
+  @@id([budgetId, financialAccountId, categoryId])
+  @@index([categoryId, financialAccountId])
+  @@map("budget_category")
+}
+
+model BudgetPeriod {
+  id            String            @id @default(cuid())
+  budgetId      String
+  budget        Budget            @relation(fields: [budgetId], references: [id], onDelete: Restrict)
+  // Half-open interval [startsAt, endsAt), in the budget's configured timezone.
+  startsAt      DateTime          @db.Timestamptz(3)
+  endsAt        DateTime          @db.Timestamptz(3)
+  spendingLimit Decimal           @db.Decimal(24, 8)
+  valuations    BudgetValuation[]
+
+  @@unique([budgetId, startsAt])
+  @@index([budgetId, endsAt])
+  @@map("budget_period")
+}
+
+// Snapshot for stable historical budget conversion; not a second balance ledger.
+model BudgetValuation {
+  periodId      String
+  transactionId String
+  period        BudgetPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  transaction   Transaction  @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  amount        Decimal      @db.Decimal(24, 8)
+  exchangeRate  Decimal      @db.Decimal(30, 15)
+  rateAsOf      DateTime     @db.Timestamptz(3)
+  rateSource    String
+  createdAt     DateTime     @default(now()) @db.Timestamptz(3)
+
+  @@id([periodId, transactionId])
+  @@index([transactionId])
+  @@map("budget_valuation")
+}
+
+// Append-only service policy; snapshot contains domain data only, never auth secrets.
+// Intentionally survives transaction deletion; transactionId is an audit identifier.
+model TransactionChange {
+  id                String       @id @default(cuid())
+  transactionId     String
+  // Optional live reference is cleared on deletion, preserving the audit identifier.
+  liveTransactionId String?
+  transaction       Transaction? @relation(fields: [liveTransactionId], references: [id], onDelete: SetNull)
+  actorId           String
+  actor             User         @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  action            String
+  snapshot          Json
+  createdAt         DateTime     @default(now()) @db.Timestamptz(3)
+
+  @@index([transactionId, createdAt])
+  @@index([liveTransactionId])
+  @@index([actorId])
+  @@map("transaction_change")
 }

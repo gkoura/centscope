@@ -39,3 +39,5 @@ pnpm-debug.log*
 next-env.d.ts
 
 /generated/prisma
+
+PROJECT_CONTEXT.md
