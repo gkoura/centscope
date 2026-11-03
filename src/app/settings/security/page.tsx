@@ -1,9 +1,10 @@
+import { Suspense } from "react"
+import { SectionLoading } from "@/components/site/section-loading"
 import Link from "next/link"
 import { LinkedAccounts } from "@/components/auth/settings/security/linked-accounts"
 import { requireVerifiedSession } from "@/lib/auth/session"
 
-export default async function SecurityPage() {
-    await requireVerifiedSession()
+export default function SecurityPage() {
     return (
         <main className="mx-auto flex min-h-svh w-full max-w-xl flex-col gap-6 p-6 sm:p-10">
             <Link
@@ -19,7 +20,14 @@ export default async function SecurityPage() {
                 Connect Google using the same email address as your Fintrack
                 account.
             </p>
-            <LinkedAccounts />
+            <Suspense fallback={<SectionLoading />}>
+                <SecurityMethods />
+            </Suspense>
         </main>
     )
+}
+
+async function SecurityMethods() {
+    await requireVerifiedSession()
+    return <LinkedAccounts />
 }

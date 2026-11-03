@@ -1,53 +1,18 @@
-import { randomUUID } from "node:crypto"
-import Link from "next/link"
-import { notFound } from "next/navigation"
-import { getOwnedFinancialAccount } from "@/lib/financial-accounts"
-import { CreateWalletForm } from "@/components/financial-accounts/create-wallet-form"
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card"
+import { Suspense } from "react"
+import { SectionLoading } from "@/components/site/section-loading"
+import { WalletContent } from "./_components/wallet-content"
 
-export default async function NewWalletPage({
-    params,
-}: {
-    params: Promise<{ id: string }>
-}) {
-    const { id } = await params
-    const account = await getOwnedFinancialAccount(id)
-    if (!account) notFound()
+export default function Page({ params }: { params: Promise<{ id: string }> }) {
     return (
-        <main className="mx-auto flex min-h-svh w-full max-w-xl flex-col gap-6 p-6 sm:p-10">
-            <Link
-                href={`/dashboard/accounts/${account.id}`}
-                className="text-sm underline underline-offset-4"
+        <main className="mx-auto flex w-full max-w-xl flex-col gap-6 p-6 sm:p-10">
+            <h1 className="text-2xl font-semibold tracking-tight">
+                Add a wallet
+            </h1>
+            <Suspense
+                fallback={<SectionLoading label="Loading account details…" />}
             >
-                Back to account
-            </Link>
-            <Card>
-                <CardHeader>
-                    <CardTitle>
-                        <h1>Add a wallet</h1>
-                    </CardTitle>
-                    <CardDescription>
-                        <span className="break-words">
-                            Create a wallet for {account.name} and set its
-                            starting balance.
-                        </span>
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <CreateWalletForm
-                        financialAccountId={account.id}
-                        requestId={randomUUID()}
-                        defaultCurrency={account.reportingCurrency}
-                        today={new Date().toISOString().slice(0, 10)}
-                    />
-                </CardContent>
-            </Card>
+                <WalletContent params={params} />
+            </Suspense>
         </main>
     )
 }

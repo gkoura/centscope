@@ -1,6 +1,9 @@
 import Link from "next/link"
+import { cacheLife } from "next/cache"
 import { Brand } from "./brand"
-export function SiteFooter() {
+export async function SiteFooter() {
+    "use cache"
+    cacheLife("days")
     return (
         <footer className="border-t">
             <div className="site-width flex flex-col justify-between gap-6 py-9 sm:flex-row sm:items-center">

@@ -1,14 +1,15 @@
-"use client"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { LayoutDashboard, Plus, ShieldCheck, ArrowUpRight } from "lucide-react"
+import { Suspense } from "react"
+import { ArrowUpRight } from "lucide-react"
 import { Brand } from "./brand"
 import { ThemeToggle } from "./theme-toggle"
 import { SignOutButton } from "@/components/auth/sign-out-button"
-import { cn } from "@/lib/utils"
+import {
+    WorkspaceNavigation,
+    WorkspaceNavigationFallback,
+} from "./workspace-navigation"
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-    const pathname = usePathname()
     return (
         <div className="app-shell">
             <aside className="app-sidebar">
@@ -20,39 +21,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     aria-label="Workspace navigation"
                     className="flex flex-col gap-2"
                 >
-                    {[
-                        {
-                            href: "/dashboard",
-                            label: "Overview",
-                            icon: LayoutDashboard,
-                        },
-                        {
-                            href: "/dashboard/accounts/new",
-                            label: "Create account",
-                            icon: Plus,
-                        },
-                        {
-                            href: "/settings/security",
-                            label: "Sign-in & security",
-                            icon: ShieldCheck,
-                        },
-                    ].map(({ href, label, icon: Icon }) => (
-                        <Link
-                            key={href}
-                            href={href}
-                            aria-current={
-                                pathname === href ? "page" : undefined
-                            }
-                            className={cn(
-                                "flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-muted-foreground hover:bg-accent hover:text-foreground",
-                                pathname === href &&
-                                    "bg-accent font-medium text-primary"
-                            )}
-                        >
-                            <Icon className="size-4" />
-                            {label}
-                        </Link>
-                    ))}
+                    <Suspense fallback={<WorkspaceNavigationFallback />}>
+                        <WorkspaceNavigation />
+                    </Suspense>
                 </nav>
                 <div className="mt-auto pt-12">
                     <p className="mb-3 text-xs leading-6 text-muted-foreground">

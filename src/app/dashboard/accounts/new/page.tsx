@@ -1,3 +1,5 @@
+import { Suspense } from "react"
+import { SectionLoading } from "@/components/site/section-loading"
 import Link from "next/link"
 import { requireVerifiedSession } from "@/lib/auth/session"
 import { CreateAccountForm } from "@/components/financial-accounts/create-account-form"
@@ -9,8 +11,7 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 
-export default async function NewAccountPage() {
-    await requireVerifiedSession()
+export default function NewAccountPage() {
     return (
         <main className="mx-auto flex min-h-svh w-full max-w-xl flex-col gap-6 p-6 sm:p-10">
             <Link
@@ -30,9 +31,16 @@ export default async function NewAccountPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <CreateAccountForm />
+                    <Suspense fallback={<SectionLoading />}>
+                        <AccountForm />
+                    </Suspense>
                 </CardContent>
             </Card>
         </main>
     )
+}
+
+async function AccountForm() {
+    await requireVerifiedSession()
+    return <CreateAccountForm />
 }

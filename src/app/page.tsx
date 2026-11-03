@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import Link from "next/link"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
@@ -15,12 +16,12 @@ import { SiteHeader } from "@/components/site/site-header"
 import { SiteFooter } from "@/components/site/site-footer"
 import { AccountPreview } from "@/components/site/account-preview"
 
-export default async function Page() {
-    const session = await auth.api.getSession({ headers: await headers() })
-    if (session) redirect("/dashboard")
-
+export default function Page() {
     return (
         <>
+            <Suspense fallback={null}>
+                <SessionRedirect />
+            </Suspense>
             <SiteHeader />
             <main id="main-content">
                 <section className="site-width hero-grid">
@@ -203,4 +204,11 @@ export default async function Page() {
             <SiteFooter />
         </>
     )
+}
+
+async function SessionRedirect() {
+    const session = await auth.api.getSession({ headers: await headers() })
+    if (session) redirect("/dashboard")
+
+    return null
 }
