@@ -1,8 +1,9 @@
-import { Geist, Geist_Mono, Inter } from "next/font/google"
+import { Geist_Mono, Inter } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
+import { AuthProviders } from "@/components/auth-providers"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 
@@ -28,7 +29,17 @@ export default function RootLayout({
             )}
         >
             <body>
-                <ThemeProvider>{children}</ThemeProvider>
+                <ThemeProvider>
+                    <AuthProviders
+                        baseURL={process.env.BETTER_AUTH_URL}
+                        googleEnabled={Boolean(
+                            process.env.GOOGLE_CLIENT_ID &&
+                            process.env.GOOGLE_CLIENT_SECRET
+                        )}
+                    >
+                        {children}
+                    </AuthProviders>
+                </ThemeProvider>
             </body>
         </html>
     )

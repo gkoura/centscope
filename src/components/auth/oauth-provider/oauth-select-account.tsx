@@ -188,7 +188,7 @@ export function OAuthSelectAccount({ className }: OAuthSelectAccountProps) {
           </div>
         ) : (
           <ul className="divide-y divide-border overflow-hidden rounded-lg bg-muted/50">
-            {deviceSessions.map((deviceSession) => {
+            {deviceSessions.map((deviceSession: ListDeviceSession<OAuthProviderMultiSessionAuthClient>) => {
               const isCurrent = deviceSession.session.id === session?.session.id
               const isSelecting = pendingSessionId === deviceSession.session.id
               return (
