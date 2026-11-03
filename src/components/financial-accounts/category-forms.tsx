@@ -16,6 +16,7 @@ import {
     FieldGroup,
     FieldLabel,
 } from "@/components/ui/field"
+import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import {
     AlertDialog,
@@ -103,20 +104,43 @@ export function CreateCategoryForm({
             />
             <FieldGroup>
                 <Field data-invalid={Boolean(state.errors?.name)}>
-                    <FieldLabel htmlFor="new-category-name">Name</FieldLabel>
-                    <Input
-                        id="new-category-name"
-                        name="name"
-                        required
-                        maxLength={80}
-                        placeholder="e.g. Travel or Restaurants"
-                        aria-invalid={Boolean(state.errors?.name)}
-                        aria-describedby={
-                            state.errors?.name
-                                ? "new-category-name-error"
-                                : undefined
-                        }
-                    />
+                    <FieldLabel htmlFor="new-category-name">
+                        {selectedParentId === "root"
+                            ? "Name"
+                            : "Subcategory names"}
+                    </FieldLabel>
+                    {selectedParentId === "root" ? (
+                        <Input
+                            id="new-category-name"
+                            name="name"
+                            required
+                            maxLength={80}
+                            placeholder="e.g. Travel"
+                            aria-invalid={Boolean(state.errors?.name)}
+                            aria-describedby={
+                                state.errors?.name
+                                    ? "new-category-name-error"
+                                    : undefined
+                            }
+                        />
+                    ) : (
+                        <Textarea
+                            id="new-category-name"
+                            name="names"
+                            required
+                            maxLength={2500}
+                            rows={5}
+                            placeholder={"Restaurants\nCoffee shops\nTakeaway"}
+                            aria-invalid={Boolean(state.errors?.name)}
+                            aria-describedby="new-category-names-description new-category-name-error"
+                        />
+                    )}
+                    {selectedParentId !== "root" ? (
+                        <FieldDescription id="new-category-names-description">
+                            Enter or paste one name per line. Create up to 30
+                            subcategories at once.
+                        </FieldDescription>
+                    ) : null}
                     {state.errors?.name ? (
                         <FieldError id="new-category-name-error">
                             {state.errors.name}
@@ -231,7 +255,7 @@ export function CreateCategoryForm({
                         ? "Creating…"
                         : selectedParentId === "root"
                           ? "Create category"
-                          : "Create subcategory"}
+                          : "Create subcategories"}
                 </Button>
             </div>
         </form>

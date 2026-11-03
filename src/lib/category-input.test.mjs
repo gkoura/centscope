@@ -2,6 +2,7 @@ import test from "node:test"
 import assert from "node:assert/strict"
 import {
     defaultCategories,
+    parseSubcategoryNames,
     validateCategoryInput,
     validateCategoryEdit,
 } from "./category-input.ts"
@@ -200,4 +201,16 @@ test("draft order batches only changed groups and recognizes inverse moves as cl
         },
     ])
     assert.deepEqual(categoryOrderChanges(original, original), [])
+})
+
+
+test("subcategory batches trim pasted lines and preserve punctuation and international names", () => {
+    assert.deepEqual(parseSubcategoryNames(" Restaurants \r\n\r\nΚαφές\nFood, takeaway "), { names: ["Restaurants", "Καφές", "Food, takeaway"] })
+})
+
+test("subcategory batches reject empty, duplicate, invalid and oversized lists", () => {
+    for (const value of [" \n", "Coffee\n coffee", "a".repeat(81), "Bad\tname", Array.from({ length: 31 }, (_, i) => `Name ${i}`).join("\n"), "a".repeat(2501)]) {
+        assert.ok(parseSubcategoryNames(value).error)
+    }
+    assert.equal(parseSubcategoryNames(Array.from({ length: 30 }, (_, i) => `Name ${i}`).join("\n")).names.length, 30)
 })

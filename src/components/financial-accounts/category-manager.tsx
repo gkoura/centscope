@@ -662,7 +662,7 @@ export function CategoryManager({
                         <DialogHeader>
                             <DialogTitle>
                                 {creating?.parentId
-                                    ? "New subcategory"
+                                    ? "New subcategories"
                                     : "New category"}
                             </DialogTitle>
                             <DialogDescription>

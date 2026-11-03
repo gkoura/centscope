@@ -15,6 +15,7 @@ import {
     validateCategoryOrderBatch,
     type CategoryOrderBatchInput,
     validCategoryName,
+    parseSubcategoryNames,
     validateCategoryEdit,
     validateCategoryInput,
     type CategoryFormState,
@@ -41,15 +42,28 @@ export async function createCategory(
     form: FormData
 ): Promise<CategoryFormState> {
     await requireVerifiedSession()
+    let names: string[] | undefined
+    if (form.get("parentId") && typeof form.get("names") === "string") {
+        const parsed = parseSubcategoryNames(form.get("names") as string)
+        if (parsed.error) return { errors: { name: parsed.error } }
+        names = parsed.names
+        form.set("name", names[0])
+    }
     const result = validateCategoryInput(form)
     if (!result.data) return { errors: result.errors }
     try {
-        await createOwnedCategory(result.data)
+        await createOwnedCategory(result.data, names)
     } catch (error) {
         return { message: errorMessage(error) }
     }
     refreshCategories(result.data.financialAccountId)
-    return { success: true, message: "Category created." }
+    return {
+        success: true,
+        message:
+            names && names.length > 1
+                ? `${names.length} subcategories created.`
+                : "Category created.",
+    }
 }
 
 export async function renameCategory(
@@ -115,9 +129,7 @@ export async function deleteCategory(
     return { success: true }
 }
 
-export async function reorderCategories(
-    raw: CategoryOrderBatchInput
-): Promise<
+export async function reorderCategories(raw: CategoryOrderBatchInput): Promise<
     | {
           success: true
           categories: Awaited<ReturnType<typeof listOwnedAccountCategories>>

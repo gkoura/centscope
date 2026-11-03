@@ -4,6 +4,7 @@ import { requireVerifiedSession } from "@/lib/auth/session"
 import { prisma } from "@/lib/prisma"
 import {
     categoryOrderMatches,
+    parseSubcategoryNames,
     validateCategoryOrderBatch,
     type CategoryOrderBatchInput,
     type CategoryOrderInput,
@@ -59,7 +60,15 @@ export async function listOwnedAccountCategories(financialAccountId: string) {
         }))
 }
 
-export async function createOwnedCategory(input: CategoryInput) {
+export async function createOwnedCategory(
+    input: CategoryInput,
+    names = [input.name]
+) {
+    const parsed = parseSubcategoryNames(names.join("\n"))
+    if (parsed.error || (!input.parentId && parsed.names.length !== 1))
+        throw new CategoryWriteError(
+            parsed.error ?? "Choose a parent for multiple subcategories."
+        )
     const { user } = await requireVerifiedSession()
     await prisma.$transaction(
         async (tx) => {
@@ -89,9 +98,12 @@ export async function createOwnedCategory(input: CategoryInput) {
                 },
                 _max: { sortOrder: true },
             })
-            await tx.category.create({
-                data: { ...input, sortOrder: (last._max.sortOrder ?? -1) + 1 },
-                select: { id: true },
+            await tx.category.createMany({
+                data: parsed.names.map((name, index) => ({
+                    ...input,
+                    name,
+                    sortOrder: (last._max.sortOrder ?? -1) + 1 + index,
+                })),
             })
         },
         { timeout: 15_000 }
