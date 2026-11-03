@@ -1,24 +1,10 @@
 "use client"
-
-import { useEffect } from "react"
-
+import { RouteError } from "@/components/site/route-error"
 export default function Error({
-    error,
-    reset,
+    retry,
 }: {
-    error: Error & { digest?: string }
-    reset: () => void
+    error: unknown
+    retry: () => void
 }) {
-    useEffect(() => {
-        console.error(error)
-    }, [error])
-
-    return (
-        <div role="alert" className="space-y-4">
-            <h2>Something went wrong.</h2>
-            <button type="button" onClick={() => reset()}>
-                Try again
-            </button>
-        </div>
-    )
+    return <RouteError retry={retry} />
 }

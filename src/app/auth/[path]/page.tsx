@@ -20,8 +20,14 @@ export default async function AuthPage({
     const { path } = await params
     if (!enabledPaths.has(path)) notFound()
     return (
-        <main className="flex min-h-svh items-center justify-center p-4 sm:p-8">
-            <Auth path={path} />
-        </main>
+        <>
+            <h1 className="sr-only">
+                {path
+                    .split("-")
+                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(" ")}
+            </h1>
+            <Auth path={path} socialPosition="top" />
+        </>
     )
 }

@@ -1,6 +1,5 @@
-import { SignOutButton } from "@/components/auth/sign-out-button"
 import Link from "next/link"
-import { FolderOpenIcon, PlusIcon } from "lucide-react"
+import { ArrowUpRightIcon, FolderOpenIcon, PlusIcon } from "lucide-react"
 import { listOwnedFinancialAccounts } from "@/lib/financial-accounts"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -24,26 +23,6 @@ export default async function DashboardPage() {
     const accounts = await listOwnedFinancialAccounts()
     return (
         <main className="mx-auto flex min-h-svh w-full max-w-3xl flex-col gap-8 p-6 sm:p-10">
-            <header className="flex flex-wrap items-center justify-between gap-4">
-                <Link
-                    href="/dashboard"
-                    className="font-semibold tracking-tight"
-                >
-                    Fintrack
-                </Link>
-                <nav
-                    aria-label="Account settings"
-                    className="flex items-center gap-4"
-                >
-                    <Link
-                        href="/settings/security"
-                        className="text-sm underline underline-offset-4"
-                    >
-                        Sign-in methods
-                    </Link>
-                    <SignOutButton />
-                </nav>
-            </header>
             <section
                 aria-labelledby="accounts-heading"
                 className="flex flex-col gap-6"
@@ -75,25 +54,34 @@ export default async function DashboardPage() {
                     <ul className="grid min-w-0 gap-4 sm:grid-cols-2">
                         {accounts.map((account) => (
                             <li key={account.id} className="min-w-0">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>
-                                            <Link
-                                                href={`/dashboard/accounts/${account.id}`}
-                                                className="wrap-break-word underline-offset-4 hover:underline"
-                                            >
-                                                {account.name}
-                                            </Link>
-                                        </CardTitle>
-                                        <CardDescription>
-                                            Reporting currency:{" "}
-                                            {account.reportingCurrency}
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Badge variant="secondary">Owner</Badge>
-                                    </CardContent>
-                                </Card>
+                                <Link
+                                    href={`/dashboard/accounts/${account.id}`}
+                                    className="account-card-link block h-full rounded-xl"
+                                    aria-label={`Open ${account.name}`}
+                                >
+                                    <Card className="h-full">
+                                        <CardHeader>
+                                            <CardTitle>
+                                                <h2 className="wrap-break-word">
+                                                    {account.name}
+                                                </h2>
+                                            </CardTitle>
+                                            <CardDescription>
+                                                Reporting currency:{" "}
+                                                {account.reportingCurrency}
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="flex items-center justify-between gap-4">
+                                            <Badge variant="secondary">
+                                                Owner
+                                            </Badge>
+                                            <ArrowUpRightIcon
+                                                className="account-card-arrow size-4 text-muted-foreground"
+                                                aria-hidden="true"
+                                            />
+                                        </CardContent>
+                                    </Card>
+                                </Link>
                             </li>
                         ))}
                     </ul>

@@ -131,3 +131,380 @@
         @apply font-sans;
     }
 }
+
+/* Fintrack: warm paper, forest accents, and quiet surfaces. */
+:root {
+    --background: #fafbf8;
+    --foreground: #222c27;
+    --card: #ffffff;
+    --card-foreground: #222c27;
+    --primary: #286044;
+    --primary-foreground: #ffffff;
+    --secondary: #edf1e9;
+    --secondary-foreground: #2d4938;
+    --muted: #eff2eb;
+    --muted-foreground: #657168;
+    --accent: #e6eee2;
+    --accent-foreground: #28533a;
+    --border: #dfe5dc;
+    --input: #d4ddd1;
+    --ring: #588566;
+    --sidebar: #f0f3ed;
+    --sidebar-foreground: #222c27;
+    --sidebar-accent: #e6eee2;
+}
+.dark {
+    --background: #141c18;
+    --foreground: #e9eee7;
+    --card: #1b2620;
+    --card-foreground: #e9eee7;
+    --popover: #1b2620;
+    --popover-foreground: #e9eee7;
+    --primary: #a7cfa8;
+    --primary-foreground: #182b1d;
+    --secondary: #26372b;
+    --secondary-foreground: #deeadb;
+    --muted: #202d24;
+    --muted-foreground: #a5b2a7;
+    --accent: #2b3d2e;
+    --accent-foreground: #daead5;
+    --border: #334137;
+    --input: #415447;
+    --ring: #a7cfa8;
+    --sidebar: #19231c;
+    --sidebar-foreground: #e9eee7;
+    --sidebar-accent: #2b3d2e;
+}
+.site-width {
+    width: min(1120px, calc(100% - 64px));
+    margin-inline: auto;
+}
+.site-header {
+    border-bottom: 1px solid var(--border);
+}
+.eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    color: var(--primary);
+    margin-bottom: 24px;
+}
+.hero-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    align-items: center;
+    gap: 64px;
+    padding-block: 85px 95px;
+}
+.hero-copy h1 {
+    font-size: clamp(52px, 5.3vw, 72px);
+    line-height: 1.06;
+    font-weight: 500;
+    letter-spacing: -0.065em;
+}
+.hero-description {
+    max-width: 420px;
+    margin-block: 26px 30px;
+    font-size: 15px;
+    line-height: 1.9;
+    color: var(--muted-foreground);
+}
+.hero-visual {
+    position: relative;
+    padding: 10px 0 30px;
+}
+.visual-orbit {
+    position: absolute;
+    inset: -25px -28px 0;
+    border-radius: 48% 48% 40% 40%;
+    background: var(--muted);
+    transform: rotate(-7deg);
+}
+.account-preview {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 25px;
+    background: var(--card);
+    box-shadow: 0 20px 65px #16341e0b;
+    transform: rotate(-2deg);
+}
+.preview-chart {
+    color: var(--primary);
+    height: 110px;
+    border-bottom: 1px solid var(--border);
+}
+.preview-chart svg {
+    width: 100%;
+    height: 100%;
+}
+.preview-stat {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 13px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    font-size: 10px;
+    color: var(--muted-foreground);
+}
+.preview-stat strong {
+    display: block;
+    margin-top: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--foreground);
+}
+.preview-floating {
+    position: absolute;
+    right: -30px;
+    bottom: 25px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+    box-shadow: 0 8px 28px #16341e12;
+    transform: rotate(2deg);
+}
+.visual-caption {
+    display: block;
+    position: relative;
+    margin-top: 28px;
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    color: var(--muted-foreground);
+}
+.section-title {
+    font-size: clamp(28px, 3vw, 38px);
+    font-weight: 500;
+    letter-spacing: -0.045em;
+    line-height: 1.2;
+    text-wrap: balance;
+}
+.feature-item {
+    border-top: 1px solid var(--border);
+    padding-top: 24px;
+}
+.landing-cta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 30px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--muted);
+    padding: 48px;
+}
+.auth-layout {
+    min-height: 100svh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+.auth-story {
+    display: flex;
+    flex-direction: column;
+    background: var(--muted);
+    padding: 40px clamp(35px, 6vw, 100px);
+    border-right: 1px solid var(--border);
+}
+.auth-headline {
+    font-size: clamp(38px, 4.5vw, 64px);
+    line-height: 1.12;
+    letter-spacing: -0.055em;
+    font-weight: 500;
+}
+.auth-form-surface {
+    width: 100%;
+    max-width: 390px;
+}
+.auth-form-surface > [data-slot="card"] {
+    width: 100%;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+}
+.auth-form-surface [data-slot="card-header"] {
+    padding-inline: 0;
+    margin-bottom: 8px;
+}
+.auth-form-surface [data-slot="card-title"] {
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.04em;
+}
+.auth-form-surface [data-slot="card-content"],
+.auth-form-surface [data-slot="card-footer"] {
+    padding-inline: 0;
+}
+.auth-form-surface input,
+.auth-form-surface [data-slot="input-group"] {
+    min-height: 44px;
+}
+.auth-form-surface [data-slot="button"]:not([data-slot="input-group-button"]) {
+    min-height: 42px;
+}
+.app-shell {
+    display: flex;
+    min-height: 100svh;
+}
+.app-sidebar {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    width: 244px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 30px 22px;
+    border-right: 1px solid var(--border);
+    background: var(--sidebar);
+}
+.app-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    min-height: 80px;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+}
+.app-content {
+    min-height: calc(100svh - 138px);
+}
+.app-content > main {
+    min-height: auto;
+    max-width: 1100px;
+}
+.skip-link {
+    position: fixed;
+    left: 16px;
+    top: -80px;
+    z-index: 100;
+    padding: 12px 20px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border-radius: 8px;
+}
+.skip-link:focus {
+    top: 16px;
+}
+a:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 5px;
+    border-radius: 3px;
+}
+@media (max-width: 1023px) {
+    .auth-layout {
+        grid-template-columns: 1fr;
+    }
+    .auth-story {
+        display: none;
+    }
+    .hero-grid {
+        gap: 32px;
+    }
+    .preview-floating {
+        right: -12px;
+    }
+}
+@media (max-width: 767px) {
+    .site-width {
+        width: calc(100% - 40px);
+    }
+    .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 48px;
+        padding-block: 55px;
+    }
+    .hero-copy h1 {
+        font-size: 58px;
+    }
+    .hero-visual {
+        margin-inline: 10px;
+    }
+    .visual-orbit {
+        inset-inline: -12px;
+    }
+    .account-preview {
+        transform: none;
+        padding: 20px;
+    }
+    .preview-floating {
+        right: -12px;
+    }
+    .landing-cta {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 28px;
+    }
+    .app-sidebar {
+        display: none;
+    }
+    .app-topbar {
+        padding-inline: 20px;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+@media (max-width: 767px) {
+    .visual-orbit {
+        transform: none;
+    }
+    .hero-copy h1 {
+        font-size: clamp(42px, 12vw, 52px);
+    }
+    input,
+    select,
+    textarea {
+        font-size: 16px;
+    }
+}
+
+/* Account cards are a single link, with pointer-only motion as an affordance. */
+.account-card-link {
+    transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.account-card-arrow {
+    transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.account-card-link:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 4px;
+    border-radius: var(--radius-xl);
+}
+@media (hover: hover) and (pointer: fine) {
+    .account-card-link:hover {
+        transform: translateY(-3px);
+    }
+    .account-card-link:hover .account-card-arrow {
+        transform: translate(2px, -2px);
+    }
+}
+.account-card-link:active:not(:focus-visible) {
+    transform: scale(0.985);
+}
+@media (prefers-reduced-motion: reduce) {
+    .account-card-link,
+    .account-card-arrow {
+        transition: none;
+    }
+    .account-card-link:hover,
+    .account-card-link:active:not(:focus-visible),
+    .account-card-link:hover .account-card-arrow {
+        transform: none;
+    }
+}

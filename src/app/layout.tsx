@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { Geist_Mono, Inter } from "next/font/google"
 
 import "./globals.css"
@@ -11,6 +12,15 @@ const fontMono = Geist_Mono({
     subsets: ["latin"],
     variable: "--font-mono",
 })
+
+export const metadata: Metadata = {
+    title: {
+        default: "Fintrack — Your money, in perspective",
+        template: "%s | Fintrack",
+    },
+    description:
+        "A calmer place to organize your financial accounts. Give every purpose a place with Fintrack.",
+}
 
 export default function RootLayout({
     children,
@@ -29,6 +39,9 @@ export default function RootLayout({
             )}
         >
             <body>
+                <a href="#main-content" className="skip-link">
+                    Skip to content
+                </a>
                 <ThemeProvider>
                     <AuthProviders
                         baseURL={process.env.BETTER_AUTH_URL}
