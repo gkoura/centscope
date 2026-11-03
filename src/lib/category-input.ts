@@ -1,0 +1,158 @@
+export const categoryTypes = [
+    { value: "EXPENSE", label: "Expense" },
+    { value: "INCOME", label: "Income" },
+] as const
+
+export const defaultCategories = [
+    ...[
+        "Food & drink",
+        "Home & bills",
+        "Transport",
+        "Shopping",
+        "Health",
+        "Leisure",
+        "Other expenses",
+    ].map((name) => ({ name, type: "EXPENSE" as const })),
+    ...["Salary", "Other income"].map((name) => ({
+        name,
+        type: "INCOME" as const,
+    })),
+]
+
+export type CategoryInput = {
+    financialAccountId: string
+    name: string
+    type: "EXPENSE" | "INCOME"
+    parentId: string | null
+}
+export type CategoryFormState = {
+    success?: boolean
+    errors?: Partial<Record<keyof CategoryInput, string>>
+    message?: string
+}
+
+function text(form: FormData, name: string) {
+    const value = form.get(name)
+    return typeof value === "string" ? value.trim() : ""
+}
+
+export function validCategoryName(name: string) {
+    return Boolean(name) && name.length <= 80 && !/[\p{Cc}\p{Cf}]/u.test(name)
+}
+
+export function validateCategoryInput(
+    form: FormData
+):
+    | { data: CategoryInput; errors?: never }
+    | { data?: never; errors: NonNullable<CategoryFormState["errors"]> } {
+    const financialAccountId = text(form, "financialAccountId")
+    const name = text(form, "name")
+    const type = text(form, "type")
+    const parentId = text(form, "parentId") || null
+    const errors: NonNullable<CategoryFormState["errors"]> = {}
+    if (!financialAccountId || financialAccountId.length > 128)
+        errors.financialAccountId = "This account is unavailable."
+    if (!validCategoryName(name))
+        errors.name = "Enter a category name between 1 and 80 characters."
+    if (type !== "EXPENSE" && type !== "INCOME")
+        errors.type = "Choose Expense or Income."
+    if (parentId && parentId.length > 128)
+        errors.parentId = "Choose a valid parent category."
+    if (Object.keys(errors).length) return { errors }
+    return {
+        data: {
+            financialAccountId,
+            name,
+            type: type as CategoryInput["type"],
+            parentId,
+        },
+    }
+}
+
+export function validateCategoryEdit(form: FormData) {
+    const financialAccountId = text(form, "financialAccountId")
+    const categoryId = text(form, "categoryId")
+    const expectedUpdatedAt = text(form, "expectedUpdatedAt")
+    const name = text(form, "name")
+    const date = new Date(expectedUpdatedAt)
+    if (
+        !financialAccountId ||
+        financialAccountId.length > 128 ||
+        !categoryId ||
+        categoryId.length > 128 ||
+        !Number.isFinite(date.getTime()) ||
+        date.toISOString() !== expectedUpdatedAt
+    )
+        return null
+    return { financialAccountId, categoryId, expectedUpdatedAt, name }
+}
+
+export type CategoryOrderInput = {
+    financialAccountId: string
+    type: "EXPENSE" | "INCOME"
+    parentId: string | null
+    previousIds: string[]
+    orderedIds: string[]
+}
+
+export function validateCategoryOrder(
+    value: unknown
+): CategoryOrderInput | null {
+    if (!value || typeof value !== "object") return null
+    const input = value as Record<string, unknown>
+    const validId = (id: unknown): id is string =>
+        typeof id === "string" && id.length > 0 && id.length <= 128
+    const validIds = (ids: unknown): ids is string[] =>
+        Array.isArray(ids) &&
+        ids.length > 0 &&
+        ids.length <= 10000 &&
+        ids.every(validId) &&
+        new Set(ids).size === ids.length
+    if (
+        !validId(input.financialAccountId) ||
+        (input.type !== "EXPENSE" && input.type !== "INCOME") ||
+        (input.parentId !== null && !validId(input.parentId)) ||
+        !validIds(input.previousIds) ||
+        !validIds(input.orderedIds)
+    )
+        return null
+    const previous = new Set(input.previousIds)
+    if (
+        input.previousIds.length !== input.orderedIds.length ||
+        !input.orderedIds.every((id) => previous.has(id))
+    )
+        return null
+    return input as CategoryOrderInput
+}
+
+export function categoryOrderMatches(current: string[], previous: string[]) {
+    return (
+        current.length === previous.length &&
+        current.every((id, index) => id === previous[index])
+    )
+}
+
+/** Preserve saved sibling order while keeping each parent's children together. */
+export function categorySelectOptions(
+    categories: {
+        id: string
+        name: string
+        type: string
+        parentId: string | null
+    }[],
+    type: string
+) {
+    return categories
+        .filter((category) => category.type === type && !category.parentId)
+        .flatMap((root) => [
+            { value: root.id, label: root.name },
+            ...categories
+                .filter(
+                    (child) => child.parentId === root.id && child.type === type
+                )
+                .map((child) => ({
+                    value: child.id,
+                    label: `${root.name} / ${child.name}`,
+                })),
+        ])
+}

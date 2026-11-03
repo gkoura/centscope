@@ -207,6 +207,7 @@ model AccountWallet {
 }
 
 model Category {
+  sortOrder          Int              @default(0)
   id                 String           @id @default(cuid())
   financialAccountId String
   financialAccount   FinancialAccount @relation(fields: [financialAccountId], references: [id], onDelete: Restrict)
@@ -226,6 +227,7 @@ model Category {
   @@unique([id, financialAccountId])
   @@index([financialAccountId, type])
   @@index([parentId, financialAccountId])
+  @@index([financialAccountId, type, parentId, sortOrder])
   @@map("category")
 }
 

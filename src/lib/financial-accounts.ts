@@ -2,6 +2,7 @@ import "server-only"
 
 import { requireVerifiedSession } from "@/lib/auth/session"
 import { prisma } from "@/lib/prisma"
+import { defaultCategories } from "@/lib/category-input"
 
 const accountSelect = { id: true, name: true, reportingCurrency: true } as const
 
@@ -34,6 +35,18 @@ export async function createOwnedFinancialAccount(data: {
             reportingCurrency: data.reportingCurrency,
             ownerId: user.id,
             createdById: user.id,
+            categories: {
+                createMany: {
+                    data: defaultCategories.map((category) => ({
+                        ...category,
+                        sortOrder: defaultCategories
+                            .filter((c) => c.type === category.type)
+                            .map((c) => c.name)
+                            .sort()
+                            .indexOf(category.name),
+                    })),
+                },
+            },
         },
         select: { id: true },
     })

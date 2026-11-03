@@ -108,6 +108,7 @@ erDiagram
         DateTime createdAt
     }
     Category {
+        Int sortOrder
         String id PK
         String financialAccountId FK
         String name
