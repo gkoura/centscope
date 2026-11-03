@@ -156,3 +156,69 @@ export function categorySelectOptions(
                 })),
         ])
 }
+
+export type CategoryOrderBatchInput = {
+    financialAccountId: string
+    groups: Omit<CategoryOrderInput, "financialAccountId">[]
+}
+
+export function validateCategoryOrderBatch(
+    value: unknown
+): CategoryOrderBatchInput | null {
+    if (!value || typeof value !== "object") return null
+    const input = value as Record<string, unknown>
+    if (
+        !Array.isArray(input.groups) ||
+        !input.groups.length ||
+        input.groups.length > 1000
+    )
+        return null
+    const groups: CategoryOrderBatchInput["groups"] = []
+    const keys = new Set<string>()
+    for (const group of input.groups) {
+        if (!group || typeof group !== "object") return null
+        const parsed = validateCategoryOrder({
+            ...group,
+            financialAccountId: input.financialAccountId,
+        })
+        if (!parsed) return null
+        const key = JSON.stringify([parsed.type, parsed.parentId])
+        if (keys.has(key)) return null
+        keys.add(key)
+        const { type, parentId, previousIds, orderedIds } = parsed
+        groups.push({ type, parentId, previousIds, orderedIds })
+    }
+    return { financialAccountId: input.financialAccountId as string, groups }
+}
+
+type CategoryOrderRow = {
+    id: string
+    type: "EXPENSE" | "INCOME"
+    parentId: string | null
+}
+
+export function categoryOrderChanges(
+    original: CategoryOrderRow[],
+    draft: CategoryOrderRow[]
+): CategoryOrderBatchInput["groups"] {
+    const groups = new Map<string, CategoryOrderRow[]>()
+    for (const category of original) {
+        const key = JSON.stringify([category.type, category.parentId])
+        const siblings = groups.get(key) ?? []
+        siblings.push(category)
+        groups.set(key, siblings)
+    }
+    return [...groups.values()].flatMap((siblings) => {
+        const { type, parentId } = siblings[0]
+        const previousIds = siblings.map((category) => category.id)
+        const orderedIds = draft
+            .filter(
+                (category) =>
+                    category.type === type && category.parentId === parentId
+            )
+            .map((category) => category.id)
+        return categoryOrderMatches(previousIds, orderedIds)
+            ? []
+            : [{ type, parentId, previousIds, orderedIds }]
+    })
+}

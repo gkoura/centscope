@@ -4,15 +4,16 @@ import { revalidatePath } from "next/cache"
 import { Prisma } from "@/generated/prisma/client"
 import { requireVerifiedSession } from "@/lib/auth/session"
 import {
-    reorderOwnedCategories,
+    reorderOwnedCategoryGroups,
+    listOwnedAccountCategories,
     changeOwnedCategory,
     createOwnedCategory,
     deleteOwnedCategory,
     CategoryWriteError,
 } from "@/lib/categories"
 import {
-    validateCategoryOrder,
-    type CategoryOrderInput,
+    validateCategoryOrderBatch,
+    type CategoryOrderBatchInput,
     validCategoryName,
     validateCategoryEdit,
     validateCategoryInput,
@@ -115,21 +116,30 @@ export async function deleteCategory(
 }
 
 export async function reorderCategories(
-    raw: CategoryOrderInput
-): Promise<{ success: boolean; message?: string }> {
+    raw: CategoryOrderBatchInput
+): Promise<
+    | {
+          success: true
+          categories: Awaited<ReturnType<typeof listOwnedAccountCategories>>
+      }
+    | { success: false; message: string }
+> {
     await requireVerifiedSession()
-    const input = validateCategoryOrder(raw)
+    const input = validateCategoryOrderBatch(raw)
     if (!input)
         return {
             success: false,
             message: "Invalid category order. Refresh and try again.",
         }
     try {
-        await reorderOwnedCategories(input)
+        await reorderOwnedCategoryGroups(input)
     } catch (error) {
         refreshCategories(input.financialAccountId)
         return { success: false, message: errorMessage(error) }
     }
     refreshCategories(input.financialAccountId)
-    return { success: true }
+    return {
+        success: true,
+        categories: await listOwnedAccountCategories(input.financialAccountId),
+    }
 }

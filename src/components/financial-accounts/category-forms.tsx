@@ -241,7 +241,9 @@ export function CreateCategoryForm({
 export function CategoryEditor({
     financialAccountId,
     category,
+    disabled = false,
 }: {
+    disabled?: boolean
     financialAccountId: string
     category: {
         id: string
@@ -281,6 +283,7 @@ export function CategoryEditor({
         <Dialog>
             <DialogTrigger
                 render={<Button variant="ghost" size="sm" />}
+                disabled={disabled}
                 aria-label={`Edit ${category.name}`}
             >
                 <PencilIcon data-icon="inline-start" />

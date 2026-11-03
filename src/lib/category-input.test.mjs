@@ -137,3 +137,67 @@ test("transaction picker preserves saved sibling order and groups children with 
         { value: "income", label: "Salary" },
     ])
 })
+
+test("explicit ordering saves validate all sibling groups without duplicates", async () => {
+    const { validateCategoryOrderBatch } = await import("./category-input.ts")
+    const root = {
+        type: "EXPENSE",
+        parentId: null,
+        previousIds: ["a", "b"],
+        orderedIds: ["b", "a"],
+    }
+    const child = {
+        type: "EXPENSE",
+        parentId: "a",
+        previousIds: ["c", "d"],
+        orderedIds: ["d", "c"],
+    }
+    const input = { financialAccountId: "account", groups: [root, child] }
+    assert.deepEqual(validateCategoryOrderBatch(input), input)
+    for (const groups of [
+        [],
+        [root, root],
+        [root, { ...child, orderedIds: ["c", "foreign"] }],
+        [null],
+        ["invalid"],
+    ])
+        assert.equal(validateCategoryOrderBatch({ ...input, groups }), null)
+    assert.equal(
+        validateCategoryOrderBatch({ ...input, financialAccountId: "" }),
+        null
+    )
+})
+
+test("draft order batches only changed groups and recognizes inverse moves as clean", async () => {
+    const { categoryOrderChanges } = await import("./category-input.ts")
+    const original = [
+        { id: "a", type: "EXPENSE", parentId: null },
+        { id: "b", type: "EXPENSE", parentId: null },
+        { id: "c", type: "EXPENSE", parentId: "a" },
+        { id: "d", type: "EXPENSE", parentId: "a" },
+        { id: "i", type: "INCOME", parentId: null },
+    ]
+    assert.deepEqual(categoryOrderChanges(original, [...original]), [])
+    const draft = [
+        original[1],
+        original[0],
+        original[3],
+        original[2],
+        original[4],
+    ]
+    assert.deepEqual(categoryOrderChanges(original, draft), [
+        {
+            type: "EXPENSE",
+            parentId: null,
+            previousIds: ["a", "b"],
+            orderedIds: ["b", "a"],
+        },
+        {
+            type: "EXPENSE",
+            parentId: "a",
+            previousIds: ["c", "d"],
+            orderedIds: ["d", "c"],
+        },
+    ])
+    assert.deepEqual(categoryOrderChanges(original, original), [])
+})

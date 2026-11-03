@@ -4,7 +4,8 @@ import { requireVerifiedSession } from "@/lib/auth/session"
 import { prisma } from "@/lib/prisma"
 import {
     categoryOrderMatches,
-    validateCategoryOrder,
+    validateCategoryOrderBatch,
+    type CategoryOrderBatchInput,
     type CategoryOrderInput,
     type CategoryInput,
 } from "@/lib/category-input"
@@ -206,69 +207,84 @@ export async function deleteOwnedCategory(input: {
     )
 }
 
-export async function reorderOwnedCategories(raw: CategoryOrderInput) {
+async function applyCategoryOrder(
+    tx: Prisma.TransactionClient,
+    input: CategoryOrderInput
+) {
+    if (input.parentId) {
+        const parent = await tx.category.findFirst({
+            where: {
+                id: input.parentId,
+                financialAccountId: input.financialAccountId,
+                type: input.type,
+                parentId: null,
+                archivedAt: null,
+            },
+            select: { id: true },
+        })
+        if (!parent)
+            throw new CategoryWriteError(
+                "This parent category is unavailable. Refresh and try again."
+            )
+    }
+    const siblings = await tx.category.findMany({
+        where: {
+            financialAccountId: input.financialAccountId,
+            type: input.type,
+            parentId: input.parentId,
+            archivedAt: null,
+        },
+        select: { id: true, sortOrder: true, updatedAt: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }, { id: "asc" }],
+    })
+    if (
+        !categoryOrderMatches(
+            siblings.map((c) => c.id),
+            input.previousIds
+        )
+    )
+        throw new CategoryWriteError(
+            "These categories changed in another session. Cancel your draft to load the latest order, then try again."
+        )
+    if (categoryOrderMatches(input.orderedIds, input.previousIds)) return
+    const byId = new Map(siblings.map((c) => [c.id, c]))
+    for (const [sortOrder, id] of input.orderedIds.entries()) {
+        const category = byId.get(id)!
+        if (category.sortOrder !== sortOrder)
+            await tx.category.update({
+                where: { id },
+                data: {
+                    sortOrder,
+                    updatedAt: new Date(
+                        Math.max(Date.now(), category.updatedAt.getTime() + 1)
+                    ),
+                },
+            })
+    }
+}
+
+export async function reorderOwnedCategories(input: CategoryOrderInput) {
+    return reorderOwnedCategoryGroups({
+        financialAccountId: input.financialAccountId,
+        groups: [input],
+    })
+}
+
+export async function reorderOwnedCategoryGroups(raw: CategoryOrderBatchInput) {
     const { user } = await requireVerifiedSession()
-    const input = validateCategoryOrder(raw)
+    const input = validateCategoryOrderBatch(raw)
     if (!input)
         throw new CategoryWriteError(
-            "Invalid category order. Refresh the page and try again."
+            "Invalid category order. Cancel your draft and try again."
         )
     await prisma.$transaction(
         async (tx) => {
             await lockAccount(tx, input.financialAccountId, user.id)
-            if (input.parentId) {
-                const parent = await tx.category.findFirst({
-                    where: {
-                        id: input.parentId,
-                        financialAccountId: input.financialAccountId,
-                        type: input.type,
-                        parentId: null,
-                        archivedAt: null,
-                    },
-                    select: { id: true },
-                })
-                if (!parent)
-                    throw new CategoryWriteError(
-                        "This parent category is unavailable. Refresh and try again."
-                    )
-            }
-            const siblings = await tx.category.findMany({
-                where: {
+            for (const group of input.groups) {
+                await applyCategoryOrder(tx, {
+                    ...group,
                     financialAccountId: input.financialAccountId,
-                    type: input.type,
-                    parentId: input.parentId,
-                    archivedAt: null,
-                },
-                select: { id: true, sortOrder: true, updatedAt: true },
-                orderBy: [{ sortOrder: "asc" }, { name: "asc" }, { id: "asc" }],
-            })
-            if (
-                !categoryOrderMatches(
-                    siblings.map((c) => c.id),
-                    input.previousIds
-                )
-            )
-                throw new CategoryWriteError(
-                    "These categories changed. The latest order has been loaded; please try again."
-                )
-            if (categoryOrderMatches(input.orderedIds, input.previousIds))
-                return
-            const byId = new Map(siblings.map((c) => [c.id, c]))
-            for (const [sortOrder, id] of input.orderedIds.entries()) {
-                const category = byId.get(id)!
-                if (category.sortOrder !== sortOrder)
-                    await tx.category.update({
-                        where: { id },
-                        data: {
-                            sortOrder,
-                            updatedAt: new Date(
-                                Math.max(
-                                    Date.now(),
-                                    category.updatedAt.getTime() + 1
-                                )
-                            ),
-                        },
-                    })
+                })
             }
         },
         { timeout: 15000 }

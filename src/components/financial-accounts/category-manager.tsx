@@ -54,6 +54,7 @@ import {
     type DragOverEvent,
 } from "@dnd-kit/dom"
 import { reorderCategories } from "@/app/dashboard/accounts/[id]/categories/actions"
+import { categoryOrderChanges } from "@/lib/category-input"
 import { SortableCategory, CategoryDragHandle } from "./sortable-category"
 
 type Category = CategoryChoice & { updatedAt: string }
@@ -68,14 +69,23 @@ export function CategoryManager({
 }) {
     const router = useRouter()
     const baseline = JSON.stringify(serverCategories)
-    const [optimistic, setOptimistic] = useState<{
+    const [draft, setDraft] = useState<{
+        original: Category[]
+        categories: Category[]
+    } | null>(null)
+    const [confirmed, setConfirmed] = useState<{
         baseline: string
         categories: Category[]
     } | null>(null)
-    const categories =
-        optimistic?.baseline === baseline
-            ? optimistic.categories
+    const savedCategories =
+        confirmed?.baseline === baseline
+            ? confirmed.categories
             : serverCategories
+    const categories = draft?.categories ?? savedCategories
+    const changes = draft
+        ? categoryOrderChanges(draft.original, draft.categories)
+        : []
+    const dirty = changes.length > 0
     const [saving, setSaving] = useState(false)
     const savingRef = useRef(false)
     const [orderStatus, setOrderStatus] = useState("")
@@ -104,64 +114,65 @@ export function CategoryManager({
         orderedIds.splice(source.index, 0, moved)
         const byId = new Map(siblings.map((c) => [c.id, c]))
         let nextIndex = 0
-        savingRef.current = true
-        // Commit outside dnd-kit's transition so its renderer can finish the drop.
+        const nextCategories = categories.map((c) =>
+            c.type === category.type && c.parentId === category.parentId
+                ? byId.get(orderedIds[nextIndex++])!
+                : c
+        )
+        const original = draft?.original ?? savedCategories
+        // Commit the draft immediately; dropping never waits on the network.
         flushSync(() => {
-            setOptimistic({
-                baseline,
-                categories: categories.map((c) =>
-                    c.type === category.type && c.parentId === category.parentId
-                        ? byId.get(orderedIds[nextIndex++])!
-                        : c
-                ),
-            })
-            setSaving(true)
-            setOrderStatus("Saving…")
+            setDraft(
+                categoryOrderChanges(original, nextCategories).length
+                    ? { original, categories: nextCategories }
+                    : null
+            )
+            setOrderStatus("")
         })
-        // A server action started inside the drag transition entangles its
-        // rendering promise with the network request. Save in a separate task.
-        setTimeout(() => {
-            void persistOrder()
-        }, 0)
-        const persistOrder = async () => {
-            let failureMessage = "Couldn’t save the order. Please try again."
-            try {
-                const result = await reorderCategories({
-                    financialAccountId,
-                    type: category.type,
-                    parentId: category.parentId,
-                    previousIds,
-                    orderedIds,
-                })
-                if (!result.success) {
-                    failureMessage = result.message ?? failureMessage
-                    throw new Error(failureMessage)
-                }
-                setOrderStatus("Order saved")
-            } catch {
-                setOptimistic(null)
-                // dnd-kit reorders DOM optimistically. Rebuild the list on failure
-                // even if React batched away the temporary optimistic state.
-                setListRevision((revision) => revision + 1)
-                setOrderStatus(failureMessage)
-                toast.error(failureMessage)
-                router.refresh()
-            } finally {
-                savingRef.current = false
-                setSaving(false)
-                requestAnimationFrame(() =>
-                    document
-                        .querySelector<HTMLElement>(
-                            `[data-category-drag-handle="${CSS.escape(category.id)}"]`
-                        )
-                        ?.focus()
-                )
+    }
+    function cancelOrder() {
+        if (savingRef.current) return
+        setDraft(null)
+        // Reset the drag library's optimistic DOM as well as the React draft.
+        setListRevision((revision) => revision + 1)
+        setOrderStatus("Changes canceled")
+        requestAnimationFrame(() =>
+            document
+                .querySelector<HTMLElement>("[data-category-drag-handle]")
+                ?.focus()
+        )
+    }
+    async function saveOrder() {
+        if (!dirty || savingRef.current) return
+        savingRef.current = true
+        setSaving(true)
+        setOrderStatus("Saving…")
+        let failureMessage =
+            "Couldn’t save the order. Your changes are kept; try again."
+        try {
+            const result = await reorderCategories({
+                financialAccountId,
+                groups: changes,
+            })
+            if (!result.success) {
+                failureMessage = result.message
+                throw new Error(failureMessage)
             }
+            setConfirmed({ baseline, categories: result.categories })
+            setDraft(null)
+            setOrderStatus("Order saved")
+        } catch {
+            setOrderStatus(failureMessage)
+            toast.error(failureMessage)
+            router.refresh()
+        } finally {
+            savingRef.current = false
+            setSaving(false)
         }
     }
     const [type, setType] = useState<CategoryType>("EXPENSE")
     const [query, setQuery] = useState("")
-    const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+    const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
     const [creating, setCreating] = useState<{
         type: CategoryType
         parentId?: string
@@ -188,8 +199,10 @@ export function CategoryManager({
             c.type === type && (matches(c) || children.get(c.id)?.some(matches))
     )
     const currentRoots = roots.filter((c) => c.type === type)
+    const expandableRoots = currentRoots.filter((c) => children.has(c.id))
+    const allCollapsed = expandableRoots.every((c) => !expandedIds.has(c.id))
     function toggle(id: string) {
-        setCollapsed((previous) => {
+        setExpandedIds((previous) => {
             const next = new Set(previous)
             if (next.has(id)) next.delete(id)
             else next.add(id)
@@ -199,6 +212,7 @@ export function CategoryManager({
 
     return (
         <DragDropProvider
+            key={`${type}-${listRevision}`}
             sensors={[
                 PointerSensor.configure({
                     activationConstraints: (event) =>
@@ -260,7 +274,11 @@ export function CategoryManager({
                             </p>
                         </div>
                     </div>
-                    <Button size="lg" onClick={() => setCreating({ type })}>
+                    <Button
+                        size="lg"
+                        disabled={dirty || saving}
+                        onClick={() => setCreating({ type })}
+                    >
                         <Plus data-icon="inline-start" />
                         New category
                     </Button>
@@ -269,12 +287,43 @@ export function CategoryManager({
                     <p id="category-reorder-help">
                         {search
                             ? "Clear search to reorder categories."
-                            : "Drag the grip to reorder. Use Space and arrow keys with a keyboard."}
+                            : "Drag to reorder, then save your changes. Use Space and arrow keys with a keyboard."}
                     </p>
                     <p role="status" aria-live="polite">
                         {orderStatus}
                     </p>
                 </div>
+                {dirty && (
+                    <section
+                        aria-label="Unsaved category order"
+                        className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-muted p-4"
+                    >
+                        <div>
+                            <p className="text-sm font-medium">
+                                Unsaved category order
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Save or cancel your order before adding or
+                                editing categories.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                disabled={saving}
+                                onClick={cancelOrder}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                disabled={saving}
+                                onClick={() => void saveOrder()}
+                            >
+                                {saving ? "Saving…" : "Save order"}
+                            </Button>
+                        </div>
+                    </section>
+                )}
                 <Tabs
                     value={type}
                     onValueChange={(value) => setType(value as CategoryType)}
@@ -347,34 +396,31 @@ export function CategoryManager({
                                         ? " matching your search"
                                         : ` for ${type === "EXPENSE" ? "money out" : "money in"}`}
                                 </p>
-                                {!search &&
-                                    currentRoots.some((c) =>
-                                        children.has(c.id)
-                                    ) && (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() =>
-                                                setCollapsed(
-                                                    currentRoots.every((c) =>
-                                                        collapsed.has(c.id)
-                                                    )
-                                                        ? new Set()
-                                                        : new Set(
-                                                              currentRoots.map(
-                                                                  (c) => c.id
-                                                              )
-                                                          )
-                                                )
-                                            }
-                                        >
-                                            {currentRoots.every((c) =>
-                                                collapsed.has(c.id)
-                                            )
-                                                ? "Expand all"
-                                                : "Collapse all"}
-                                        </Button>
-                                    )}
+                                {!search && expandableRoots.length > 0 && (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() =>
+                                            setExpandedIds((previous) => {
+                                                const next = new Set(previous)
+                                                for (const root of expandableRoots) {
+                                                    if (allCollapsed)
+                                                        next.add(root.id)
+                                                    else next.delete(root.id)
+                                                }
+                                                return next
+                                            })
+                                        }
+                                    >
+                                        <Layers
+                                            data-icon="inline-start"
+                                            aria-hidden="true"
+                                        />
+                                        {allCollapsed
+                                            ? "Expand all"
+                                            : "Collapse all"}
+                                    </Button>
+                                )}
                             </div>
                             {visible.length ? (
                                 <ul
@@ -390,7 +436,7 @@ export function CategoryManager({
                                                 : allChildren
                                         const expanded =
                                             Boolean(search) ||
-                                            !collapsed.has(root.id)
+                                            expandedIds.has(root.id)
                                         return (
                                             <SortableCategory
                                                 key={root.id}
@@ -458,6 +504,9 @@ export function CategoryManager({
                                                                         root.id,
                                                                 })
                                                             }
+                                                            disabled={
+                                                                dirty || saving
+                                                            }
                                                             aria-label={`Add subcategory to ${root.name}`}
                                                         >
                                                             <Plus data-icon="inline-start" />
@@ -466,6 +515,9 @@ export function CategoryManager({
                                                             </span>
                                                         </Button>
                                                         <CategoryEditor
+                                                            disabled={
+                                                                dirty || saving
+                                                            }
                                                             key={root.updatedAt}
                                                             financialAccountId={
                                                                 financialAccountId
@@ -531,6 +583,10 @@ export function CategoryManager({
                                                                         </span>
                                                                     </div>
                                                                     <CategoryEditor
+                                                                        disabled={
+                                                                            dirty ||
+                                                                            saving
+                                                                        }
                                                                         key={
                                                                             child.updatedAt
                                                                         }
@@ -571,6 +627,9 @@ export function CategoryManager({
                                         <Button
                                             variant={
                                                 search ? "outline" : "default"
+                                            }
+                                            disabled={
+                                                !search && (dirty || saving)
                                             }
                                             onClick={() =>
                                                 search

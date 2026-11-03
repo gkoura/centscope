@@ -67,13 +67,11 @@ export function SortableCategory({
         plugins: (defaults) => [
             ...defaults,
             Feedback.configure({
-                dropAnimation:
-                    reduced || keyboard
-                        ? null
-                        : {
-                              duration: 160,
-                              easing: "cubic-bezier(0.23, 1, 0.32, 1)",
-                          },
+                // A drop tween waits for dnd-kit's React renderer, which can
+                // remain pending while a server action revalidates the page.
+                // The list already previews the destination during the drag;
+                // release that preview immediately instead of holding a clone.
+                dropAnimation: null,
                 keyboardTransition: null,
             }),
         ],
