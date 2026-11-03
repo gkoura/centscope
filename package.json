@@ -11,7 +11,7 @@
         "format": "prettier --write \"**/*.{ts,tsx}\"",
         "typecheck": "tsc --noEmit",
         "test:wallet": "node --experimental-strip-types --test src/lib/wallet-input.test.mjs",
-        "test:finance": "node --experimental-strip-types --test src/lib/wallet-input.test.mjs src/lib/category-input.test.mjs src/lib/transaction-input.test.mjs",
+        "test:finance": "node --experimental-strip-types --test src/lib/wallet-input.test.mjs src/lib/category-input.test.mjs src/lib/transaction-input.test.mjs src/lib/transaction-import.test.mjs src/lib/transaction-import-batch.test.mjs",
         "generate:page": "node scripts/generate-page.mjs",
         "db:generate": "prisma generate",
         "db:migrate": "prisma migrate dev",

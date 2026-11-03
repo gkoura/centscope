@@ -76,7 +76,7 @@ Prisma validation checks schema structure, not these business invariants. Implem
 - Invitation delivery/acceptance (memberships currently reference existing users).
 - Category-specific spending caps inside a period; category inclusion filters are present.
 - FX provider/cache, account reporting conversions, background recurrence execution, transaction editing/deletion and transfers.
-- Refund/reporting semantics, bank reconciliation/imports, and split transactions.
+- Refund/reporting semantics, bank reconciliation/source-specific imports, and split transactions.
 
 Unimplemented FX, wallet sharing, history corrections and broader audit policies remain reviewable draft choices. The implemented account ownership and wallet/opening-balance behavior is documented above.
 
@@ -88,3 +88,11 @@ Unimplemented FX, wallet sharing, history corrections and broader audit policies
 - Newly created categories append to their active sibling group under that lock. Default categories start in alphabetical order within their type. Reordering never changes a category's parent or type. Archive/delete can leave gaps; the next reorder normalizes positions.
 
 - Category ordering now uses an explicit draft/save workflow. A Save order request can include multiple sibling groups (across types and parents); all are checked and written under one account lock and one transaction. A conflict in any group rolls back the entire batch. Dragging and canceling do not write to the database.
+
+
+## Incremental CSV imports (2026-11-03)
+
+- Import validation accepts up to 2,000 rows and 2 MB before issuing user/account-bound signed batches, each expiring after 24 hours. The file remains in client memory; no import-job schema or external queue is required.
+- Each batch contains at most 50 rows and runs in its own database transaction under the financial-account lock. Wallet ownership/archive state and category type/archive state are checked again for new rows. Transaction, ledger and CREATED audit records use bulk inserts and commit together; a batch failure rolls back that batch only. Earlier batches remain committed.
+- Each row keeps the existing creator-scoped `manual:<UUID>` idempotency key derived from account, exact CSV bytes and row position. Original CREATED request fingerprints are compared on retries, including after transaction edits/status changes. Identical replays skip saved rows before checking whether their old category/wallet remains active. Changed CSV files are new imports and may overlap prior files.
+- Client progress advances only after confirming a committed batch. If a response is lost, retrying the uncertain batch is safe. Pause finishes the in-flight batch; reload/closing stops future batches, and re-uploading the exact same file resumes by skipping saved rows. Imports do not run in the background after the browser closes. No database model or migration changed.

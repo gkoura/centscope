@@ -60,9 +60,7 @@ export function DatePicker({
                     />
                 </PopoverTrigger>
                 <PopoverContent align="start" className="w-auto p-0">
-                    <PopoverTitle className="sr-only">
-                        Choose balance date
-                    </PopoverTitle>
+                    <PopoverTitle className="sr-only">Choose date</PopoverTitle>
                     <Calendar
                         mode="single"
                         required

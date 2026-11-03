@@ -1,3 +1,4 @@
+import { listOwnedTransactionSuggestions } from "@/lib/transactions"
 import { randomUUID } from "node:crypto"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -20,17 +21,18 @@ export async function TransactionContent({
     const { id } = await params
     const account = await getOwnedFinancialAccount(id)
     if (!account) notFound()
-    const [wallets, categories] = await Promise.all([
+    const [wallets, categories, suggestions] = await Promise.all([
         listOwnedAccountWallets(account.id),
         listOwnedAccountCategories(account.id),
+        listOwnedTransactionSuggestions(account.id),
     ])
     return (
         <>
             <Link
-                href={`/dashboard/accounts/${account.id}`}
+                href={`/dashboard/accounts/${account.id}/transactions`}
                 className="text-sm underline underline-offset-4"
             >
-                Back to account
+                Back to transactions
             </Link>
             <Card>
                 <CardHeader>
@@ -50,6 +52,7 @@ export async function TransactionContent({
                                 currency,
                             }))}
                             categories={categories}
+                            suggestions={suggestions}
                         />
                     ) : (
                         <p className="text-sm">

@@ -5,6 +5,7 @@ import { Brand } from "./brand"
 import { ThemeToggle } from "./theme-toggle"
 import { SignOutButton } from "@/components/auth/sign-out-button"
 import {
+    MobileTransactionLink,
     WorkspaceNavigation,
     WorkspaceNavigationFallback,
 } from "./workspace-navigation"
@@ -52,6 +53,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     aria-label="Mobile workspace navigation"
                     className="flex gap-5 overflow-x-auto border-b px-5 py-3 text-xs md:hidden"
                 >
+                    <Suspense fallback={null}>
+                        <MobileTransactionLink />
+                    </Suspense>
                     <Link href="/dashboard">Overview</Link>
                     <Link href="/dashboard/accounts/new">Create account</Link>
                     <Link href="/settings/security">Security</Link>

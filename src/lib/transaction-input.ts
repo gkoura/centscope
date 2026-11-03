@@ -96,9 +96,7 @@ export function validateTransactionInput(
     return { data: { ...values, amount } as TransactionInput }
 }
 
-export function validateStatusInput(
-    form: FormData
-): {
+export function validateStatusInput(form: FormData): {
     financialAccountId: string
     transactionId: string
     status: "POSTED" | "PENDING"
@@ -124,4 +122,13 @@ export function validateStatusInput(
         status,
         expectedVersion: Number(version),
     }
+}
+
+export type TransactionSuggestion = {
+    id: string
+    name: string
+    type: "EXPENSE" | "INCOME"
+    categoryId: string
+    subcategoryId: string | null
+    categoryLabel: string
 }
