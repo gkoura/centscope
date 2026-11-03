@@ -1,6 +1,13 @@
 # Domain schema draft
 
-Status: first review draft, 2026-11-02. Formatted and validated with installed Prisma 7. No migration generated or applied.
+Status: domain draft with first approved slice implemented, 2026-11-03. Migration `20261103120000_financial_accounts` creates only `financial_account`; the remaining domain models are not migrated. Authentication tables remain unchanged. Do not use `db push` or blindly generate a full-schema migration: that would introduce the deferred domain draft.
+
+## Implemented financial-account slice
+
+- The current user becomes both owner and creator; these IDs are derived exclusively from the verified server session. Listing and detail queries require current ownership and exclude archived accounts. Non-owner memberships, invitations, and ownership transfer remain deferred.
+- Names are trimmed and validated on the server (1–80 characters; no control/format characters). The database adds `financial_account_name_check` for trimmed length and `financial_account_currency_check` for three uppercase ASCII currency letters. These CHECK constraints are not represented in Prisma.
+- Creation currently offers EUR, GBP, and USD. Reporting currency is stored as account metadata; no exchange rates, converted totals, wallets, or balances are implemented.
+- Owner and creator foreign keys use RESTRICT on deletion. No account deletion or user deletion flow is added by this slice.
 
 ## Reading the model
 

@@ -3,7 +3,6 @@
 import type { ListDeviceSession } from "@better-auth-ui/core/plugins/multi-session"
 import type { OAuthProviderMultiSessionAuthClient } from "@better-auth-ui/core/plugins/oauth-provider"
 import {
-  type OAuthAuthorizationRequest,
   parseOAuthAuthorizationRequest,
   sanitizeOAuthClientUrl
 } from "@better-auth-ui/core/plugins/oauth-provider"
@@ -17,7 +16,8 @@ import {
   usePublicOAuthClient
 } from "@better-auth-ui/react/plugins/oauth-provider"
 import { ShieldCheck, ChevronRight } from "lucide-react"
-import { useEffect, useState } from "react"
+import { Suspense, useState } from "react"
+import { useSearchParams } from "next/navigation"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -53,18 +53,23 @@ const interpolateClient = (template: string, clientName: string) =>
  * This screen deliberately has no sign-out or revoke actions — session
  * management belongs in security settings.
  */
-export function OAuthSelectAccount({ className }: OAuthSelectAccountProps) {
+export function OAuthSelectAccount(props: OAuthSelectAccountProps) {
+  return (
+    <Suspense fallback={<Spinner className="mx-auto" />}>
+      <OAuthSelectAccountContent {...props} />
+    </Suspense>
+  )
+}
+
+function OAuthSelectAccountContent({ className }: OAuthSelectAccountProps) {
   const { authClient } = useAuth()
   const { localization } = useAuthPlugin(oauthProviderPlugin)
   const oauthClient = authClient as OAuthProviderMultiSessionAuthClient
 
   const { data: session, isPending: isSessionPending } = useSession(oauthClient)
-  const [request, setRequest] = useState<OAuthAuthorizationRequest>()
+  const searchParams = useSearchParams()
+  const request = parseOAuthAuthorizationRequest(searchParams.toString())
   const [pendingSessionId, setPendingSessionId] = useState<string>()
-
-  useEffect(() => {
-    setRequest(parseOAuthAuthorizationRequest(window.location.search))
-  }, [])
 
   const publicClient = usePublicOAuthClient(oauthClient, request?.clientId, {
     enabled: Boolean(session && request?.clientId)
@@ -79,9 +84,7 @@ export function OAuthSelectAccount({ className }: OAuthSelectAccountProps) {
   const setActiveSession = useSetActiveSession(oauthClient)
   const oauthContinue = useOAuthContinue(oauthClient)
 
-  const requestResolved = request !== undefined
   const invalidRequest =
-    requestResolved &&
     (!request.clientId ||
       (!isSessionPending && !session) ||
       publicClient.isError ||
@@ -148,7 +151,7 @@ export function OAuthSelectAccount({ className }: OAuthSelectAccountProps) {
             <Skeleton className="size-16 rounded-full" />
           )}
           {client ? (
-            <p className="max-w-full break-words text-base font-medium">
+            <p className="max-w-full wrap-break-word text-base font-medium">
               {clientName}
             </p>
           ) : (
@@ -205,7 +208,7 @@ export function OAuthSelectAccount({ className }: OAuthSelectAccountProps) {
                       user={deviceSession.user}
                     />
                     <span className="grid min-w-0 flex-1 gap-0.5">
-                      <span className="break-words text-base font-medium">
+                      <span className="wrap-break-word text-base font-medium">
                         {deviceSession.user.name || deviceSession.user.email}
                       </span>
                       {deviceSession.user.name ? (
