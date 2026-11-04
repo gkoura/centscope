@@ -19,3 +19,7 @@ To use the components in your app, import them as follows:
 ```tsx
 import { Button } from "@/components/ui/button"
 ```
+
+## Tests
+
+Unit tests live in [`tests/unit`](tests/unit). See the [testing guide](tests/README.md) for coverage, conventions, and commands to run when needed.

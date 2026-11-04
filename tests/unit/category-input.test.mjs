@@ -5,7 +5,7 @@ import {
     parseSubcategoryNames,
     validateCategoryInput,
     validateCategoryEdit,
-} from "./category-input.ts"
+} from "../../src/lib/category-input.ts"
 
 function form(fields) {
     const data = new FormData()
@@ -82,7 +82,7 @@ test("editing requires a valid optimistic timestamp and resource IDs", () => {
 })
 
 test("category order only accepts complete duplicate-free permutations", async () => {
-    const { validateCategoryOrder } = await import("./category-input.ts")
+    const { validateCategoryOrder } = await import("../../src/lib/category-input.ts")
     const input = {
         financialAccountId: "account",
         type: "EXPENSE",
@@ -111,7 +111,7 @@ test("category order only accepts complete duplicate-free permutations", async (
 })
 
 test("optimistic order comparison detects changed order and group membership", async () => {
-    const { categoryOrderMatches } = await import("./category-input.ts")
+    const { categoryOrderMatches } = await import("../../src/lib/category-input.ts")
     assert.equal(categoryOrderMatches(["a", "b"], ["a", "b"]), true)
     assert.equal(categoryOrderMatches(["b", "a"], ["a", "b"]), false)
     assert.equal(categoryOrderMatches(["a"], ["a", "b"]), false)
@@ -120,7 +120,7 @@ test("optimistic order comparison detects changed order and group membership", a
 })
 
 test("transaction picker preserves saved sibling order and groups children with their parent", async () => {
-    const { categorySelectOptions } = await import("./category-input.ts")
+    const { categorySelectOptions } = await import("../../src/lib/category-input.ts")
     const rows = [
         { id: "z", name: "Travel", type: "EXPENSE", parentId: null },
         { id: "child-z", name: "Trains", type: "EXPENSE", parentId: "z" },
@@ -140,7 +140,7 @@ test("transaction picker preserves saved sibling order and groups children with 
 })
 
 test("explicit ordering saves validate all sibling groups without duplicates", async () => {
-    const { validateCategoryOrderBatch } = await import("./category-input.ts")
+    const { validateCategoryOrderBatch } = await import("../../src/lib/category-input.ts")
     const root = {
         type: "EXPENSE",
         parentId: null,
@@ -170,7 +170,7 @@ test("explicit ordering saves validate all sibling groups without duplicates", a
 })
 
 test("draft order batches only changed groups and recognizes inverse moves as clean", async () => {
-    const { categoryOrderChanges } = await import("./category-input.ts")
+    const { categoryOrderChanges } = await import("../../src/lib/category-input.ts")
     const original = [
         { id: "a", type: "EXPENSE", parentId: null },
         { id: "b", type: "EXPENSE", parentId: null },

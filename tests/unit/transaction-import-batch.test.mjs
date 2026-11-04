@@ -3,11 +3,11 @@ import assert from "node:assert/strict"
 import {
     createImportPlan,
     verifyImportBatch,
-} from "./transaction-import-plan.ts"
+} from "../../src/lib/transaction-import-plan.ts"
 import {
     processImportPlan,
     importProgress,
-} from "./transaction-import-runner.ts"
+} from "../../src/lib/transaction-import-runner.ts"
 const secret = "test-only-import-signature-key"
 const row = {
     financialAccountId: "account",

@@ -3,7 +3,7 @@ import assert from "node:assert/strict"
 import {
     validateTransactionInput,
     validateStatusInput,
-} from "./transaction-input.ts"
+} from "../../src/lib/transaction-input.ts"
 
 function form(overrides = {}) {
     const data = new FormData()
@@ -82,5 +82,32 @@ test("status writes require explicit status and bounded positive version", () =>
     for (const version of ["0", "-1", "1.5", "2147483647", "NaN"]) {
         data.set("expectedVersion", version)
         assert.equal(validateStatusInput(data), null)
+    }
+})
+
+test("delete references require bounded account/transaction IDs and a positive version without a status", async () => {
+    const { validateTransactionReference } =
+        await import("../../src/lib/transaction-input.ts")
+    const valid = new FormData()
+    valid.set("financialAccountId", "account")
+    valid.set("transactionId", "transaction")
+    valid.set("expectedVersion", "2")
+    assert.deepEqual(validateTransactionReference(valid), {
+        financialAccountId: "account",
+        transactionId: "transaction",
+        expectedVersion: 2,
+    })
+    for (const [field, value] of [
+        ["financialAccountId", ""],
+        ["transactionId", "x".repeat(129)],
+        ["expectedVersion", "0"],
+        ["expectedVersion", "-1"],
+        ["expectedVersion", "1.5"],
+        ["expectedVersion", "2147483647"],
+    ]) {
+        const malformed = new FormData()
+        for (const [key, entry] of valid) malformed.set(key, entry)
+        malformed.set(field, value)
+        assert.equal(validateTransactionReference(malformed), null)
     }
 })

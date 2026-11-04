@@ -3,8 +3,9 @@ import assert from "node:assert/strict"
 import {
     parseOpeningBalance,
     validateWalletInput,
+    validateWalletDetails,
     formatWalletMoney,
-} from "./wallet-input.ts"
+} from "../../src/lib/wallet-input.ts"
 
 function input(overrides = {}) {
     const data = new FormData()
@@ -85,4 +86,55 @@ test("formats balances without floating-point rounding or losing a negative frac
     )
     assert.match(formatWalletMoney("-0.01", "GBP"), /-GBP\s0\.01/)
     assert.match(formatWalletMoney("0.00", "USD"), /USD\s0\.00/)
+})
+
+function editInput(overrides = {}) {
+    return input({
+        accountWalletId: "allocation",
+        expectedUpdatedAt: "2026-11-03T12:00:00.000Z",
+        expectedOpeningId: "opening",
+        expectedOpeningVersion: "3",
+        ...overrides,
+    })
+}
+test("opening edits preserve exact positive, negative and zero amounts with explicit date-independent statuses", () => {
+    for (const amount of ["-0.25", "0", "125.5", "9999999999999999.99"]) {
+        const parsed = validateWalletDetails(
+            editInput({
+                openingBalance: amount,
+                openingDate: "2099-12-31",
+                openingStatus: "POSTED",
+            })
+        )
+        assert.equal(parsed?.openingBalance, parseOpeningBalance(amount))
+        assert.equal(parsed?.openingStatus, "POSTED")
+        assert.equal(parsed?.expectedOpeningVersion, 3)
+    }
+    const missing = validateWalletDetails(
+        editInput({
+            expectedOpeningId: "",
+            expectedOpeningVersion: "",
+            openingBalance: "25",
+            openingStatus: "PENDING",
+        })
+    )
+    assert.equal(missing?.expectedOpeningId, null)
+    assert.equal(missing?.expectedOpeningVersion, null)
+    assert.equal(missing?.openingBalance, "25.00")
+})
+test("opening edits reject invalid amounts, impossible dates and incomplete or malformed optimistic references", () => {
+    for (const overrides of [
+        { openingBalance: "" },
+        { openingBalance: "1.001" },
+        { openingBalance: "NaN" },
+        { openingDate: "2026-02-30" },
+        { openingStatus: "SCHEDULED" },
+        { expectedOpeningId: "", expectedOpeningVersion: "1" },
+        { expectedOpeningVersion: "" },
+        { expectedOpeningVersion: "0" },
+        { expectedOpeningVersion: "2147483647" },
+        { expectedUpdatedAt: "yesterday" },
+    ]) {
+        assert.equal(validateWalletDetails(editInput(overrides)), null)
+    }
 })

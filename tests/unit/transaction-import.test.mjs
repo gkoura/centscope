@@ -4,8 +4,8 @@ import {
     parseCsv,
     previewTransactionImport,
     importColumns,
-} from "./transaction-import.ts"
-import { parseTransactionFilters } from "./transaction-filters.ts"
+} from "../../src/lib/transaction-import.ts"
+import { parseTransactionFilters } from "../../src/lib/transaction-filters.ts"
 const wallets = [{ id: "wallet", name: "Everyday wallet", currency: "EUR" }]
 const categories = [
     { id: "food", name: "Food & drink", type: "EXPENSE", parentId: null },
