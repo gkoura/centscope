@@ -3,7 +3,7 @@ import { notFound } from "next/navigation"
 import { getOwnedFinancialAccount } from "@/lib/financial-accounts"
 import { cache } from "react"
 import { listOwnedAccountWallets } from "@/lib/wallets"
-import { formatWalletMoney, walletTypes } from "@/lib/wallet-input"
+import { WalletCards } from "@/components/financial-accounts/wallet-cards"
 import { PlusIcon, WalletIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -89,65 +89,11 @@ export async function AccountWallets({ params }: { params: AccountParams }) {
                 ) : null}
             </div>
             {wallets.length ? (
-                <ul className="grid min-w-0 gap-4 sm:grid-cols-2">
-                    {wallets.map((wallet) => (
-                        <li key={wallet.id} className="min-w-0">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>
-                                        <h3 className="break-words">
-                                            {wallet.name}
-                                        </h3>
-                                    </CardTitle>
-                                    <CardDescription>
-                                        {
-                                            walletTypes.find(
-                                                ({ value }) =>
-                                                    value === wallet.type
-                                            )?.label
-                                        }{" "}
-                                        · {wallet.currency}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex flex-col gap-3">
-                                    <div className="flex flex-col gap-1">
-                                        <p className="text-sm text-muted-foreground">
-                                            Posted balance
-                                        </p>
-                                        <p className="text-xl font-semibold break-words tabular-nums">
-                                            {formatWalletMoney(
-                                                wallet.balance,
-                                                wallet.currency
-                                            )}
-                                        </p>
-                                    </div>
-                                    {wallet.opening ? (
-                                        <div className="flex flex-col items-start gap-2">
-                                            <Badge variant="secondary">
-                                                {wallet.opening.status ===
-                                                "POSTED"
-                                                    ? "Posted"
-                                                    : "Pending"}{" "}
-                                                opening balance
-                                            </Badge>
-                                            <p className="text-sm text-muted-foreground">
-                                                {formatWalletMoney(
-                                                    wallet.opening.amount,
-                                                    wallet.currency
-                                                )}{" "}
-                                                · {wallet.opening.date}
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <p className="text-sm text-muted-foreground">
-                                            Started at zero.
-                                        </p>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </li>
-                    ))}
-                </ul>
+                <WalletCards
+                    financialAccountId={account.id}
+                    wallets={wallets}
+                    today={new Date().toISOString().slice(0, 10)}
+                />
             ) : (
                 <Empty className="border py-10">
                     <EmptyHeader>

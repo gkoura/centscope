@@ -138,7 +138,7 @@ export function CategoryManager({
         setOrderStatus("Changes canceled")
         requestAnimationFrame(() =>
             document
-                .querySelector<HTMLElement>("[data-category-drag-handle]")
+                .querySelector<HTMLElement>("[data-sortable-handle]")
                 ?.focus()
         )
     }

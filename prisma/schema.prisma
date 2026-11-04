@@ -135,6 +135,7 @@ enum RecurrenceFrequency {
 }
 
 model FinancialAccount {
+  sortOrder         Int                 @default(0)
   id                String              @id @default(cuid())
   name              String
   // Owner is stored once, separate from non-owner memberships.
@@ -154,6 +155,7 @@ model FinancialAccount {
 
   @@index([ownerId])
   @@index([createdById])
+  @@index([ownerId, sortOrder])
   @@map("financial_account")
 }
 
@@ -189,6 +191,7 @@ model Wallet {
 }
 
 model AccountWallet {
+  sortOrder             Int              @default(0)
   id                    String           @id @default(cuid())
   financialAccountId    String
   walletId              String
@@ -203,6 +206,7 @@ model AccountWallet {
   @@unique([id, financialAccountId])
   @@unique([financialAccountId, walletId])
   @@index([walletId])
+  @@index([financialAccountId, sortOrder])
   @@map("account_wallet")
 }
 

@@ -120,3 +120,75 @@ export function formatWalletMoney(amount: string, currency: string): string {
         )
         .join("")
 }
+
+export type WalletDetailsInput = {
+    financialAccountId: string
+    accountWalletId: string
+    expectedUpdatedAt: string
+    expectedOpeningId: string | null
+    expectedOpeningVersion: number | null
+    openingBalance: string
+    openingDate: string
+    openingStatus: "POSTED" | "PENDING"
+    name: string
+    type: "BANK" | "CASH" | "OTHER"
+}
+export type WalletDetailsState = { message?: string; success?: boolean }
+export function validateWalletDetails(
+    form: FormData
+): WalletDetailsInput | null {
+    const get = (key: string) => {
+        const value = form.get(key)
+        return typeof value === "string" ? value.trim() : ""
+    }
+    const financialAccountId = get("financialAccountId"),
+        accountWalletId = get("accountWalletId"),
+        expectedUpdatedAt = get("expectedUpdatedAt"),
+        name = get("name"),
+        type = get("type"),
+        openingId = get("expectedOpeningId"),
+        openingVersion = get("expectedOpeningVersion"),
+        openingBalance = parseOpeningBalance(get("openingBalance")),
+        openingDate = get("openingDate"),
+        openingStatus = get("openingStatus")
+    const openingDay = new Date(`${openingDate}T00:00:00.000Z`)
+    const date = new Date(expectedUpdatedAt)
+    if (
+        !financialAccountId ||
+        financialAccountId.length > 128 ||
+        !accountWalletId ||
+        accountWalletId.length > 128 ||
+        expectedUpdatedAt.length > 32 ||
+        !Number.isFinite(date.getTime()) ||
+        date.toISOString() !== expectedUpdatedAt ||
+        !name ||
+        name.length > 80 ||
+        /[\p{Cc}\p{Cf}]/u.test(name) ||
+        (type !== "BANK" && type !== "CASH" && type !== "OTHER") ||
+        !get("openingBalance") ||
+        openingBalance === null ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(openingDate) ||
+        !Number.isFinite(openingDay.getTime()) ||
+        openingDay.getUTCFullYear() < 1 ||
+        openingDay.toISOString().slice(0, 10) !== openingDate ||
+        (openingStatus !== "POSTED" && openingStatus !== "PENDING") ||
+        (openingId
+            ? openingId.length > 128 ||
+              !/^[1-9]\d{0,9}$/.test(openingVersion) ||
+              Number(openingVersion) > 2147483646
+            : openingVersion !== "")
+    )
+        return null
+    return {
+        financialAccountId,
+        accountWalletId,
+        expectedUpdatedAt,
+        expectedOpeningId: openingId || null,
+        expectedOpeningVersion: openingId ? Number(openingVersion) : null,
+        openingBalance: openingBalance!,
+        openingDate,
+        openingStatus: openingStatus as "POSTED" | "PENDING",
+        name,
+        type,
+    }
+}

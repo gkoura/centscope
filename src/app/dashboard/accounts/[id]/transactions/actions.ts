@@ -20,11 +20,13 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { requireVerifiedSession } from "@/lib/auth/session"
 import {
+    validateTransactionReference,
     validateStatusInput,
     validateTransactionInput,
     type TransactionFormState,
 } from "@/lib/transaction-input"
 import {
+    deleteOwnedTransaction,
     createOwnedTransaction,
     changeOwnedTransactionStatus,
     TransactionWriteError,
@@ -192,4 +194,26 @@ export async function updateTransaction(
     const path = `/dashboard/accounts/${result.data.financialAccountId}`
     revalidatePath(path, "layout")
     redirect(`${path}/transactions`)
+}
+
+export async function deleteTransaction(
+    _state: TransactionFormState,
+    form: FormData
+): Promise<TransactionFormState> {
+    await requireVerifiedSession()
+    const input = validateTransactionReference(form)
+    if (!input)
+        return { message: "Reload this page before deleting a transaction." }
+    try {
+        await deleteOwnedTransaction(input)
+    } catch (error) {
+        return {
+            message:
+                error instanceof TransactionWriteError
+                    ? error.message
+                    : "We couldn’t confirm deletion. Retry safely or refresh to check the transaction.",
+        }
+    }
+    revalidatePath(`/dashboard/accounts/${input.financialAccountId}`, "layout")
+    return {}
 }

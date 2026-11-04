@@ -10,6 +10,7 @@ import {
     type TransactionQuery,
 } from "@/lib/transaction-filters"
 import { formatWalletMoney } from "@/lib/wallet-input"
+import { TransactionActions } from "@/components/financial-accounts/transaction-actions"
 import { TransactionStatusForm } from "@/components/financial-accounts/transaction-status-form"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -263,6 +264,7 @@ export async function TransactionWorkspace({
                                     Wallet & amount
                                 </TableHead>
                                 <TableHead scope="col">Status</TableHead>
+                                <TableHead scope="col">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody className="block sm:table-row-group">
@@ -352,6 +354,21 @@ export async function TransactionWorkspace({
                                                 />
                                             ) : null}
                                         </div>
+                                    </TableCell>
+                                    <TableCell className="order-5 col-span-2 p-0 pt-2 sm:p-2">
+                                        {transaction.canChangeStatus &&
+                                        (transaction.type === "EXPENSE" ||
+                                            transaction.type === "INCOME") ? (
+                                            <TransactionActions
+                                                key={`${transaction.id}-${transaction.version}`}
+                                                financialAccountId={account.id}
+                                                transaction={transaction}
+                                            />
+                                        ) : (
+                                            <span className="text-muted-foreground">
+                                                —
+                                            </span>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

@@ -96,3 +96,35 @@ Unimplemented FX, wallet sharing, history corrections and broader audit policies
 - Each batch contains at most 50 rows and runs in its own database transaction under the financial-account lock. Wallet ownership/archive state and category type/archive state are checked again for new rows. Transaction, ledger and CREATED audit records use bulk inserts and commit together; a batch failure rolls back that batch only. Earlier batches remain committed.
 - Each row keeps the existing creator-scoped `manual:<UUID>` idempotency key derived from account, exact CSV bytes and row position. Original CREATED request fingerprints are compared on retries, including after transaction edits/status changes. Identical replays skip saved rows before checking whether their old category/wallet remains active. Changed CSV files are new imports and may overlap prior files.
 - Client progress advances only after confirming a committed batch. If a response is lost, retrying the uncertain batch is safe. Pause finishes the in-flight batch; reload/closing stops future batches, and re-uploading the exact same file resumes by skipping saved rows. Imports do not run in the background after the browser closes. No database model or migration changed.
+
+## Dashboard account and wallet display order
+
+- `FinancialAccount.sortOrder` is scoped to its owner; `AccountWallet.sortOrder` is scoped to its financial account. Ordering belongs to the allocation so one wallet can occupy a different position in each account.
+- SQL checks reject negative positions. Positions are not unique so transactional renumbering can update rows without temporary index conflicts. Reads break ties using the original created-at order and ID.
+- The migration preserves existing account order (created descending, ID ascending) and wallet allocation order (created ascending, ID ascending), partitioned by owner/account respectively.
+- Account creation and reordering lock the owner's user row; wallet creation and reordering lock the owning financial-account row. New active items append to the active list. Future account archival/ownership writers must coordinate with the owner-row lock too.
+- Reordering validates the complete previous active ID list inside the lock and saves all positions atomically. Foreign IDs, duplicates, changed membership or stale order reject the entire operation. Financial balances, allocation identities and ledger history are untouched.
+
+
+## Expense/income deletion (2026-11-03)
+
+- Explicit owner-confirmed deletion is supported for POSTED and PENDING expenses/incomes on active owned accounts and wallets. The account row lock serializes it with edits, status changes, imports and category deletion. Expected transaction version prevents stale deletion; opening balances are excluded.
+- A DELETED audit snapshot and transaction deletion share one transaction. Cascaded ledger deletion removes the old posted-balance contribution; PENDING deletion has no balance effect. Existing audit rows survive through `liveTransactionId ON DELETE SET NULL`. Snapshot category/wallet names preserve readable history if those resources are later renamed/deleted.
+- DELETED snapshots retain the original idempotency key and request fingerprint. Import retry lookup includes these tombstones, preventing exact-file retries from recreating deleted rows. Stale manual-create forms with deleted keys are rejected. Identical delete retries find the matching account/version tombstone and do not write duplicate deletion audits. No model/migration changes are required.
+- Owner-list serialization uses `FOR NO KEY UPDATE` on the user row: it serializes account creation/reordering while allowing foreign-key key-share checks from concurrent wallet creation, avoiding a user-row/account-row lock cycle.
+
+
+## Wallet opening-balance corrections (2026-11-03)
+
+- The wallet editor can correct the account allocation's opening amount/date/status, including negative amounts. Account ownership, active allocation/wallet ownership and expected wallet timestamp plus opening ID/version are checked under locks. Other allocations of the physical wallet are unaffected financially.
+- Existing nonzero corrections update the OPENING_BALANCE transaction and its sole uncategorized ledger entry atomically with an UPDATED before/after audit snapshot. POSTED alone controls actual balance contribution; date never forces status.
+- A zero correction removes the opening transaction/ledger entry and creates OPENING_BALANCE_CLEARED in the same transaction. Prior and clearing audits survive with null live references. This preserves the existing nonzero-entry database constraint instead of storing a zero ledger movement. A wallet without an opening creates no movement for zero, or creates a new audited opening for a nonzero amount.
+- A monotonically advanced physical-wallet updatedAt protects opening-only writes and creation/clear retries. The opening transaction version additionally detects status changes made through history without a wallet metadata update. No schema/migration changes are required.
+
+
+## Wallet deletion cascades (2026-11-03)
+
+- Wallet Delete is a physical-wallet-wide operation: all allocations/financial accounts are included, including archived allocations/accounts. The caller must own every affected account and the physical wallet. The selected account must still be active and owned. No membership-based access is sufficient for this cascade.
+- Sorted account locks precede wallet/allocation locks, matching existing financial mutation order. A freshly recomputed scope hash prevents deleting transactions or account allocations added/changed since confirmation. Linked/multi-entry/unsupported transaction types block the whole operation.
+- DELETED audit snapshots are bulk inserted and all wallet transactions are removed atomically; ledger entries cascade and live audit references become null. Deletion snapshots include original request fingerprints/idempotency keys, current money/status/date/notes and wallet/category names, plus walletDeleted=true.
+- Wallet/allocation rows are retained with archivedAt as internal deletion markers, preserving provenance and preventing stale creation retries from reusing wallet IDs. No active wallet or financial entries remain. Completed retries return without duplicate audits. These deletion markers are not exposed as a restore workflow. No new schema/migration or automatic FK cascade on wallets is required; application authorization and explicit atomic transaction deletion remain mandatory.

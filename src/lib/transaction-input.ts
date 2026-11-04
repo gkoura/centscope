@@ -96,22 +96,19 @@ export function validateTransactionInput(
     return { data: { ...values, amount } as TransactionInput }
 }
 
-export function validateStatusInput(form: FormData): {
+export function validateTransactionReference(form: FormData): {
     financialAccountId: string
     transactionId: string
-    status: "POSTED" | "PENDING"
     expectedVersion: number
 } | null {
     const financialAccountId = text(form, "financialAccountId"),
         transactionId = text(form, "transactionId"),
-        status = text(form, "status"),
         version = text(form, "expectedVersion")
     if (
         !financialAccountId ||
         financialAccountId.length > 128 ||
         !transactionId ||
         transactionId.length > 128 ||
-        (status !== "POSTED" && status !== "PENDING") ||
         !/^[1-9]\d{0,9}$/.test(version) ||
         Number(version) > 2147483646
     )
@@ -119,9 +116,21 @@ export function validateStatusInput(form: FormData): {
     return {
         financialAccountId,
         transactionId,
-        status,
         expectedVersion: Number(version),
     }
+}
+
+export function validateStatusInput(
+    form: FormData
+):
+    | (NonNullable<ReturnType<typeof validateTransactionReference>> & {
+          status: "POSTED" | "PENDING"
+      })
+    | null {
+    const reference = validateTransactionReference(form),
+        status = text(form, "status")
+    if (!reference || (status !== "POSTED" && status !== "PENDING")) return null
+    return { ...reference, status }
 }
 
 export type TransactionSuggestion = {

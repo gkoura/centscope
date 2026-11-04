@@ -83,6 +83,18 @@ async function insertTransaction(
             )
         return
     }
+    const deleted = await tx.transactionChange.findFirst({
+        where: {
+            actorId: userId,
+            action: "DELETED",
+            snapshot: { path: ["idempotencyKey"], equals: idempotencyKey },
+        },
+        select: { id: true },
+    })
+    if (deleted)
+        throw new TransactionWriteError(
+            "This transaction was deleted. Reload to create a new transaction."
+        )
     const amount = new Prisma.Decimal(input.amount)
     const signedAmount = input.type === "EXPENSE" ? amount.negated() : amount
     const transaction = await tx.transaction.create({
@@ -184,12 +196,44 @@ export async function importOwnedTransactions(
                     },
                 },
             })
+            const deleted = await tx.transactionChange.findMany({
+                where: {
+                    actorId: user.id,
+                    action: "DELETED",
+                    AND: [
+                        {
+                            snapshot: {
+                                path: ["financialAccountId"],
+                                equals: inputs[0].financialAccountId,
+                            },
+                        },
+                        {
+                            OR: prepared.map((row) => ({
+                                snapshot: {
+                                    path: ["idempotencyKey"],
+                                    equals: row.key,
+                                },
+                            })),
+                        },
+                    ],
+                },
+                select: { snapshot: true },
+            })
             const saved = new Map(
                 existing.map((row) => [
                     row.idempotencyKey,
                     row.changes[0]?.snapshot,
                 ])
             )
+            for (const { snapshot } of deleted) {
+                if (
+                    snapshot &&
+                    typeof snapshot === "object" &&
+                    !Array.isArray(snapshot) &&
+                    typeof snapshot.idempotencyKey === "string"
+                )
+                    saved.set(snapshot.idempotencyKey, snapshot)
+            }
             const pending = prepared.filter((row) => {
                 if (!saved.has(row.key)) return true
                 const snapshot = saved.get(row.key)
@@ -817,6 +861,125 @@ export async function updateOwnedTransaction(
                         }),
                     },
                 },
+            })
+        },
+        { timeout: 15_000 }
+    )
+}
+
+export async function deleteOwnedTransaction(input: {
+    financialAccountId: string
+    transactionId: string
+    expectedVersion: number
+}) {
+    const { user } = await requireVerifiedSession()
+    await prisma.$transaction(
+        async (tx) => {
+            await lockAccount(tx, input.financialAccountId, user.id)
+            const transaction = await tx.transaction.findFirst({
+                where: {
+                    id: input.transactionId,
+                    type: { in: ["EXPENSE", "INCOME"] },
+                    entries: {
+                        some: { financialAccountId: input.financialAccountId },
+                    },
+                },
+                include: {
+                    entries: {
+                        include: {
+                            accountWallet: { include: { wallet: true } },
+                            category: { include: { parent: true } },
+                        },
+                    },
+                    changes: {
+                        where: { action: "CREATED" },
+                        take: 1,
+                        select: { snapshot: true },
+                    },
+                },
+            })
+            if (!transaction) {
+                const deleted = await tx.transactionChange.findFirst({
+                    where: {
+                        transactionId: input.transactionId,
+                        actorId: user.id,
+                        action: "DELETED",
+                        AND: [
+                            {
+                                snapshot: {
+                                    path: ["financialAccountId"],
+                                    equals: input.financialAccountId,
+                                },
+                            },
+                            {
+                                snapshot: {
+                                    path: ["version"],
+                                    equals: input.expectedVersion,
+                                },
+                            },
+                        ],
+                    },
+                    select: { id: true },
+                })
+                if (deleted) return
+                throw new TransactionWriteError(
+                    "This transaction is unavailable."
+                )
+            }
+            const entry = transaction.entries[0]
+            if (
+                transaction.entries.length !== 1 ||
+                !entry ||
+                entry.accountWallet.wallet.ownerId !== user.id ||
+                entry.accountWallet.archivedAt ||
+                entry.accountWallet.wallet.archivedAt
+            )
+                throw new TransactionWriteError(
+                    "This transaction is unavailable."
+                )
+            if (transaction.version !== input.expectedVersion)
+                throw new TransactionWriteError(
+                    "This transaction changed. Reload before deleting it."
+                )
+            const original = transaction.changes[0]?.snapshot
+            const fingerprint =
+                original &&
+                typeof original === "object" &&
+                !Array.isArray(original) &&
+                typeof original.requestFingerprint === "string"
+                    ? original.requestFingerprint
+                    : null
+            await tx.transactionChange.create({
+                data: {
+                    transactionId: transaction.id,
+                    liveTransactionId: transaction.id,
+                    actorId: user.id,
+                    action: "DELETED",
+                    snapshot: {
+                        financialAccountId: input.financialAccountId,
+                        createdById: transaction.createdById,
+                        idempotencyKey: transaction.idempotencyKey,
+                        requestFingerprint: fingerprint,
+                        name: transaction.name,
+                        notes: transaction.notes,
+                        type: transaction.type,
+                        status: transaction.status,
+                        date: transaction.occurredAt.toISOString().slice(0, 10),
+                        version: transaction.version,
+                        amount: entry.amount.toFixed(2),
+                        currency: entry.accountWallet.wallet.currency,
+                        accountWalletId: entry.accountWalletId,
+                        walletName: entry.accountWallet.wallet.name,
+                        categoryId: entry.categoryId,
+                        categoryName: entry.category?.name ?? null,
+                        parentCategoryName:
+                            entry.category?.parent?.name ?? null,
+                    },
+                },
+            })
+            // Ledger entries cascade; live audit references become null and survive.
+            await tx.transaction.delete({
+                where: { id: transaction.id, version: input.expectedVersion },
             })
         },
         { timeout: 15_000 }

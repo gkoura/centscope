@@ -81,6 +81,7 @@ One wallet can fund several financial accounts through AccountWallet. Wallet cur
 erDiagram
     direction LR
     FinancialAccount {
+        Int sortOrder
         String id PK
         String name
         String ownerId FK
@@ -101,6 +102,7 @@ erDiagram
         DateTime updatedAt
     }
     AccountWallet {
+        Int sortOrder
         String id PK
         String financialAccountId FK
         String walletId FK
