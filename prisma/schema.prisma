@@ -308,7 +308,13 @@ model RecurrenceRule {
   destinationAmount Decimal?               @db.Decimal(24, 8)
   categoryId        String?
   category          Category?              @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  // Creation preference, independent from recurrence timing and editable per occurrence.
+  // Legacy preference retained for compatibility; additional copies are always PENDING.
+  endAfter          Int?
+  nextIndex         Int                    @default(1)
+  version           Int                    @default(1)
+  stoppedAt         DateTime?              @db.Timestamptz(3)
+  spreadMonthCount  Int?
+  spreadMonthOffset Int                    @default(0)
   occurrenceStatus  TransactionStatus      @default(PENDING)
   frequency         RecurrenceFrequency
   interval          Int                    @default(1)

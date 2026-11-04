@@ -201,9 +201,13 @@ export async function deleteOwnedCategory(input: {
                 where: { categoryId: { in: subtree.map(({ id }) => id) } },
                 select: { id: true },
             })
-            if (used)
+            const recurringUse = await tx.recurrenceRule.findFirst({
+                where: { categoryId: { in: subtree.map(({ id }) => id) } },
+                select: { id: true },
+            })
+            if (used || recurringUse)
                 throw new CategoryWriteError(
-                    "This category or one of its subcategories is used by a transaction and cannot be deleted."
+                    "This category or one of its subcategories is used by a transaction or recurring schedule and cannot be deleted."
                 )
             // Keep restrictive FKs as a final safeguard. Delete children first;
             // any reference failure rolls back the entire subtree deletion.

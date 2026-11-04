@@ -257,6 +257,12 @@ export async function deleteOwnedWallet(input: WalletDeletionInput) {
                 await tx.transactionChange.createMany({
                     data: audits.slice(start, start + 500),
                 })
+            await tx.recurrenceOccurrence.updateMany({
+                where: {
+                    transactionId: { in: transactions.map((row) => row.id) },
+                },
+                data: { skippedAt: new Date() },
+            })
             if (transactions.length) {
                 const removed = await tx.transaction.deleteMany({
                     where: { id: { in: transactions.map((row) => row.id) } },
@@ -266,6 +272,14 @@ export async function deleteOwnedWallet(input: WalletDeletionInput) {
                         "The transactions changed. Nothing was deleted; reopen the confirmation."
                     )
             }
+            await tx.recurrenceRule.updateMany({
+                where: { source: { walletId: scope.wallet.id } },
+                data: {
+                    stoppedAt: new Date(),
+                    nextOccurrenceAt: null,
+                    version: { increment: 1 },
+                },
+            })
             const archivedAt = new Date()
             await tx.accountWallet.updateMany({
                 where: { walletId: scope.wallet.id, archivedAt: null },

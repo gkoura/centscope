@@ -1,6 +1,8 @@
 "use client"
 
 import Link from "next/link"
+import { RecurrenceFields, type RecurrenceEditing } from "./recurrence-fields"
+import type { EditScope } from "@/lib/recurrence-input"
 import { ExpenseSpreadFields } from "./expense-spread-fields"
 import type { ExpenseSpread } from "@/lib/expense-spread"
 import { useActionState, useState } from "react"
@@ -130,6 +132,7 @@ export function CreateTransactionForm({
     wallets: { id: string; name: string; currency: string }[]
     categories: CategoryChoice[]
     editing?: {
+        recurrence?: RecurrenceEditing | null
         spread?: ExpenseSpread | null
         id: string
         version: number
@@ -144,6 +147,7 @@ export function CreateTransactionForm({
     }
     suggestions: TransactionSuggestion[]
 }) {
+    const [editScope, setEditScope] = useState<EditScope>("ONLY")
     const [state, action, pending] = useActionState(
         editing ? updateTransaction : createTransaction,
         initialState
@@ -414,20 +418,49 @@ export function CreateTransactionForm({
                     >
                         Manage categories
                     </Link>
+                    <RecurrenceFields
+                        initial={editing?.recurrence}
+                        date={values.date}
+                        error={state.errors?.repeat}
+                        scopeError={state.errors?.editScope}
+                        onScopeChange={(scope) => {
+                            setEditScope(scope)
+                            if (scope !== "ONLY" && editing)
+                                setValues((previous) => ({
+                                    ...previous,
+                                    date: editing.date,
+                                }))
+                        }}
+                    />
+                    {editScope !== "ONLY" && (
+                        <p className="text-sm text-muted-foreground">
+                            Dates stay unchanged for series edits. Choose Only
+                            this occurrence to change its date.
+                        </p>
+                    )}
                     <Field data-invalid={Boolean(state.errors?.date)}>
                         <FieldLabel htmlFor="transaction-date">Date</FieldLabel>
-                        <DatePicker
-                            id="transaction-date"
-                            name="date"
-                            value={values.date}
-                            onChange={(value) => update("date", value)}
-                            aria-invalid={Boolean(state.errors?.date)}
-                            aria-describedby={
-                                state.errors?.date
-                                    ? "transaction-date-error"
-                                    : undefined
-                            }
-                        />
+                        <fieldset disabled={editScope !== "ONLY"}>
+                            <DatePicker
+                                id="transaction-date"
+                                name="date"
+                                value={values.date}
+                                onChange={(value) => update("date", value)}
+                                aria-invalid={Boolean(state.errors?.date)}
+                                aria-describedby={
+                                    state.errors?.date
+                                        ? "transaction-date-error"
+                                        : undefined
+                                }
+                            />
+                        </fieldset>
+                        {editScope !== "ONLY" && (
+                            <input
+                                type="hidden"
+                                name="date"
+                                value={editing?.date ?? values.date}
+                            />
+                        )}
                         {state.errors?.date ? (
                             <FieldError id="transaction-date-error">
                                 {state.errors.date}

@@ -1,3 +1,9 @@
+import {
+    readRepeat,
+    validRepeat,
+    type RepeatInput,
+    type EditScope,
+} from "./recurrence-input.ts"
 import { validSpread, type ExpenseSpread } from "./expense-spread.ts"
 export const transactionTypes = [
     { value: "EXPENSE", label: "Expense" },
@@ -14,6 +20,9 @@ export type TransactionInput = {
     amount: string
     date: string
     status: "POSTED" | "PENDING"
+    repeat?: RepeatInput | null
+    editScope?: EditScope
+    expectedRuleVersion?: number
     spread?: ExpenseSpread | null
     notes: string | null
 }
@@ -104,12 +113,31 @@ export function validateTransactionInput(
             errors.spread =
                 "Choose a valid start month and 2–120 months ending before year 10000."
     }
+    const repeat = readRepeat(form)
+    if (repeat && !validRepeat(repeat, values.date))
+        errors.repeat = "Choose a valid repeat schedule, timezone, and ending."
+    const scope = text(form, "editScope") || "ONLY"
+    if (!["ONLY", "FUTURE", "ALL"].includes(scope))
+        errors.editScope = "Choose which occurrences to edit."
+    if (scope !== "ONLY" && form.get("seriesConfirmed") !== "yes")
+        errors.editScope =
+            "Confirm the effect on existing occurrences before saving."
+    const expectedRuleVersion = Number(text(form, "expectedRuleVersion"))
+    if (
+        scope !== "ONLY" &&
+        (!Number.isSafeInteger(expectedRuleVersion) || expectedRuleVersion < 1)
+    )
+        errors.editScope = "Reload this series before editing."
     if (Object.keys(errors).length) return { errors }
     return {
         data: {
             ...values,
             amount,
             ...(spread ? { spread } : {}),
+            ...(repeat ? { repeat } : {}),
+            ...(scope !== "ONLY"
+                ? { editScope: scope as EditScope, expectedRuleVersion }
+                : {}),
         } as TransactionInput,
     }
 }

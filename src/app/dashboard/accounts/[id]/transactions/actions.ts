@@ -16,6 +16,7 @@ import {
     updateOwnedTransaction,
     importOwnedTransactions,
 } from "@/lib/transactions"
+import { RecurrenceError } from "@/lib/recurrence-engine"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { requireVerifiedSession } from "@/lib/auth/session"
@@ -44,7 +45,8 @@ export async function createTransaction(
     } catch (error) {
         return {
             message:
-                error instanceof TransactionWriteError
+                error instanceof TransactionWriteError ||
+                error instanceof RecurrenceError
                     ? error.message
                     : "We couldn’t save your transaction. Please try again.",
         }
@@ -66,7 +68,8 @@ export async function changeTransactionStatus(
     } catch (error) {
         return {
             message:
-                error instanceof TransactionWriteError
+                error instanceof TransactionWriteError ||
+                error instanceof RecurrenceError
                     ? error.message
                     : "We couldn’t change the status. Please try again.",
         }
@@ -144,14 +147,18 @@ export async function importTransactionBatch(
             error && typeof error === "object" && "code" in error
                 ? String(error.code)
                 : "UNKNOWN"
-        if (!(error instanceof TransactionWriteError))
+        if (!(
+            error instanceof TransactionWriteError ||
+            error instanceof RecurrenceError
+        ))
             console.error("Transaction import batch failed", {
                 start: batch.start,
                 code,
             })
         return {
             message:
-                error instanceof TransactionWriteError
+                error instanceof TransactionWriteError ||
+                error instanceof RecurrenceError
                     ? error.message
                     : `Rows ${batch.start + 2}–${batch.start + batch.rows.length + 1} could not be confirmed. Retry to safely check and continue. Earlier batches remain saved.`,
         }
@@ -186,7 +193,8 @@ export async function updateTransaction(
     } catch (error) {
         return {
             message:
-                error instanceof TransactionWriteError
+                error instanceof TransactionWriteError ||
+                error instanceof RecurrenceError
                     ? error.message
                     : "We couldn’t save your changes. Reload to check the transaction before retrying.",
         }
@@ -209,7 +217,8 @@ export async function deleteTransaction(
     } catch (error) {
         return {
             message:
-                error instanceof TransactionWriteError
+                error instanceof TransactionWriteError ||
+                error instanceof RecurrenceError
                     ? error.message
                     : "We couldn’t confirm deletion. Retry safely or refresh to check the transaction.",
         }

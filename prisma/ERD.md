@@ -176,6 +176,12 @@ erDiagram
         Decimal amount
         Decimal destinationAmount "nullable"
         String categoryId FK "nullable"
+        Int endAfter "nullable"
+        Int nextIndex
+        Int version
+        DateTime stoppedAt "nullable"
+        Int spreadMonthCount "nullable"
+        Int spreadMonthOffset
         TransactionStatus occurrenceStatus
         RecurrenceFrequency frequency
         Int interval

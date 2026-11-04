@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { RecurringSync } from "@/components/financial-accounts/recurring-sync"
 import { notFound } from "next/navigation"
 import { getOwnedFinancialAccount } from "@/lib/financial-accounts"
 import { cache } from "react"
@@ -37,6 +38,7 @@ export async function AccountSummary({ params }: { params: AccountParams }) {
     const account = await resolveAccount(params)
     return (
         <Card>
+            <RecurringSync accountId={account.id} />
             <CardHeader>
                 <CardTitle>
                     <h1 className="break-words">{account.name}</h1>
@@ -47,6 +49,12 @@ export async function AccountSummary({ params }: { params: AccountParams }) {
             </CardHeader>
             <CardContent className="flex flex-col items-start gap-4">
                 <Badge variant="secondary">Owner</Badge>
+                <Link
+                    href={`/dashboard/accounts/${account.id}/recurring`}
+                    className="text-sm underline underline-offset-4"
+                >
+                    Recurring transactions
+                </Link>
                 <Link
                     href={`/dashboard/accounts/${account.id}/categories`}
                     className="text-sm underline underline-offset-4"

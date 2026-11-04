@@ -8,6 +8,9 @@ import type { TransactionFilters } from "@/lib/transaction-filters"
 import type { TransactionInput } from "@/lib/transaction-input"
 import { validSpread } from "@/lib/expense-spread"
 
+import { createRuleForTransaction, updateSeries } from "@/lib/recurrence-engine"
+import { validRepeat } from "@/lib/recurrence-input"
+
 export class TransactionWriteError extends Error {}
 
 function validateExpenseSpread(input: TransactionInput) {
@@ -38,6 +41,8 @@ async function insertTransaction(
     userId: string
 ) {
     validateExpenseSpread(input)
+    if (input.repeat && !validRepeat(input.repeat, input.date))
+        throw new TransactionWriteError("Choose a valid repeat schedule.")
     const { requestId, ...payload } = input
     const fingerprint = createHash("sha256")
         .update(JSON.stringify(payload))
@@ -130,6 +135,7 @@ async function insertTransaction(
         },
         select: { id: true },
     })
+    await createRuleForTransaction(tx, input, transaction.id, userId)
     await tx.transactionChange.create({
         data: {
             transactionId: transaction.id,
@@ -431,6 +437,15 @@ export async function changeOwnedTransactionStatus(input: {
                 throw new TransactionWriteError(
                     "This transaction changed. Refresh the page before trying again."
                 )
+            const recurring = await tx.recurrenceOccurrence.findUnique({
+                where: { transactionId: transaction.id },
+                select: { ruleId: true },
+            })
+            if (recurring)
+                await tx.recurrenceRule.update({
+                    where: { id: recurring.ruleId },
+                    data: { version: { increment: 1 } },
+                })
             await tx.transactionChange.create({
                 data: {
                     transactionId: transaction.id,
@@ -585,6 +600,7 @@ export async function listOwnedAccountTransactions(
                     notes: true,
                     version: true,
                     expenseSpread: true,
+                    occurrence: { select: { ruleId: true } },
                 },
             },
         },
@@ -710,10 +726,56 @@ export async function getOwnedEditableTransaction(
                 },
             },
         },
-        include: { entries: true, expenseSpread: true },
+        include: {
+            entries: true,
+            expenseSpread: true,
+            occurrence: {
+                include: {
+                    rule: {
+                        include: {
+                            _count: {
+                                select: {
+                                    occurrences: {
+                                        where: { transactionId: { not: null } },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
     })
     if (!row || row.entries.length !== 1) return null
+    const futureCount = row.occurrence
+        ? await prisma.recurrenceOccurrence.count({
+              where: {
+                  ruleId: row.occurrence.ruleId,
+                  transactionId: { not: null },
+                  scheduledFor: { gte: row.occurrence.scheduledFor },
+              },
+          })
+        : 0
     return {
+        recurrence: row.occurrence
+            ? {
+                  totalCount: row.occurrence.rule._count.occurrences,
+                  futureCount,
+                  ruleId: row.occurrence.ruleId,
+                  ruleVersion: row.occurrence.rule.version,
+                  scheduledFor: row.occurrence.scheduledFor
+                      .toISOString()
+                      .slice(0, 10),
+                  frequency: row.occurrence.rule.frequency,
+                  interval: row.occurrence.rule.interval,
+                  timezone: row.occurrence.rule.timezone,
+                  endsOn:
+                      row.occurrence.rule.endsAt?.toISOString().slice(0, 10) ??
+                      null,
+                  endAfter: row.occurrence.rule.endAfter,
+                  occurrenceStatus: "PENDING" as const,
+              }
+            : null,
         spread: row.expenseSpread
             ? {
                   startMonth: row.expenseSpread.startMonth,
@@ -743,6 +805,20 @@ export async function updateOwnedTransaction(
     await prisma.$transaction(
         async (tx) => {
             await lockAccount(tx, input.financialAccountId, user.id)
+            if (input.editScope && input.editScope !== "ONLY") {
+                if (input.repeat && !validRepeat(input.repeat, input.date))
+                    throw new TransactionWriteError(
+                        "Choose a valid repeat schedule."
+                    )
+                await updateSeries(
+                    tx,
+                    input,
+                    transactionId,
+                    expectedVersion,
+                    user.id
+                )
+                return
+            }
             const previous = await tx.transaction.findFirst({
                 where: {
                     id: transactionId,
@@ -844,6 +920,26 @@ export async function updateOwnedTransaction(
                     amount,
                 },
             })
+            const occurrence = await tx.recurrenceOccurrence.findUnique({
+                where: { transactionId },
+            })
+            if (occurrence)
+                await tx.recurrenceRule.update({
+                    where: { id: occurrence.ruleId },
+                    data: { version: { increment: 1 } },
+                })
+            if (!occurrence && input.repeat) {
+                if (!validRepeat(input.repeat, input.date))
+                    throw new TransactionWriteError(
+                        "Choose a valid repeat schedule."
+                    )
+                await createRuleForTransaction(
+                    tx,
+                    input,
+                    transactionId,
+                    user.id
+                )
+            }
             const snapshot = (value: {
                 name: string
                 notes: string | null
@@ -867,6 +963,10 @@ export async function updateOwnedTransaction(
                     actorId: user.id,
                     action: "UPDATED",
                     snapshot: {
+                        recurrenceRuleId: occurrence?.ruleId ?? null,
+                        repeatCreated: !occurrence
+                            ? (input.repeat ?? null)
+                            : null,
                         before: snapshot({
                             spread: previous.expenseSpread
                                 ? {
@@ -1029,6 +1129,16 @@ export async function deleteOwnedTransaction(input: {
                             entry.category?.parent?.name ?? null,
                     },
                 },
+            })
+            await tx.recurrenceRule.updateMany({
+                where: {
+                    occurrences: { some: { transactionId: transaction.id } },
+                },
+                data: { version: { increment: 1 } },
+            })
+            await tx.recurrenceOccurrence.updateMany({
+                where: { transactionId: transaction.id },
+                data: { skippedAt: new Date() },
             })
             // Ledger entries cascade; live audit references become null and survive.
             await tx.transaction.delete({

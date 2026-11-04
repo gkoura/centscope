@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { RecurringSync } from "@/components/financial-accounts/recurring-sync"
 import { notFound } from "next/navigation"
 import { getOwnedFinancialAccount } from "@/lib/financial-accounts"
 import { listOwnedAccountWallets } from "@/lib/wallets"
@@ -73,6 +74,7 @@ export async function MonthlyAnalysisContent({
     const future = month > new Date().toISOString().slice(0, 7)
     return (
         <>
+            <RecurringSync accountId={id} />
             <Link
                 href={`/dashboard/accounts/${id}`}
                 className="text-sm underline underline-offset-4"

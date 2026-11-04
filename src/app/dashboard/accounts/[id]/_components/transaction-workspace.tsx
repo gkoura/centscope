@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { RecurringSync } from "@/components/financial-accounts/recurring-sync"
 import { notFound } from "next/navigation"
 import { PlusIcon, UploadIcon, ReceiptTextIcon } from "lucide-react"
 import { getOwnedFinancialAccount } from "@/lib/financial-accounts"
@@ -92,6 +93,7 @@ export async function TransactionWorkspace({
             aria-labelledby="transactions-heading"
             className="flex min-w-0 flex-col gap-4"
         >
+            {full && <RecurringSync accountId={account.id} />}
             {full && (
                 <Link
                     href={`/dashboard/accounts/${account.id}`}
@@ -105,6 +107,17 @@ export async function TransactionWorkspace({
                     {full ? account.name : "Transactions"}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                        variant="outline"
+                        render={
+                            <Link
+                                href={`/dashboard/accounts/${account.id}/recurring`}
+                            />
+                        }
+                        nativeButton={false}
+                    >
+                        Recurring
+                    </Button>
                     <Button
                         variant="outline"
                         render={
@@ -309,6 +322,11 @@ export async function TransactionWorkspace({
                                                 transaction.name
                                             )}
                                         </p>
+                                        {transaction.occurrence && (
+                                            <Badge variant="outline">
+                                                Recurring
+                                            </Badge>
+                                        )}
                                         {transaction.expenseSpread && (
                                             <Badge variant="secondary">
                                                 Spread across{" "}
