@@ -6,8 +6,19 @@ import { requireVerifiedSession } from "@/lib/auth/session"
 import { prisma } from "@/lib/prisma"
 import type { TransactionFilters } from "@/lib/transaction-filters"
 import type { TransactionInput } from "@/lib/transaction-input"
+import { validSpread } from "@/lib/expense-spread"
 
 export class TransactionWriteError extends Error {}
+
+function validateExpenseSpread(input: TransactionInput) {
+    if (
+        input.spread &&
+        (input.type !== "EXPENSE" || !validSpread(input.spread))
+    )
+        throw new TransactionWriteError(
+            "Only expenses can be spread over 2–120 valid months."
+        )
+}
 
 async function lockAccount(
     tx: Prisma.TransactionClient,
@@ -26,6 +37,7 @@ async function insertTransaction(
     input: TransactionInput,
     userId: string
 ) {
+    validateExpenseSpread(input)
     const { requestId, ...payload } = input
     const fingerprint = createHash("sha256")
         .update(JSON.stringify(payload))
@@ -106,6 +118,7 @@ async function insertTransaction(
             occurredAt: new Date(`${input.date}T00:00:00.000Z`),
             createdById: userId,
             idempotencyKey,
+            expenseSpread: input.spread ? { create: input.spread } : undefined,
             entries: {
                 create: {
                     accountWalletId: input.accountWalletId,
@@ -571,6 +584,7 @@ export async function listOwnedAccountTransactions(
                     occurredAt: true,
                     notes: true,
                     version: true,
+                    expenseSpread: true,
                 },
             },
         },
@@ -696,10 +710,16 @@ export async function getOwnedEditableTransaction(
                 },
             },
         },
-        include: { entries: true },
+        include: { entries: true, expenseSpread: true },
     })
     if (!row || row.entries.length !== 1) return null
     return {
+        spread: row.expenseSpread
+            ? {
+                  startMonth: row.expenseSpread.startMonth,
+                  monthCount: row.expenseSpread.monthCount,
+              }
+            : null,
         id: row.id,
         version: row.version,
         name: row.name,
@@ -719,6 +739,7 @@ export async function updateOwnedTransaction(
     expectedVersion: number
 ) {
     const { user } = await requireVerifiedSession()
+    validateExpenseSpread(input)
     await prisma.$transaction(
         async (tx) => {
             await lockAccount(tx, input.financialAccountId, user.id)
@@ -731,6 +752,7 @@ export async function updateOwnedTransaction(
                     },
                 },
                 include: {
+                    expenseSpread: true,
                     entries: {
                         include: {
                             accountWallet: { include: { wallet: true } },
@@ -805,6 +827,15 @@ export async function updateOwnedTransaction(
                     version: { increment: 1 },
                 },
             })
+            if (input.type === "EXPENSE" && input.spread) {
+                await tx.expenseSpread.upsert({
+                    where: { transactionId },
+                    create: { transactionId, ...input.spread },
+                    update: input.spread,
+                })
+            } else {
+                await tx.expenseSpread.deleteMany({ where: { transactionId } })
+            }
             await tx.ledgerEntry.update({
                 where: { id: entry.id },
                 data: {
@@ -823,6 +854,7 @@ export async function updateOwnedTransaction(
                 accountWalletId: string
                 categoryId: string | null
                 version: number
+                spread: { startMonth: string; monthCount: number } | null
             }) => ({
                 ...value,
                 financialAccountId: input.financialAccountId,
@@ -836,6 +868,14 @@ export async function updateOwnedTransaction(
                     action: "UPDATED",
                     snapshot: {
                         before: snapshot({
+                            spread: previous.expenseSpread
+                                ? {
+                                      startMonth:
+                                          previous.expenseSpread.startMonth,
+                                      monthCount:
+                                          previous.expenseSpread.monthCount,
+                                  }
+                                : null,
                             name: previous.name,
                             notes: previous.notes,
                             type: previous.type,
@@ -849,6 +889,10 @@ export async function updateOwnedTransaction(
                             version: previous.version,
                         }),
                         after: snapshot({
+                            spread:
+                                input.type === "EXPENSE"
+                                    ? (input.spread ?? null)
+                                    : null,
                             name: input.name,
                             notes: input.notes,
                             type: input.type,
@@ -885,6 +929,7 @@ export async function deleteOwnedTransaction(input: {
                     },
                 },
                 include: {
+                    expenseSpread: true,
                     entries: {
                         include: {
                             accountWallet: { include: { wallet: true } },
@@ -960,6 +1005,14 @@ export async function deleteOwnedTransaction(input: {
                         createdById: transaction.createdById,
                         idempotencyKey: transaction.idempotencyKey,
                         requestFingerprint: fingerprint,
+                        spread: transaction.expenseSpread
+                            ? {
+                                  startMonth:
+                                      transaction.expenseSpread.startMonth,
+                                  monthCount:
+                                      transaction.expenseSpread.monthCount,
+                              }
+                            : null,
                         name: transaction.name,
                         notes: transaction.notes,
                         type: transaction.type,

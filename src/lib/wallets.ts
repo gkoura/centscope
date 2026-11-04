@@ -162,77 +162,89 @@ export async function createOwnedWallet(input: WalletInput) {
 
 export async function listOwnedAccountWallets(financialAccountId: string) {
     const { user } = await requireVerifiedSession()
-    const allocations = await prisma.accountWallet.findMany({
-        where: {
-            financialAccountId,
-            archivedAt: null,
-            financialAccount: { ownerId: user.id, archivedAt: null },
-            wallet: { archivedAt: null, ownerId: user.id },
-        },
-        select: {
-            id: true,
-            wallet: {
-                select: {
-                    name: true,
-                    type: true,
-                    currency: true,
-                    updatedAt: true,
+    return prisma.$transaction(
+        async (db) => {
+            const allocations = await db.accountWallet.findMany({
+                where: {
+                    financialAccountId,
+                    archivedAt: null,
+                    financialAccount: { ownerId: user.id, archivedAt: null },
+                    wallet: { archivedAt: null, ownerId: user.id },
                 },
-            },
-            entries: {
-                where: { transaction: { type: "OPENING_BALANCE" } },
                 select: {
-                    amount: true,
-                    transaction: {
+                    id: true,
+                    wallet: {
                         select: {
-                            id: true,
-                            version: true,
-                            status: true,
-                            occurredAt: true,
+                            name: true,
+                            type: true,
+                            currency: true,
+                            updatedAt: true,
+                        },
+                    },
+                    entries: {
+                        where: { transaction: { type: "OPENING_BALANCE" } },
+                        select: {
+                            amount: true,
+                            transaction: {
+                                select: {
+                                    id: true,
+                                    version: true,
+                                    status: true,
+                                    occurredAt: true,
+                                },
+                            },
                         },
                     },
                 },
-            },
+                orderBy: [
+                    { sortOrder: "asc" },
+                    { createdAt: "asc" },
+                    { id: "asc" },
+                ],
+            })
+            if (!allocations.length) return []
+            const balances = await db.ledgerEntry.groupBy({
+                by: ["accountWalletId"],
+                where: {
+                    accountWalletId: { in: allocations.map(({ id }) => id) },
+                    financialAccountId,
+                    accountWallet: {
+                        financialAccount: {
+                            ownerId: user.id,
+                            archivedAt: null,
+                        },
+                        archivedAt: null,
+                    },
+                    transaction: { status: "POSTED" },
+                },
+                _sum: { amount: true },
+            })
+            const byId = new Map(
+                balances.map((row) => [
+                    row.accountWalletId,
+                    row._sum.amount?.toFixed(2) ?? "0.00",
+                ])
+            )
+            return allocations.map((allocation) => ({
+                id: allocation.id,
+                ...allocation.wallet,
+                updatedAt: allocation.wallet.updatedAt.toISOString(),
+                balance: byId.get(allocation.id) ?? "0.00",
+                opening: allocation.entries[0]
+                    ? {
+                          id: allocation.entries[0].transaction.id,
+                          version: allocation.entries[0].transaction.version,
+                          amount: allocation.entries[0].amount.toFixed(2),
+                          status: allocation.entries[0].transaction.status,
+                          date: allocation.entries[0].transaction.occurredAt
+                              .toISOString()
+                              .slice(0, 10),
+                      }
+                    : null,
+            }))
         },
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }, { id: "asc" }],
-    })
-    if (!allocations.length) return []
-    const balances = await prisma.ledgerEntry.groupBy({
-        by: ["accountWalletId"],
-        where: {
-            accountWalletId: { in: allocations.map(({ id }) => id) },
-            financialAccountId,
-            accountWallet: {
-                financialAccount: { ownerId: user.id, archivedAt: null },
-                archivedAt: null,
-            },
-            transaction: { status: "POSTED" },
-        },
-        _sum: { amount: true },
-    })
-    const byId = new Map(
-        balances.map((row) => [
-            row.accountWalletId,
-            row._sum.amount?.toFixed(2) ?? "0.00",
-        ])
+        { isolationLevel: "RepeatableRead", timeout: 15_000 }
     )
-    return allocations.map((allocation) => ({
-        id: allocation.id,
-        ...allocation.wallet,
-        updatedAt: allocation.wallet.updatedAt.toISOString(),
-        balance: byId.get(allocation.id) ?? "0.00",
-        opening: allocation.entries[0]
-            ? {
-                  id: allocation.entries[0].transaction.id,
-                  version: allocation.entries[0].transaction.version,
-                  amount: allocation.entries[0].amount.toFixed(2),
-                  status: allocation.entries[0].transaction.status,
-                  date: allocation.entries[0].transaction.occurredAt
-                      .toISOString()
-                      .slice(0, 10),
-              }
-            : null,
-    }))
 }
 
 export async function reorderOwnedAccountWallets(

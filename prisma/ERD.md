@@ -152,6 +152,11 @@ erDiagram
         DateTime createdAt
         DateTime updatedAt
     }
+    ExpenseSpread {
+        String transactionId PK, FK
+        String startMonth
+        Int monthCount
+    }
     LedgerEntry {
         String id PK
         String transactionId FK
@@ -209,6 +214,7 @@ erDiagram
         String id PK
     }
     User ||..o{ Transaction : "createdBy"
+    Transaction ||..o{ ExpenseSpread : "transaction"
     Transaction ||..o{ LedgerEntry : "transaction"
     AccountWallet ||..o{ LedgerEntry : "accountWallet"
     Category |o..o{ LedgerEntry : "category"

@@ -250,6 +250,7 @@ model Transaction {
   version          Int                   @default(1)
   createdAt        DateTime              @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime              @updatedAt @db.Timestamptz(3)
+  expenseSpread    ExpenseSpread?
   entries          LedgerEntry[]
   occurrence       RecurrenceOccurrence?
   changes          TransactionChange[]
@@ -259,6 +260,16 @@ model Transaction {
   @@index([status, occurredAt])
   @@index([createdById, occurredAt])
   @@map("transaction")
+}
+
+model ExpenseSpread {
+  transactionId String      @id
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  startMonth    String      @db.VarChar(7)
+  monthCount    Int
+
+  @@index([startMonth])
+  @@map("expense_spread")
 }
 
 model LedgerEntry {

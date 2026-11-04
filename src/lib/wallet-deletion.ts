@@ -65,6 +65,7 @@ async function loadTransactions(db: Db, walletId: string, userId: string) {
             },
         },
         include: {
+            expenseSpread: true,
             entries: { include: { category: { include: { parent: true } } } },
             changes: {
                 where: { action: "CREATED" },
@@ -224,6 +225,14 @@ export async function deleteOwnedWallet(input: WalletDeletionInput) {
                         createdById: transaction.createdById,
                         idempotencyKey: transaction.idempotencyKey,
                         requestFingerprint,
+                        spread: transaction.expenseSpread
+                            ? {
+                                  startMonth:
+                                      transaction.expenseSpread.startMonth,
+                                  monthCount:
+                                      transaction.expenseSpread.monthCount,
+                              }
+                            : null,
                         name: transaction.name,
                         notes: transaction.notes,
                         type: transaction.type,

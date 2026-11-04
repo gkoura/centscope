@@ -53,6 +53,12 @@ export async function AccountSummary({ params }: { params: AccountParams }) {
                 >
                     Manage categories
                 </Link>
+                <Link
+                    href={`/dashboard/accounts/${account.id}/analysis`}
+                    className="text-sm underline underline-offset-4"
+                >
+                    Monthly analysis
+                </Link>
                 <p className="text-sm text-muted-foreground">
                     Keep track of the money you hold in bank accounts, cash, and
                     other wallets.

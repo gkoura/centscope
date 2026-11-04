@@ -1,6 +1,8 @@
 "use client"
 
 import Link from "next/link"
+import { ExpenseSpreadFields } from "./expense-spread-fields"
+import type { ExpenseSpread } from "@/lib/expense-spread"
 import { useActionState, useState } from "react"
 import {
     createTransaction,
@@ -128,6 +130,7 @@ export function CreateTransactionForm({
     wallets: { id: string; name: string; currency: string }[]
     categories: CategoryChoice[]
     editing?: {
+        spread?: ExpenseSpread | null
         id: string
         version: number
         name: string
@@ -439,6 +442,14 @@ export function CreateTransactionForm({
                         onChange={(value) => update("status", value)}
                         error={state.errors?.status}
                         description="Posted affects your balance now. Pending does not. The date never changes the status automatically."
+                    />
+                    <ExpenseSpreadFields
+                        initial={editing?.spread}
+                        date={values.date}
+                        amount={values.amount}
+                        currency={currency}
+                        type={values.type}
+                        error={state.errors?.spread}
                     />
                     <Field data-invalid={Boolean(state.errors?.notes)}>
                         <FieldLabel htmlFor="transaction-notes">

@@ -105,6 +105,17 @@ export async function TransactionWorkspace({
                     {full ? account.name : "Transactions"}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                        variant="outline"
+                        render={
+                            <Link
+                                href={`/dashboard/accounts/${account.id}/analysis`}
+                            />
+                        }
+                        nativeButton={false}
+                    >
+                        Monthly analysis
+                    </Button>
                     {!full && (
                         <Button
                             variant="ghost"
@@ -298,6 +309,16 @@ export async function TransactionWorkspace({
                                                 transaction.name
                                             )}
                                         </p>
+                                        {transaction.expenseSpread && (
+                                            <Badge variant="secondary">
+                                                Spread across{" "}
+                                                {
+                                                    transaction.expenseSpread
+                                                        .monthCount
+                                                }{" "}
+                                                months
+                                            </Badge>
+                                        )}
                                         {transaction.notes ? (
                                             <details className="mt-2 text-sm">
                                                 <summary className="cursor-pointer text-muted-foreground">

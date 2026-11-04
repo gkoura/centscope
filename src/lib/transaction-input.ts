@@ -1,3 +1,4 @@
+import { validSpread, type ExpenseSpread } from "./expense-spread.ts"
 export const transactionTypes = [
     { value: "EXPENSE", label: "Expense" },
     { value: "INCOME", label: "Income" },
@@ -13,6 +14,7 @@ export type TransactionInput = {
     amount: string
     date: string
     status: "POSTED" | "PENDING"
+    spread?: ExpenseSpread | null
     notes: string | null
 }
 export type TransactionFormState = {
@@ -92,8 +94,24 @@ export function validateTransactionInput(
     )
         errors.notes =
             "Notes must be at most 2,000 characters without null characters."
+    let spread: ExpenseSpread | undefined
+    if (values.type === "EXPENSE" && text(form, "spreadEnabled") === "on") {
+        spread = {
+            startMonth: text(form, "spreadStartMonth"),
+            monthCount: Number(text(form, "spreadMonthCount")),
+        }
+        if (!validSpread(spread))
+            errors.spread =
+                "Choose a valid start month and 2–120 months ending before year 10000."
+    }
     if (Object.keys(errors).length) return { errors }
-    return { data: { ...values, amount } as TransactionInput }
+    return {
+        data: {
+            ...values,
+            amount,
+            ...(spread ? { spread } : {}),
+        } as TransactionInput,
+    }
 }
 
 export function validateTransactionReference(form: FormData): {
@@ -120,9 +138,7 @@ export function validateTransactionReference(form: FormData): {
     }
 }
 
-export function validateStatusInput(
-    form: FormData
-):
+export function validateStatusInput(form: FormData):
     | (NonNullable<ReturnType<typeof validateTransactionReference>> & {
           status: "POSTED" | "PENDING"
       })
