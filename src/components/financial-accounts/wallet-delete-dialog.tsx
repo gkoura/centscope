@@ -1,5 +1,6 @@
 "use client"
 
+import { formatWalletMoney } from "@/lib/wallet-input"
 import { useState, useTransition } from "react"
 import { Trash2 } from "lucide-react"
 import {
@@ -110,6 +111,37 @@ export function WalletDeleteDialog({
                                 .
                             </p>
                         )}
+                        {preview.balanceChanges &&
+                            preview.balanceChanges.length > 0 && (
+                                <div>
+                                    <p className="font-medium">
+                                        Posted balance changes (including linked
+                                        transfers)
+                                    </p>
+                                    <ul className="flex flex-col gap-1">
+                                        {preview.balanceChanges.map(
+                                            (change, index) => (
+                                                <li
+                                                    key={index}
+                                                    className="break-words"
+                                                >
+                                                    {change.account} ·{" "}
+                                                    {change.wallet}:{" "}
+                                                    {change.amount.startsWith(
+                                                        "-"
+                                                    )
+                                                        ? ""
+                                                        : "+"}
+                                                    {formatWalletMoney(
+                                                        change.amount,
+                                                        change.currency
+                                                    )}
+                                                </li>
+                                            )
+                                        )}
+                                    </ul>
+                                </div>
+                            )}
                         <div>
                             <p className="font-medium">
                                 Affected accounts ({preview.accounts.length})

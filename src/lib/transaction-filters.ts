@@ -1,7 +1,7 @@
 export type TransactionQuery = Record<string, string | string[] | undefined>
 export type TransactionFilters = {
     q?: string
-    type?: "EXPENSE" | "INCOME" | "OPENING_BALANCE"
+    type?: "EXPENSE" | "INCOME" | "OPENING_BALANCE" | "TRANSFER"
     status?: "POSTED" | "PENDING"
     wallet?: string
     category?: string
@@ -33,7 +33,8 @@ export function parseTransactionFilters(
         type:
             type === "EXPENSE" ||
             type === "INCOME" ||
-            type === "OPENING_BALANCE"
+            type === "OPENING_BALANCE" ||
+            type === "TRANSFER"
                 ? type
                 : undefined,
         status:

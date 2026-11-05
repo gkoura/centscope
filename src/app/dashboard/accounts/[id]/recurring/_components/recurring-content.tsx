@@ -71,8 +71,26 @@ export async function RecurringContent({
                                     rule.source.wallet.currency
                                 )}{" "}
                                 ·{" "}
-                                {rule.type === "EXPENSE" ? "Expense" : "Income"}
+                                {rule.type === "TRANSFER"
+                                    ? "Transfer"
+                                    : rule.type === "EXPENSE"
+                                      ? "Expense"
+                                      : "Income"}
                             </p>
+                            {rule.destination && (
+                                <p className="text-sm text-muted-foreground">
+                                    {rule.source.wallet.name} →{" "}
+                                    {rule.destination.wallet.name} ·{" "}
+                                    {formatWalletMoney(
+                                        (
+                                            rule.destinationAmount ??
+                                            rule.amount
+                                        ).toFixed(2),
+                                        rule.destination.wallet.currency
+                                    )}{" "}
+                                    received (estimate)
+                                </p>
+                            )}
                             <p className="text-sm text-muted-foreground">
                                 Every {rule.interval}{" "}
                                 {rule.frequency

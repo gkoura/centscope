@@ -6,6 +6,12 @@ export type WalletDeletionInput = WalletDeletionReference & {
     expectedSnapshot: string
 }
 export type WalletDeletionPreview = {
+    balanceChanges?: {
+        wallet: string
+        account: string
+        currency: string
+        amount: string
+    }[]
     name: string
     accounts: { id: string; name: string; archived: boolean }[]
     transactionCount: number

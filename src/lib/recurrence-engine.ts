@@ -95,6 +95,7 @@ export async function generateRule(
         where: { id: ruleId, createdById: userId },
         include: {
             source: { include: { wallet: true, financialAccount: true } },
+            destination: { include: { wallet: true, financialAccount: true } },
             category: { include: { parent: true } },
         },
     })
@@ -106,11 +107,23 @@ export async function generateRule(
         rule.source.wallet.ownerId !== userId ||
         rule.source.financialAccount.archivedAt ||
         rule.source.financialAccount.ownerId !== userId ||
-        !rule.category ||
-        rule.category.archivedAt ||
-        rule.category.parent?.archivedAt ||
-        rule.category.type !== rule.type ||
-        rule.category.financialAccountId !== rule.source.financialAccountId
+        (rule.type === "TRANSFER"
+            ? !rule.destination ||
+              rule.destination.archivedAt ||
+              rule.destination.wallet.archivedAt ||
+              rule.destination.financialAccount.archivedAt ||
+              rule.destination.wallet.ownerId !== userId ||
+              rule.destination.financialAccount.ownerId !== userId ||
+              rule.destinationId === rule.sourceId ||
+              rule.destination.financialAccountId !==
+                  rule.source.financialAccountId ||
+              rule.categoryId !== null
+            : !rule.category ||
+              rule.category.archivedAt ||
+              rule.category.parent?.archivedAt ||
+              rule.category.type !== rule.type ||
+              rule.category.financialAccountId !==
+                  rule.source.financialAccountId)
     ) {
         await tx.recurrenceRule.update({
             where: { id: rule.id },
@@ -149,7 +162,7 @@ export async function generateRule(
             spread: templateSpread(rule, d),
         }))
     const amount = new Prisma.Decimal(rule.amount).mul(
-        rule.type === "EXPENSE" ? -1 : 1
+        rule.type === "EXPENSE" || rule.type === "TRANSFER" ? -1 : 1
     )
     if (pending.length) {
         await tx.transaction.createMany({
@@ -165,13 +178,29 @@ export async function generateRule(
             })),
         })
         await tx.ledgerEntry.createMany({
-            data: pending.map((row) => ({
-                transactionId: row.id,
-                accountWalletId: rule.sourceId,
-                financialAccountId: rule.source.financialAccountId,
-                categoryId: rule.categoryId,
-                amount,
-            })),
+            data: pending.flatMap((row) => [
+                {
+                    transactionId: row.id,
+                    accountWalletId: rule.sourceId,
+                    financialAccountId: rule.source.financialAccountId,
+                    categoryId: rule.categoryId,
+                    amount,
+                },
+                ...(rule.type === "TRANSFER"
+                    ? [
+                          {
+                              transactionId: row.id,
+                              accountWalletId: rule.destinationId!,
+                              financialAccountId:
+                                  rule.destination!.financialAccountId,
+                              categoryId: null,
+                              amount: new Prisma.Decimal(
+                                  rule.destinationAmount ?? rule.amount
+                              ),
+                          },
+                      ]
+                    : []),
+            ]),
         })
         await tx.recurrenceOccurrence.createMany({
             data: pending.map((row) => ({
@@ -192,6 +221,39 @@ export async function generateRule(
                 action: "CREATED",
                 snapshot: {
                     financialAccountId: rule.source.financialAccountId,
+                    financialAccountIds: [
+                        ...new Set([
+                            rule.source.financialAccountId,
+                            ...(rule.destination
+                                ? [rule.destination.financialAccountId]
+                                : []),
+                        ]),
+                    ],
+                    ...(rule.type === "TRANSFER"
+                        ? {
+                              entries: [
+                                  {
+                                      accountWalletId: rule.sourceId,
+                                      financialAccountId:
+                                          rule.source.financialAccountId,
+                                      walletName: rule.source.wallet.name,
+                                      currency: rule.source.wallet.currency,
+                                      amount: amount.toFixed(2),
+                                  },
+                                  {
+                                      accountWalletId: rule.destinationId!,
+                                      financialAccountId:
+                                          rule.destination!.financialAccountId,
+                                      walletName: rule.destination!.wallet.name,
+                                      currency:
+                                          rule.destination!.wallet.currency,
+                                      amount: new Prisma.Decimal(
+                                          rule.destinationAmount ?? rule.amount
+                                      ).toFixed(2),
+                                  },
+                              ],
+                          }
+                        : {}),
                     accountWalletId: rule.sourceId,
                     categoryId: rule.categoryId,
                     name: rule.name,

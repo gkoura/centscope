@@ -1,4 +1,10 @@
 import "server-only"
+import {
+    lockAccounts,
+    lockAllocations,
+    movementInclude,
+    checkMovements,
+} from "@/lib/transfer-core"
 import { prisma } from "@/lib/prisma"
 import { requireVerifiedSession } from "@/lib/auth/session"
 import { generateRule, RecurrenceError } from "@/lib/recurrence-engine"
@@ -11,8 +17,11 @@ async function processRecurring(accountId: string, userId: string) {
         pausedAt: null,
         stoppedAt: null,
         nextOccurrenceAt: { not: null },
+        OR: [
+            { source: { financialAccountId: accountId } },
+            { destination: { financialAccountId: accountId } },
+        ],
         source: {
-            financialAccountId: accountId,
             financialAccount: { ownerId: userId, archivedAt: null },
             archivedAt: null,
             wallet: { ownerId: userId, archivedAt: null },
@@ -46,12 +55,37 @@ async function processRecurring(accountId: string, userId: string) {
         try {
             created += await prisma.$transaction(
                 async (tx) => {
-                    const account = await tx.$queryRaw<
-                        { id: string }[]
-                    >`SELECT id FROM financial_account WHERE id=${accountId} AND "ownerId"=${userId} AND "archivedAt" IS NULL FOR UPDATE`
-                    return account.length
-                        ? generateRule(tx, rule.id, userId)
-                        : 0
+                    const endpoints = await tx.accountWallet.findMany({
+                        where: {
+                            id: {
+                                in: [
+                                    rule.sourceId,
+                                    ...(rule.destinationId
+                                        ? [rule.destinationId]
+                                        : []),
+                                ],
+                            },
+                        },
+                        select: { id: true, financialAccountId: true },
+                    })
+                    const accountIds = [
+                        ...new Set(endpoints.map((e) => e.financialAccountId)),
+                    ]
+                    await lockAccounts(tx, accountIds, userId)
+                    await lockAllocations(
+                        tx,
+                        endpoints.map((e) => e.id)
+                    )
+                    const current = await tx.recurrenceRule.findUnique({
+                        where: { id: rule.id },
+                    })
+                    if (
+                        !current ||
+                        current.sourceId !== rule.sourceId ||
+                        current.destinationId !== rule.destinationId
+                    )
+                        throw new Error("Schedule endpoints changed; retry")
+                    return generateRule(tx, rule.id, userId)
                 },
                 { timeout: 20_000, maxWait: 10_000 }
             )
@@ -80,13 +114,31 @@ export async function listOwnedRecurring(accountId: string) {
     const rules = await prisma.recurrenceRule.findMany({
         where: {
             createdById: user.id,
+            OR: [
+                { source: { financialAccountId: accountId } },
+                { destination: { financialAccountId: accountId } },
+            ],
+            AND: [
+                {
+                    OR: [
+                        { destinationId: null },
+                        {
+                            destination: {
+                                wallet: { ownerId: user.id },
+                                financialAccount: { ownerId: user.id },
+                            },
+                        },
+                    ],
+                },
+            ],
             source: {
-                financialAccountId: accountId,
                 financialAccount: { ownerId: user.id, archivedAt: null },
+                wallet: { ownerId: user.id },
             },
         },
         include: {
             source: { include: { wallet: true } },
+            destination: { include: { wallet: true } },
             category: { include: { parent: true } },
             occurrences: {
                 where: { transactionId: { not: null } },
@@ -146,18 +198,49 @@ export async function commandOwnedRecurring(form: FormData) {
         version < 1
     )
         throw new RecurrenceError("Reload this schedule before making changes.")
+    const initial = await prisma.recurrenceRule.findFirst({
+        where: {
+            id: ruleId,
+            createdById: user.id,
+            OR: [
+                { source: { financialAccountId: accountId } },
+                { destination: { financialAccountId: accountId } },
+            ],
+        },
+        include: {
+            source: true,
+            destination: true,
+            occurrences: {
+                where: { transactionId: { not: null } },
+                include: { transaction: { include: { entries: true } } },
+            },
+        },
+    })
+    if (!initial) throw new RecurrenceError("This schedule is unavailable.")
+    const accountIds = [
+        ...new Set([
+            initial.source.financialAccountId,
+            ...(initial.destination
+                ? [initial.destination.financialAccountId]
+                : []),
+            ...initial.occurrences.flatMap(
+                (o) =>
+                    o.transaction?.entries.map((e) => e.financialAccountId) ??
+                    []
+            ),
+        ]),
+    ]
     await prisma.$transaction(
         async (tx) => {
-            const account = await tx.$queryRaw<
-                { id: string }[]
-            >`SELECT id FROM financial_account WHERE id=${accountId} AND "ownerId"=${user.id} AND "archivedAt" IS NULL FOR UPDATE`
-            if (!account.length)
-                throw new RecurrenceError("This account is unavailable.")
+            await lockAccounts(tx, accountIds, user.id)
             const rule = await tx.recurrenceRule.findFirst({
                 where: {
                     id: ruleId,
                     createdById: user.id,
-                    source: { financialAccountId: accountId },
+                    OR: [
+                        { source: { financialAccountId: accountId } },
+                        { destination: { financialAccountId: accountId } },
+                    ],
                 },
             })
             if (!rule || rule.version !== version)
@@ -187,16 +270,28 @@ export async function commandOwnedRecurring(form: FormData) {
                     orderBy: { transaction: { occurredAt: "asc" } },
                     include: {
                         transaction: {
-                            include: { entries: true, expenseSpread: true },
+                            include: {
+                                entries: { include: movementInclude },
+                                expenseSpread: true,
+                            },
                         },
                     },
                 })
                 if (upcoming?.transaction) {
                     const payment = upcoming.transaction,
                         entry = payment.entries[0]
+                    await lockAllocations(
+                        tx,
+                        payment.entries.map((e) => e.accountWalletId)
+                    )
+                    checkMovements(payment.entries, user.id)
                     if (
-                        payment.entries.length !== 1 ||
-                        entry.financialAccountId !== accountId
+                        payment.entries.some(
+                            (e) => !accountIds.includes(e.financialAccountId)
+                        ) ||
+                        (payment.type === "TRANSFER"
+                            ? payment.entries.length !== 2
+                            : payment.entries.length !== 1)
                     )
                         throw new RecurrenceError(
                             "This occurrence is unavailable."
@@ -209,6 +304,15 @@ export async function commandOwnedRecurring(form: FormData) {
                             action: "DELETED",
                             snapshot: {
                                 financialAccountId: accountId,
+                                financialAccountIds: payment.entries.map(
+                                    (e) => e.financialAccountId
+                                ),
+                                entries: payment.entries.map((e) => ({
+                                    financialAccountId: e.financialAccountId,
+                                    accountWalletId: e.accountWalletId,
+                                    currency: e.accountWallet.wallet.currency,
+                                    amount: e.amount.toFixed(2),
+                                })),
                                 ruleId,
                                 scheduledFor:
                                     upcoming.scheduledFor.toISOString(),

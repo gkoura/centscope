@@ -1,4 +1,6 @@
 "use client"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 import { WalletDeleteDialog } from "./wallet-delete-dialog"
 import { WalletEditDialog } from "./wallet-edit-dialog"
 import type { listOwnedAccountWallets } from "@/lib/wallets"
@@ -81,6 +83,19 @@ export function WalletCards({
                             </p>
                         )}
                         <div className="flex flex-wrap justify-end gap-2">
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={disabled}
+                                render={
+                                    <Link
+                                        href={`/dashboard/accounts/${financialAccountId}/transactions/transfer/new?source=${wallet.id}`}
+                                    />
+                                }
+                                nativeButton={false}
+                            >
+                                Transfer
+                            </Button>
                             <WalletEditDialog
                                 key={`${wallet.id}-${wallet.updatedAt}`}
                                 financialAccountId={financialAccountId}

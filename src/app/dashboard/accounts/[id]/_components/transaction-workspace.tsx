@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { TransferStatusForm } from "@/components/financial-accounts/transfer-status-form"
 import { RecurringSync } from "@/components/financial-accounts/recurring-sync"
 import { notFound } from "next/navigation"
 import { PlusIcon, UploadIcon, ReceiptTextIcon } from "lucide-react"
@@ -109,6 +110,13 @@ export async function TransactionWorkspace({
                 <div className="flex flex-wrap items-center gap-2">
                     <Button
                         variant="outline"
+                        render={<Link href={`${basePath}/transfer/new`} />}
+                        nativeButton={false}
+                    >
+                        Transfer
+                    </Button>
+                    <Button
+                        variant="outline"
                         render={
                             <Link
                                 href={`/dashboard/accounts/${account.id}/recurring`}
@@ -201,6 +209,7 @@ export async function TransactionWorkspace({
                                 options={[
                                     { id: "EXPENSE", name: "Expenses" },
                                     { id: "INCOME", name: "Income" },
+                                    { id: "TRANSFER", name: "Transfers" },
                                     {
                                         id: "OPENING_BALANCE",
                                         name: "Opening balances",
@@ -302,15 +311,20 @@ export async function TransactionWorkspace({
                                             {transaction.date} ·{" "}
                                             {transaction.type === "EXPENSE"
                                                 ? "Expense"
-                                                : transaction.type === "INCOME"
-                                                  ? "Income"
-                                                  : "Opening balance"}
+                                                : transaction.type ===
+                                                    "TRANSFER"
+                                                  ? "Transfer"
+                                                  : transaction.type ===
+                                                      "INCOME"
+                                                    ? "Income"
+                                                    : "Opening balance"}
                                         </p>
                                         <p className="font-medium break-words">
                                             {transaction.canChangeStatus &&
                                             (transaction.type === "EXPENSE" ||
+                                                transaction.type === "INCOME" ||
                                                 transaction.type ===
-                                                    "INCOME") ? (
+                                                    "TRANSFER") ? (
                                                 <Link
                                                     href={`${basePath}/${transaction.id}/edit`}
                                                     aria-label={`Edit ${transaction.name}`}
@@ -349,18 +363,107 @@ export async function TransactionWorkspace({
                                         ) : null}
                                     </TableCell>
                                     <TableCell className="order-3 col-span-2 max-w-48 p-0 break-words whitespace-normal sm:p-2">
-                                        {transaction.category ?? "—"}
+                                        {transaction.transfer
+                                            ? "Transfer"
+                                            : (transaction.category ?? "—")}
                                     </TableCell>
                                     <TableCell className="order-2 p-0 text-right sm:p-2">
-                                        <p className="max-w-48 break-words whitespace-normal text-muted-foreground">
-                                            {transaction.walletName}
-                                        </p>
-                                        <p className="tabular-nums">
-                                            {formatWalletMoney(
-                                                transaction.amount,
-                                                transaction.currency
-                                            )}
-                                        </p>
+                                        {transaction.transfer ? (
+                                            <div className="flex flex-col gap-1 text-sm">
+                                                <p className="break-words">
+                                                    {
+                                                        transaction.transfer
+                                                            .source.accountName
+                                                    }{" "}
+                                                    ·{" "}
+                                                    {
+                                                        transaction.transfer
+                                                            .source.walletName
+                                                    }{" "}
+                                                    →{" "}
+                                                    {
+                                                        transaction.transfer
+                                                            .destination
+                                                            .accountName
+                                                    }{" "}
+                                                    ·{" "}
+                                                    {
+                                                        transaction.transfer
+                                                            .destination
+                                                            .walletName
+                                                    }
+                                                </p>
+                                                <p className="tabular-nums">
+                                                    {transaction.transfer.source
+                                                        .available
+                                                        ? formatWalletMoney(
+                                                              transaction
+                                                                  .transfer
+                                                                  .source
+                                                                  .amount,
+                                                              transaction
+                                                                  .transfer
+                                                                  .source
+                                                                  .currency
+                                                          )
+                                                        : "Other account"}{" "}
+                                                    →{" "}
+                                                    {transaction.transfer
+                                                        .destination.available
+                                                        ? formatWalletMoney(
+                                                              transaction
+                                                                  .transfer
+                                                                  .destination
+                                                                  .amount,
+                                                              transaction
+                                                                  .transfer
+                                                                  .destination
+                                                                  .currency
+                                                          )
+                                                        : "Other account"}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {transaction.transfer
+                                                        .direction ===
+                                                    "INTERNAL"
+                                                        ? "Between wallets"
+                                                        : transaction.transfer
+                                                                .direction ===
+                                                            "OUT"
+                                                          ? "Outgoing transfer"
+                                                          : "Incoming transfer"}
+                                                    {transaction.transfer
+                                                        .direction !==
+                                                        "INTERNAL" && (
+                                                        <>
+                                                            {" "}
+                                                            ·{" "}
+                                                            {transaction.amount.startsWith(
+                                                                "-"
+                                                            )
+                                                                ? ""
+                                                                : "+"}
+                                                            {formatWalletMoney(
+                                                                transaction.amount,
+                                                                transaction.currency
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <p className="max-w-48 break-words whitespace-normal text-muted-foreground">
+                                                    {transaction.walletName}
+                                                </p>
+                                                <p className="tabular-nums">
+                                                    {formatWalletMoney(
+                                                        transaction.amount,
+                                                        transaction.currency
+                                                    )}
+                                                </p>
+                                            </>
+                                        )}
                                     </TableCell>
                                     <TableCell className="order-4 col-span-2 p-0 pt-2 sm:p-2">
                                         <div className="flex flex-wrap items-center gap-2 sm:flex-col sm:items-start">
@@ -377,27 +480,44 @@ export async function TransactionWorkspace({
                                                     : "Pending"}
                                             </Badge>
                                             {transaction.canChangeStatus ? (
-                                                <TransactionStatusForm
-                                                    key={`${transaction.id}-${transaction.version}`}
-                                                    financialAccountId={
-                                                        account.id
-                                                    }
-                                                    transactionId={
-                                                        transaction.id
-                                                    }
-                                                    name={transaction.name}
-                                                    status={transaction.status}
-                                                    version={
-                                                        transaction.version
-                                                    }
-                                                />
+                                                transaction.transfer ? (
+                                                    <TransferStatusForm
+                                                        key={`${transaction.id}-${transaction.version}`}
+                                                        financialAccountId={
+                                                            account.id
+                                                        }
+                                                        transaction={{
+                                                            ...transaction,
+                                                            transfer:
+                                                                transaction.transfer,
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <TransactionStatusForm
+                                                        key={`${transaction.id}-${transaction.version}`}
+                                                        financialAccountId={
+                                                            account.id
+                                                        }
+                                                        transactionId={
+                                                            transaction.id
+                                                        }
+                                                        name={transaction.name}
+                                                        status={
+                                                            transaction.status
+                                                        }
+                                                        version={
+                                                            transaction.version
+                                                        }
+                                                    />
+                                                )
                                             ) : null}
                                         </div>
                                     </TableCell>
                                     <TableCell className="order-5 col-span-2 p-0 pt-2 sm:p-2">
                                         {transaction.canChangeStatus &&
                                         (transaction.type === "EXPENSE" ||
-                                            transaction.type === "INCOME") ? (
+                                            transaction.type === "INCOME" ||
+                                            transaction.type === "TRANSFER") ? (
                                             <TransactionActions
                                                 key={`${transaction.id}-${transaction.version}`}
                                                 financialAccountId={account.id}

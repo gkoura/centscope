@@ -14,7 +14,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return (
         <div className="app-shell">
             <aside className="app-sidebar">
-                <Brand />
+                <Brand href="/dashboard" />
                 <p className="mt-12 mb-4 text-[10px] font-semibold tracking-[.15em] text-muted-foreground">
                     YOUR WORKSPACE
                 </p>

@@ -11,6 +11,11 @@ import { validSpread } from "@/lib/expense-spread"
 import { createRuleForTransaction, updateSeries } from "@/lib/recurrence-engine"
 import { validRepeat } from "@/lib/recurrence-input"
 
+import { deleteRecurringSelection } from "@/lib/recurring-deletion"
+import { movementInclude } from "@/lib/transfer-core"
+import { isTransferReference, deleteOwnedTransfer } from "@/lib/transfers"
+import type { DeleteScope } from "@/lib/transaction-deletion-input"
+
 export class TransactionWriteError extends Error {}
 
 function validateExpenseSpread(input: TransactionInput) {
@@ -479,6 +484,7 @@ function decodeCursor(cursor?: string) {
     try {
         const value = JSON.parse(Buffer.from(cursor, "base64url").toString())
         if (
+            value.v !== 2 ||
             typeof value.id !== "string" ||
             !value.id ||
             value.id.length > 128 ||
@@ -498,141 +504,181 @@ export async function listOwnedAccountTransactions(
     cursor?: string,
     filters: TransactionFilters = {}
 ) {
-    const { user } = await requireVerifiedSession()
-    const before = decodeCursor(cursor)
-    const rows = await prisma.ledgerEntry.findMany({
-        where: {
-            financialAccountId,
-            ...(filters.wallet ? { accountWalletId: filters.wallet } : {}),
-            ...(filters.category
-                ? {
-                      category: {
-                          OR: [
-                              { id: filters.category },
-                              { parentId: filters.category },
-                          ],
-                      },
-                  }
-                : {}),
-            transaction: {
-                ...(filters.q
-                    ? {
-                          OR: [
-                              {
-                                  name: {
-                                      contains: filters.q,
-                                      mode: "insensitive",
-                                  },
-                              },
-                              {
-                                  notes: {
-                                      contains: filters.q,
-                                      mode: "insensitive",
-                                  },
-                              },
-                          ],
-                      }
-                    : {}),
-                ...(filters.type ? { type: filters.type } : {}),
-                ...(filters.status ? { status: filters.status } : {}),
-                ...(filters.from || filters.to
-                    ? {
-                          occurredAt: {
-                              ...(filters.from
-                                  ? {
-                                        gte: new Date(
-                                            `${filters.from}T00:00:00.000Z`
-                                        ),
-                                    }
-                                  : {}),
-                              ...(filters.to
-                                  ? {
-                                        lte: new Date(
-                                            `${filters.to}T00:00:00.000Z`
-                                        ),
-                                    }
-                                  : {}),
-                          },
-                      }
-                    : {}),
-            },
-            accountWallet: {
-                financialAccount: { ownerId: user.id, archivedAt: null },
-                wallet: { ownerId: user.id },
-            },
-            ...(before
-                ? {
-                      OR: [
-                          { transaction: { occurredAt: { lt: before.date } } },
-                          {
-                              transaction: { occurredAt: before.date },
-                              id: { lt: before.id },
-                          },
-                      ],
-                  }
-                : {}),
+    const { user } = await requireVerifiedSession(),
+        before = decodeCursor(cursor)
+    const qualifying: Prisma.LedgerEntryWhereInput = {
+        financialAccountId,
+        accountWallet: {
+            financialAccount: { ownerId: user.id, archivedAt: null },
+            wallet: { ownerId: user.id },
         },
-        select: {
-            id: true,
-            amount: true,
-            accountWallet: {
-                select: {
-                    wallet: {
-                        select: {
-                            name: true,
-                            currency: true,
-                            archivedAt: true,
-                        },
-                    },
-                    archivedAt: true,
+        ...(filters.wallet ? { accountWalletId: filters.wallet } : {}),
+        ...(filters.category
+            ? {
+                  category: {
+                      OR: [
+                          { id: filters.category },
+                          { parentId: filters.category },
+                      ],
+                  },
+              }
+            : {}),
+    }
+    const rows = await prisma.$transaction(
+        (tx) =>
+            tx.transaction.findMany({
+                where: {
+                    entries: { some: qualifying },
+                    ...(filters.type ? { type: filters.type } : {}),
+                    ...(filters.status ? { status: filters.status } : {}),
+                    ...(filters.q
+                        ? {
+                              OR: [
+                                  {
+                                      name: {
+                                          contains: filters.q,
+                                          mode: "insensitive",
+                                      },
+                                  },
+                                  {
+                                      notes: {
+                                          contains: filters.q,
+                                          mode: "insensitive",
+                                      },
+                                  },
+                              ],
+                          }
+                        : {}),
+                    ...(filters.from || filters.to
+                        ? {
+                              occurredAt: {
+                                  ...(filters.from
+                                      ? {
+                                            gte: new Date(
+                                                `${filters.from}T00:00:00Z`
+                                            ),
+                                        }
+                                      : {}),
+                                  ...(filters.to
+                                      ? {
+                                            lte: new Date(
+                                                `${filters.to}T00:00:00Z`
+                                            ),
+                                        }
+                                      : {}),
+                              },
+                          }
+                        : {}),
+                    ...(before
+                        ? {
+                              AND: [
+                                  {
+                                      OR: [
+                                          { occurredAt: { lt: before.date } },
+                                          {
+                                              occurredAt: before.date,
+                                              id: { lt: before.id },
+                                          },
+                                      ],
+                                  },
+                              ],
+                          }
+                        : {}),
                 },
-            },
-            category: {
-                select: { name: true, parent: { select: { name: true } } },
-            },
-            transaction: {
-                select: {
-                    id: true,
-                    name: true,
-                    type: true,
-                    status: true,
-                    occurredAt: true,
-                    notes: true,
-                    version: true,
+                include: {
+                    entries: { include: movementInclude },
                     expenseSpread: true,
                     occurrence: { select: { ruleId: true } },
                 },
-            },
-        },
-        orderBy: [{ transaction: { occurredAt: "desc" } }, { id: "desc" }],
-        take: 26,
-    })
-    const entries = rows.slice(0, 25)
-    const last = entries.at(-1)
+                orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+                take: 26,
+            }),
+        { isolationLevel: "RepeatableRead", timeout: 15_000 }
+    )
+    const page = rows.slice(0, 25),
+        last = page.at(-1)
     return {
         nextCursor:
             rows.length > 25 && last
                 ? Buffer.from(
                       JSON.stringify({
+                          v: 2,
                           id: last.id,
-                          date: last.transaction.occurredAt.toISOString(),
+                          date: last.occurredAt.toISOString(),
                       })
                   ).toString("base64url")
                 : null,
-        transactions: entries.map((entry) => ({
-            ...entry.transaction,
-            date: entry.transaction.occurredAt.toISOString().slice(0, 10),
-            occurredAt: undefined,
-            amount: entry.amount.toFixed(2),
-            currency: entry.accountWallet.wallet.currency,
-            walletName: entry.accountWallet.wallet.name,
-            canChangeStatus:
-                !entry.accountWallet.archivedAt &&
-                !entry.accountWallet.wallet.archivedAt,
-            category: entry.category
-                ? `${entry.category.parent ? `${entry.category.parent.name} / ` : ""}${entry.category.name}`
-                : null,
-        })),
+        transactions: page.map((row) => {
+            const entry = row.entries.find(
+                (e) =>
+                    e.financialAccountId === financialAccountId &&
+                    (!filters.wallet || e.accountWalletId === filters.wallet)
+            )!
+            const owned = (e: typeof entry) =>
+                e.accountWallet.wallet.ownerId === user.id &&
+                e.accountWallet.financialAccount.ownerId === user.id
+            const endpoint = (e: typeof entry) => ({
+                available: owned(e),
+                id: owned(e) ? e.accountWalletId : "",
+                walletName: owned(e)
+                    ? e.accountWallet.wallet.name
+                    : "Other account",
+                accountName: owned(e)
+                    ? e.accountWallet.financialAccount.name
+                    : "",
+                amount: owned(e) ? e.amount.abs().toFixed(2) : "",
+                currency: owned(e) ? e.accountWallet.wallet.currency : "",
+            })
+            const transfer =
+                row.type === "TRANSFER"
+                    ? {
+                          source: endpoint(
+                              row.entries.find((e) => e.amount.isNegative())!
+                          ),
+                          destination: endpoint(
+                              row.entries.find((e) => e.amount.isPositive())!
+                          ),
+                          direction:
+                              row.entries.every(
+                                  (e) =>
+                                      e.financialAccountId ===
+                                      financialAccountId
+                              ) && !filters.wallet
+                                  ? "INTERNAL"
+                                  : entry.amount.isNegative()
+                                    ? "OUT"
+                                    : "IN",
+                      }
+                    : null
+            return {
+                id: row.id,
+                name: row.name,
+                type: row.type,
+                status: row.status,
+                notes: row.notes,
+                version: row.version,
+                expenseSpread: row.expenseSpread,
+                occurrence: row.occurrence,
+                date: row.occurredAt.toISOString().slice(0, 10),
+                amount: entry.amount.toFixed(2),
+                currency: entry.accountWallet.wallet.currency,
+                walletName: entry.accountWallet.wallet.name,
+                canChangeStatus: row.entries.every(
+                    (e) =>
+                        owned(e) &&
+                        !e.accountWallet.archivedAt &&
+                        !e.accountWallet.wallet.archivedAt &&
+                        !e.accountWallet.financialAccount.archivedAt
+                ),
+                category:
+                    row.type === "TRANSFER"
+                        ? null
+                        : entry.category
+                          ? `${entry.category.parent ? `${entry.category.parent.name} / ` : ""}${entry.category.name}`
+                          : null,
+                transfer,
+            }
+        }),
     }
 }
 
@@ -1015,11 +1061,48 @@ export async function deleteOwnedTransaction(input: {
     financialAccountId: string
     transactionId: string
     expectedVersion: number
+    scope?: DeleteScope
+    expectedSnapshot?: string
 }) {
     const { user } = await requireVerifiedSession()
+    if (
+        await isTransferReference(input.financialAccountId, input.transactionId)
+    )
+        return deleteOwnedTransfer(input)
+    const transferReceipt = await prisma.transactionChange.findFirst({
+        where: {
+            actorId: user.id,
+            action: "DELETED",
+            transactionId: input.transactionId,
+            snapshot: { path: ["type"], equals: "TRANSFER" },
+        },
+        select: { id: true },
+    })
+    if (transferReceipt) return deleteOwnedTransfer(input)
     await prisma.$transaction(
         async (tx) => {
             await lockAccount(tx, input.financialAccountId, user.id)
+            if (
+                input.expectedSnapshot ||
+                (input.scope && input.scope !== "ONLY")
+            ) {
+                if (!input.expectedSnapshot)
+                    throw new TransactionWriteError(
+                        "Preview the recurring deletion before confirming."
+                    )
+                await deleteRecurringSelection(
+                    tx,
+                    {
+                        financialAccountId: input.financialAccountId,
+                        transactionId: input.transactionId,
+                        expectedVersion: input.expectedVersion,
+                        scope: input.scope ?? "ONLY",
+                        expectedSnapshot: input.expectedSnapshot,
+                    },
+                    user.id
+                )
+                return
+            }
             const transaction = await tx.transaction.findFirst({
                 where: {
                     id: input.transactionId,
@@ -1145,6 +1228,6 @@ export async function deleteOwnedTransaction(input: {
                 where: { id: transaction.id, version: input.expectedVersion },
             })
         },
-        { timeout: 15_000 }
+        { timeout: 30_000 }
     )
 }

@@ -1,3 +1,9 @@
+import {
+    isTransferReference,
+    getOwnedEditableTransfer,
+    listOwnedTransferWallets,
+} from "@/lib/transfers"
+import { TransferForm } from "@/components/financial-accounts/transfer-form"
 import { randomUUID } from "node:crypto"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -11,6 +17,30 @@ export async function EditTransactionContent({
     params: Promise<{ id: string; transactionId: string }>
 }) {
     const { id, transactionId } = await params
+    if (await isTransferReference(id, transactionId)) {
+        const [transfer, options] = await Promise.all([
+            getOwnedEditableTransfer(id, transactionId),
+            listOwnedTransferWallets(id),
+        ])
+        if (!transfer) notFound()
+        return (
+            <>
+                <Link
+                    href={`/dashboard/accounts/${id}/transactions`}
+                    className="text-sm underline underline-offset-4"
+                >
+                    Back to transactions
+                </Link>
+                <TransferForm
+                    contextAccountId={id}
+                    wallets={options}
+                    requestId={randomUUID()}
+                    today={transfer.date}
+                    editing={transfer}
+                />
+            </>
+        )
+    }
     const [transaction, wallets, categories] = await Promise.all([
         getOwnedEditableTransaction(id, transactionId),
         listOwnedAccountWallets(id),

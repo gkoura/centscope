@@ -1,6 +1,11 @@
 import "server-only"
 import { createHash, randomUUID } from "node:crypto"
 import { Prisma } from "@/generated/prisma/client"
+import {
+    movementInclude,
+    movementSnapshot,
+    transferLegs,
+} from "@/lib/transfer-core"
 import { prisma } from "@/lib/prisma"
 import { requireVerifiedSession } from "@/lib/auth/session"
 import type {
@@ -52,12 +57,11 @@ async function loadTransactions(db: Db, walletId: string, userId: string) {
     })
     const rows = await db.transaction.findMany({
         where: {
-            type: { in: ["OPENING_BALANCE", "EXPENSE", "INCOME"] },
+            type: { in: ["OPENING_BALANCE", "EXPENSE", "INCOME", "TRANSFER"] },
             entries: {
                 some: { accountWallet: { walletId } },
                 every: {
                     accountWallet: {
-                        walletId,
                         wallet: { ownerId: userId },
                         financialAccount: { ownerId: userId },
                     },
@@ -66,7 +70,7 @@ async function loadTransactions(db: Db, walletId: string, userId: string) {
         },
         include: {
             expenseSpread: true,
-            entries: { include: { category: { include: { parent: true } } } },
+            entries: { include: movementInclude, orderBy: { id: "asc" } },
             changes: {
                 where: { action: "CREATED" },
                 take: 1,
@@ -75,11 +79,51 @@ async function loadTransactions(db: Db, walletId: string, userId: string) {
         },
         orderBy: { id: "asc" },
     })
-    if (rows.length !== total || rows.some((row) => row.entries.length !== 1))
+    if (
+        rows.length !== total ||
+        rows.some(
+            (row) => row.entries.length !== (row.type === "TRANSFER" ? 2 : 1)
+        )
+    )
         throw new WalletDeletionError(
             "This wallet has linked transactions or transfers that cannot be safely deleted here."
         )
+    for (const row of rows)
+        if (row.type === "TRANSFER") {
+            try {
+                transferLegs(row.entries)
+            } catch {
+                throw new WalletDeletionError(
+                    "A linked transfer has an invalid ledger shape."
+                )
+            }
+        }
     return rows
+}
+function affectedAccounts(
+    scope: Awaited<ReturnType<typeof resolveScope>>,
+    rows: Awaited<ReturnType<typeof loadTransactions>>
+) {
+    return [
+        ...new Map(
+            [
+                ...scope.wallet.allocations.map((item) => ({
+                    id: item.financialAccountId,
+                    name: item.financialAccount.name,
+                    archived: Boolean(item.financialAccount.archivedAt),
+                })),
+                ...rows.flatMap((row) =>
+                    row.entries.map((e) => ({
+                        id: e.financialAccountId,
+                        name: e.accountWallet.financialAccount.name,
+                        archived: Boolean(
+                            e.accountWallet.financialAccount.archivedAt
+                        ),
+                    }))
+                ),
+            ].map((a) => [a.id, a])
+        ).values(),
+    ].sort((a, b) => a.id.localeCompare(b.id))
 }
 function fingerprint(
     scope: Awaited<ReturnType<typeof resolveScope>>,
@@ -113,6 +157,14 @@ function fingerprint(
                         allocation: entry.accountWalletId,
                         amount: entry.amount.toFixed(2),
                         categoryId: entry.categoryId,
+                        account: entry.financialAccountId,
+                        wallet: entry.accountWallet.walletId,
+                        walletUpdatedAt:
+                            entry.accountWallet.wallet.updatedAt.toISOString(),
+                        accountOwner:
+                            entry.accountWallet.financialAccount.ownerId,
+                        accountArchivedAt:
+                            entry.accountWallet.financialAccount.archivedAt,
                     })),
                 })),
             })
@@ -136,11 +188,26 @@ export async function getOwnedWalletDeletionPreview(
             )
             return {
                 name: scope.wallet.name,
-                accounts: scope.wallet.allocations.map((item) => ({
-                    id: item.financialAccountId,
-                    name: item.financialAccount.name,
-                    archived: Boolean(item.financialAccount.archivedAt),
-                })),
+                accounts: affectedAccounts(scope, transactions),
+                balanceChanges: [
+                    ...transactions
+                        .filter((row) => row.status === "POSTED")
+                        .flatMap((row) => row.entries)
+                        .reduce((totals, e) => {
+                            const key = e.accountWalletId,
+                                previous = totals.get(key)
+                            totals.set(key, {
+                                wallet: e.accountWallet.wallet.name,
+                                account: e.accountWallet.financialAccount.name,
+                                currency: e.accountWallet.wallet.currency,
+                                amount: (
+                                    previous?.amount ?? new Prisma.Decimal(0)
+                                ).sub(e.amount),
+                            })
+                            return totals
+                        }, new Map<string, { wallet: string; account: string; currency: string; amount: Prisma.Decimal }>())
+                        .values(),
+                ].map((row) => ({ ...row, amount: row.amount.toFixed(2) })),
                 transactionCount: transactions.length,
                 postedCount: transactions.filter(
                     (row) => row.status === "POSTED"
@@ -161,9 +228,30 @@ export async function getOwnedWalletDeletionPreview(
 export async function deleteOwnedWallet(input: WalletDeletionInput) {
     const { user } = await requireVerifiedSession()
     const initial = await resolveScope(prisma, input, user.id)
-    const accountIds = initial.wallet.allocations
-        .map((item) => item.financialAccountId)
-        .sort()
+    const initialTransactions = await loadTransactions(
+        prisma,
+        initial.wallet.id,
+        user.id
+    )
+    const accountIds = affectedAccounts(initial, initialTransactions).map(
+        (a) => a.id
+    )
+    const walletIds = [
+        ...new Set([
+            initial.wallet.id,
+            ...initialTransactions.flatMap((row) =>
+                row.entries.map((e) => e.accountWallet.walletId)
+            ),
+        ]),
+    ].sort()
+    const allocationIds = [
+        ...new Set([
+            ...initial.wallet.allocations.map((a) => a.id),
+            ...initialTransactions.flatMap((row) =>
+                row.entries.map((e) => e.accountWalletId)
+            ),
+        ]),
+    ].sort()
     await prisma.$transaction(
         async (tx) => {
             // Match the account-before-wallet lock order used by financial mutations.
@@ -174,21 +262,29 @@ export async function deleteOwnedWallet(input: WalletDeletionInput) {
                 throw new WalletDeletionError(
                     "An affected account changed. Close and reopen the confirmation."
                 )
-            await tx.$queryRaw`SELECT id FROM wallet WHERE id = ${initial.wallet.id} AND "ownerId" = ${user.id} FOR UPDATE`
-            await tx.$queryRaw`SELECT id FROM account_wallet WHERE "walletId" = ${initial.wallet.id} ORDER BY id FOR UPDATE`
+            await tx.$queryRaw`SELECT id FROM wallet WHERE id IN (${Prisma.join(walletIds)}) AND "ownerId" = ${user.id} ORDER BY id FOR UPDATE`
+            await tx.$queryRaw`SELECT id FROM account_wallet WHERE id IN (${Prisma.join(allocationIds)}) ORDER BY id FOR UPDATE`
             const scope = await resolveScope(tx, input, user.id)
-            const currentAccounts = scope.wallet.allocations
-                .map((item) => item.financialAccountId)
-                .sort()
-            if (JSON.stringify(accountIds) !== JSON.stringify(currentAccounts))
-                throw new WalletDeletionError(
-                    "This wallet's accounts changed. Close and reopen the confirmation."
-                )
             const transactions = await loadTransactions(
                 tx,
                 scope.wallet.id,
                 user.id
             )
+            const currentAccounts = affectedAccounts(scope, transactions).map(
+                (a) => a.id
+            )
+            if (
+                JSON.stringify(accountIds) !==
+                    JSON.stringify(currentAccounts) ||
+                transactions.some((row) =>
+                    row.entries.some(
+                        (e) => !allocationIds.includes(e.accountWalletId)
+                    )
+                )
+            )
+                throw new WalletDeletionError(
+                    "Linked transfer accounts changed. Reopen the confirmation."
+                )
             if (scope.wallet.archivedAt) {
                 if (
                     !transactions.length &&
@@ -222,6 +318,10 @@ export async function deleteOwnedWallet(input: WalletDeletionInput) {
                     action: "DELETED",
                     snapshot: {
                         financialAccountId: entry.financialAccountId,
+                        financialAccountIds: transaction.entries.map(
+                            (e) => e.financialAccountId
+                        ),
+                        entries: transaction.entries.map(movementSnapshot),
                         createdById: transaction.createdById,
                         idempotencyKey: transaction.idempotencyKey,
                         requestFingerprint,
@@ -273,7 +373,12 @@ export async function deleteOwnedWallet(input: WalletDeletionInput) {
                     )
             }
             await tx.recurrenceRule.updateMany({
-                where: { source: { walletId: scope.wallet.id } },
+                where: {
+                    OR: [
+                        { source: { walletId: scope.wallet.id } },
+                        { destination: { walletId: scope.wallet.id } },
+                    ],
+                },
                 data: {
                     stoppedAt: new Date(),
                     nextOccurrenceAt: null,

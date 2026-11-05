@@ -16,6 +16,14 @@ import {
     updateOwnedTransaction,
     importOwnedTransactions,
 } from "@/lib/transactions"
+import { TransferError } from "@/lib/transfer-core"
+import { previewOwnedRecurringDeletion } from "@/lib/recurring-deletion"
+import {
+    validateDeletionReference,
+    validDeletionSnapshot,
+    type TransactionDeletionReference,
+    type RecurringDeletionPreview,
+} from "@/lib/transaction-deletion-input"
 import { RecurrenceError } from "@/lib/recurrence-engine"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
@@ -46,7 +54,8 @@ export async function createTransaction(
         return {
             message:
                 error instanceof TransactionWriteError ||
-                error instanceof RecurrenceError
+                error instanceof RecurrenceError ||
+                error instanceof TransferError
                     ? error.message
                     : "We couldn’t save your transaction. Please try again.",
         }
@@ -69,7 +78,8 @@ export async function changeTransactionStatus(
         return {
             message:
                 error instanceof TransactionWriteError ||
-                error instanceof RecurrenceError
+                error instanceof RecurrenceError ||
+                error instanceof TransferError
                     ? error.message
                     : "We couldn’t change the status. Please try again.",
         }
@@ -149,7 +159,8 @@ export async function importTransactionBatch(
                 : "UNKNOWN"
         if (!(
             error instanceof TransactionWriteError ||
-            error instanceof RecurrenceError
+            error instanceof RecurrenceError ||
+            error instanceof TransferError
         ))
             console.error("Transaction import batch failed", {
                 start: batch.start,
@@ -158,7 +169,8 @@ export async function importTransactionBatch(
         return {
             message:
                 error instanceof TransactionWriteError ||
-                error instanceof RecurrenceError
+                error instanceof RecurrenceError ||
+                error instanceof TransferError
                     ? error.message
                     : `Rows ${batch.start + 2}–${batch.start + batch.rows.length + 1} could not be confirmed. Retry to safely check and continue. Earlier batches remain saved.`,
         }
@@ -194,7 +206,8 @@ export async function updateTransaction(
         return {
             message:
                 error instanceof TransactionWriteError ||
-                error instanceof RecurrenceError
+                error instanceof RecurrenceError ||
+                error instanceof TransferError
                     ? error.message
                     : "We couldn’t save your changes. Reload to check the transaction before retrying.",
         }
@@ -212,17 +225,52 @@ export async function deleteTransaction(
     const input = validateTransactionReference(form)
     if (!input)
         return { message: "Reload this page before deleting a transaction." }
+    const scope = String(form.get("deleteScope") ?? "ONLY")
+    const snapshot = form.get("deleteSnapshot")
+    const reference = validateDeletionReference({ ...input, scope })
+    if (
+        !reference ||
+        (scope !== "ONLY" && !validDeletionSnapshot(snapshot)) ||
+        (snapshot && !validDeletionSnapshot(snapshot))
+    )
+        return { message: "Load a valid deletion preview before confirming." }
     try {
-        await deleteOwnedTransaction(input)
+        await deleteOwnedTransaction({
+            ...reference,
+            ...(validDeletionSnapshot(snapshot)
+                ? { expectedSnapshot: snapshot }
+                : {}),
+        })
     } catch (error) {
         return {
             message:
                 error instanceof TransactionWriteError ||
-                error instanceof RecurrenceError
+                error instanceof RecurrenceError ||
+                error instanceof TransferError
                     ? error.message
                     : "We couldn’t confirm deletion. Retry safely or refresh to check the transaction.",
         }
     }
     revalidatePath(`/dashboard/accounts/${input.financialAccountId}`, "layout")
     return {}
+}
+
+export async function prepareRecurringDeletion(
+    raw: TransactionDeletionReference
+): Promise<{ preview?: RecurringDeletionPreview; message?: string }> {
+    await requireVerifiedSession()
+    const input = validateDeletionReference(raw)
+    if (!input)
+        return { message: "Reload this recurring transaction before deleting." }
+    try {
+        return { preview: await previewOwnedRecurringDeletion(input) }
+    } catch (error) {
+        return {
+            message:
+                error instanceof RecurrenceError ||
+                error instanceof TransferError
+                    ? error.message
+                    : "Couldn’t load the deletion preview. Please try again.",
+        }
+    }
 }
