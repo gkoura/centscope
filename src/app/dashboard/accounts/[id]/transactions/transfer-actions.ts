@@ -1,5 +1,6 @@
 "use server"
 import { redirect } from "next/navigation"
+import { transactionReturnPath } from "@/lib/transaction-return"
 import { revalidatePath } from "next/cache"
 import { requireVerifiedSession } from "@/lib/auth/session"
 import {
@@ -55,7 +56,9 @@ export async function saveTransfer(
         : (endpoints.find((e) => e.id === result.data!.sourceId)
               ?.financialAccountId ?? result.data.contextAccountId)
     revalidatePath("/dashboard", "layout")
-    redirect(`/dashboard/accounts/${context}/transactions`)
+    redirect(
+        transactionReturnPath(form.get("returnTo"), context, result.data.date)
+    )
 }
 export async function setTransferStatus(
     _state: TransferFormState,

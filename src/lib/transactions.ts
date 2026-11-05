@@ -4,7 +4,11 @@ import { createHash, randomUUID } from "node:crypto"
 import { Prisma } from "@/generated/prisma/client"
 import { requireVerifiedSession } from "@/lib/auth/session"
 import { prisma } from "@/lib/prisma"
-import type { TransactionFilters } from "@/lib/transaction-filters"
+import { nextDay } from "@/lib/account-period"
+import {
+    walletFilterIds,
+    type TransactionFilters,
+} from "@/lib/transaction-filters"
 import type { TransactionInput } from "@/lib/transaction-input"
 import { validSpread } from "@/lib/expense-spread"
 
@@ -502,17 +506,24 @@ function decodeCursor(cursor?: string) {
 export async function listOwnedAccountTransactions(
     financialAccountId: string,
     cursor?: string,
-    filters: TransactionFilters = {}
+    filters: TransactionFilters = {},
+    options: { unpaginated?: boolean; pageSize?: number; after?: string } = {}
 ) {
     const { user } = await requireVerifiedSession(),
-        before = decodeCursor(cursor)
+        before = options.unpaginated ? null : decodeCursor(cursor)
+    const after = options.unpaginated ? null : decodeCursor(options.after)
+    const anchor = after ?? before
+    const pageSize = options.pageSize === 50 ? 50 : 25
+    const selectedWallets = walletFilterIds(filters.wallet)
     const qualifying: Prisma.LedgerEntryWhereInput = {
         financialAccountId,
         accountWallet: {
             financialAccount: { ownerId: user.id, archivedAt: null },
             wallet: { ownerId: user.id },
         },
-        ...(filters.wallet ? { accountWalletId: filters.wallet } : {}),
+        ...(selectedWallets.length
+            ? { accountWalletId: { in: selectedWallets } }
+            : {}),
         ...(filters.category
             ? {
                   category: {
@@ -561,23 +572,29 @@ export async function listOwnedAccountTransactions(
                                       : {}),
                                   ...(filters.to
                                       ? {
-                                            lte: new Date(
-                                                `${filters.to}T00:00:00Z`
-                                            ),
+                                            lt: nextDay(filters.to),
                                         }
                                       : {}),
                               },
                           }
                         : {}),
-                    ...(before
+                    ...(anchor
                         ? {
                               AND: [
                                   {
                                       OR: [
-                                          { occurredAt: { lt: before.date } },
                                           {
-                                              occurredAt: before.date,
-                                              id: { lt: before.id },
+                                              occurredAt: {
+                                                  [after ? "gt" : "lt"]:
+                                                      anchor.date,
+                                              },
+                                          },
+                                          {
+                                              occurredAt: anchor.date,
+                                              id: {
+                                                  [after ? "gt" : "lt"]:
+                                                      anchor.id,
+                                              },
                                           },
                                       ],
                                   },
@@ -590,16 +607,37 @@ export async function listOwnedAccountTransactions(
                     expenseSpread: true,
                     occurrence: { select: { ruleId: true } },
                 },
-                orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
-                take: 26,
+                orderBy: [
+                    { occurredAt: after ? "asc" : "desc" },
+                    { id: after ? "asc" : "desc" },
+                ],
+                ...(options.unpaginated ? {} : { take: pageSize + 1 }),
             }),
-        { isolationLevel: "RepeatableRead", timeout: 15_000 }
+        { isolationLevel: "RepeatableRead", maxWait: 10_000, timeout: 15_000 }
     )
-    const page = rows.slice(0, 25),
-        last = page.at(-1)
+    const page = options.unpaginated ? rows : rows.slice(0, pageSize)
+    if (after) page.reverse()
+    const last = page.at(-1),
+        first = page[0]
+    const encode = (row: typeof first) =>
+        row
+            ? Buffer.from(
+                  JSON.stringify({
+                      v: 2,
+                      id: row.id,
+                      date: row.occurredAt.toISOString(),
+                  })
+              ).toString("base64url")
+            : null
     return {
+        previousCursor:
+            !options.unpaginated &&
+            first &&
+            (before || (after && rows.length > pageSize))
+                ? encode(first)
+                : null,
         nextCursor:
-            rows.length > 25 && last
+            !options.unpaginated && (after || rows.length > pageSize) && last
                 ? Buffer.from(
                       JSON.stringify({
                           v: 2,
@@ -612,7 +650,8 @@ export async function listOwnedAccountTransactions(
             const entry = row.entries.find(
                 (e) =>
                     e.financialAccountId === financialAccountId &&
-                    (!filters.wallet || e.accountWalletId === filters.wallet)
+                    (!selectedWallets.length ||
+                        selectedWallets.includes(e.accountWalletId))
             )!
             const owned = (e: typeof entry) =>
                 e.accountWallet.wallet.ownerId === user.id &&
@@ -643,7 +682,14 @@ export async function listOwnedAccountTransactions(
                                   (e) =>
                                       e.financialAccountId ===
                                       financialAccountId
-                              ) && !filters.wallet
+                              ) &&
+                              row.entries.every(
+                                  (e) =>
+                                      !selectedWallets.length ||
+                                      selectedWallets.includes(
+                                          e.accountWalletId
+                                      )
+                              )
                                   ? "INTERNAL"
                                   : entry.amount.isNegative()
                                     ? "OUT"

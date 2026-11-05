@@ -15,7 +15,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Field, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+import { PeriodControls } from "@/components/workspace/period-controls"
+import { periodForMonth } from "@/lib/account-period"
 import type { SelectHTMLAttributes } from "react"
 function NativeSelect(props: SelectHTMLAttributes<HTMLSelectElement>) {
     return (
@@ -65,8 +66,6 @@ export async function MonthlyAnalysisContent({
         wallet || undefined
     )
     const base = `/dashboard/accounts/${id}/analysis`
-    const monthLink = (next: string) =>
-        `${base}?${new URLSearchParams({ month: next, mode, currency, ...(wallet ? { wallet } : {}) })}`
     const money = (amount: string) => formatWalletMoney(amount, currency)
     const delta = centsMoney(
         moneyCents(current.total) - moneyCents(previous.total)
@@ -81,24 +80,19 @@ export async function MonthlyAnalysisContent({
             >
                 Back to {account.name}
             </Link>
+            <PeriodControls
+                period={periodForMonth(month)}
+                basePath={base}
+                monthlyOnly
+                query={{ mode, currency, ...(wallet ? { wallet } : {}) }}
+            />
             <form
                 key={`${month}:${mode}:${currency}:${wallet}`}
                 action={base}
                 className="flex flex-col gap-4 rounded-xl border p-4"
             >
+                <input type="hidden" name="month" value={month} />
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <Field>
-                        <FieldLabel htmlFor="analysis-month">Month</FieldLabel>
-                        <Input
-                            id="analysis-month"
-                            name="month"
-                            type="month"
-                            min="0002-01"
-                            max="9998-12"
-                            defaultValue={month}
-                            required
-                        />
-                    </Field>
                     <Field>
                         <FieldLabel htmlFor="analysis-mode">View</FieldLabel>
                         <NativeSelect
@@ -159,32 +153,6 @@ export async function MonthlyAnalysisContent({
                 </p>
                 <Button type="submit">Apply filters</Button>
             </form>
-            <nav
-                aria-label="Month navigation"
-                className="flex items-center justify-between gap-3"
-            >
-                {month > "0002-01" ? (
-                    <Link
-                        href={monthLink(shiftMonth(month, -1))}
-                        className="text-sm underline underline-offset-4"
-                    >
-                        Previous month
-                    </Link>
-                ) : (
-                    <span />
-                )}
-                <span className="font-medium">{month}</span>
-                {month < "9998-12" ? (
-                    <Link
-                        href={monthLink(shiftMonth(month, 1))}
-                        className="text-sm underline underline-offset-4"
-                    >
-                        Next month
-                    </Link>
-                ) : (
-                    <span />
-                )}
-            </nav>
             <div className="grid gap-4 sm:grid-cols-2">
                 <Card>
                     <CardHeader>

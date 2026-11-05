@@ -1,3 +1,4 @@
+import { transactionReturnPath } from "@/lib/transaction-return"
 import {
     isTransferReference,
     getOwnedEditableTransfer,
@@ -13,10 +14,14 @@ import { listOwnedAccountCategories } from "@/lib/categories"
 import { CreateTransactionForm } from "@/components/financial-accounts/create-transaction-form"
 export async function EditTransactionContent({
     params,
+    searchParams,
 }: {
+    searchParams: Promise<Record<string, string | string[] | undefined>>
     params: Promise<{ id: string; transactionId: string }>
 }) {
+    const query = await searchParams
     const { id, transactionId } = await params
+    const returnTo = transactionReturnPath(query.returnTo, id)
     if (await isTransferReference(id, transactionId)) {
         const [transfer, options] = await Promise.all([
             getOwnedEditableTransfer(id, transactionId),
@@ -26,12 +31,13 @@ export async function EditTransactionContent({
         return (
             <>
                 <Link
-                    href={`/dashboard/accounts/${id}/transactions`}
+                    href={returnTo}
                     className="text-sm underline underline-offset-4"
                 >
                     Back to transactions
                 </Link>
                 <TransferForm
+                    returnTo={returnTo}
                     contextAccountId={id}
                     wallets={options}
                     requestId={randomUUID()}
@@ -53,12 +59,13 @@ export async function EditTransactionContent({
     return (
         <>
             <Link
-                href={`/dashboard/accounts/${id}/transactions`}
+                href={returnTo}
                 className="text-sm underline underline-offset-4"
             >
                 Back to transactions
             </Link>
             <CreateTransactionForm
+                returnTo={returnTo}
                 financialAccountId={id}
                 requestId={randomUUID()}
                 today={transaction.date}

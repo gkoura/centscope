@@ -1,3 +1,5 @@
+import { validDay } from "@/lib/account-period"
+import { transactionReturnPath } from "@/lib/transaction-return"
 import { listOwnedTransactionSuggestions } from "@/lib/transactions"
 import { randomUUID } from "node:crypto"
 import Link from "next/link"
@@ -15,10 +17,14 @@ import {
 
 export async function TransactionContent({
     params,
+    searchParams,
 }: {
+    searchParams: Promise<Record<string, string | string[] | undefined>>
     params: Promise<{ id: string }>
 }) {
+    const query = await searchParams
     const { id } = await params
+    const returnTo = transactionReturnPath(query.returnTo, id)
     const account = await getOwnedFinancialAccount(id)
     if (!account) notFound()
     const [wallets, categories, suggestions] = await Promise.all([
@@ -29,7 +35,7 @@ export async function TransactionContent({
     return (
         <>
             <Link
-                href={`/dashboard/accounts/${account.id}/transactions`}
+                href={returnTo}
                 className="text-sm underline underline-offset-4"
             >
                 Back to transactions
@@ -43,9 +49,20 @@ export async function TransactionContent({
                 <CardContent>
                     {wallets.length ? (
                         <CreateTransactionForm
+                            returnTo={returnTo}
+                            initialWalletId={
+                                wallets.some((w) => w.id === query.wallet)
+                                    ? String(query.wallet)
+                                    : undefined
+                            }
                             financialAccountId={account.id}
                             requestId={randomUUID()}
-                            today={new Date().toISOString().slice(0, 10)}
+                            today={
+                                typeof query.date === "string" &&
+                                validDay(query.date)
+                                    ? query.date
+                                    : new Date().toISOString().slice(0, 10)
+                            }
                             wallets={wallets.map(({ id, name, currency }) => ({
                                 id,
                                 name,

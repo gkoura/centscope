@@ -13,6 +13,10 @@ using Node's type stripping; no additional test framework is required.
 | `transaction-input.test.mjs` | Transaction input, status and edit validation |
 | `transaction-import.test.mjs` | CSV parsing, import preview and transaction filters |
 | `transaction-import-batch.test.mjs` | Import plans, signed batches, retries and progress |
+| `account-period.test.mjs` | Calendar periods, month navigation, entry defaults and safe return links |
+| `wallet-filter.test.mjs` | Composite wallet URL values, limits and independent toggles |
+| `smoothed-balance.test.mjs` | Exact cumulative expense allocation, historic balances, transfers and currency isolation |
+| `account-summary.test.mjs` | Exact currency totals, pending isolation, wallet flows and transfer counting |
 | `list-order.test.mjs` | Complete ID permutations and saved-order comparison |
 
 These are unit tests. They do not establish browser, authentication, authorization,

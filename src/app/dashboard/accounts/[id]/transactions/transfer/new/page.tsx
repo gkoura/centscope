@@ -6,7 +6,7 @@ export default function TransferPage({
     searchParams,
 }: {
     params: Promise<{ id: string }>
-    searchParams: Promise<{ source?: string }>
+    searchParams: Promise<{ source?: string; returnTo?: string; date?: string }>
 }) {
     return (
         <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6 sm:p-10">

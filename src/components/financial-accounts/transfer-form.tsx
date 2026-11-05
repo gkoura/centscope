@@ -21,6 +21,7 @@ const selectClass =
     "h-10 w-full min-w-0 rounded-md border bg-background px-3 text-base focus-visible:outline-2 focus-visible:outline-ring sm:text-sm"
 type Editing = NonNullable<Awaited<ReturnType<typeof getOwnedEditableTransfer>>>
 export function TransferForm({
+    returnTo,
     contextAccountId,
     wallets,
     requestId,
@@ -28,6 +29,7 @@ export function TransferForm({
     sourceId,
     editing,
 }: {
+    returnTo?: string
     contextAccountId: string
     wallets: Awaited<ReturnType<typeof listOwnedTransferWallets>>
     requestId: string
@@ -113,6 +115,7 @@ export function TransferForm({
     }
     return (
         <form action={action} className="flex flex-col gap-6">
+            <input type="hidden" name="returnTo" value={returnTo ?? ""} />
             <input
                 type="hidden"
                 name="contextAccountId"

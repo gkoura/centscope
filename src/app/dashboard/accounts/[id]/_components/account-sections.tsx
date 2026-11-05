@@ -1,9 +1,5 @@
 import Link from "next/link"
-import { RecurringSync } from "@/components/financial-accounts/recurring-sync"
-import { notFound } from "next/navigation"
-import { getOwnedFinancialAccount } from "@/lib/financial-accounts"
-import { cache } from "react"
-import { listOwnedAccountWallets } from "@/lib/wallets"
+import { workspaceAccount, workspaceWallets } from "@/lib/account-workspace"
 import { WalletCards } from "@/components/financial-accounts/wallet-cards"
 import { PlusIcon, WalletIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -15,70 +11,11 @@ import {
     EmptyMedia,
     EmptyTitle,
 } from "@/components/ui/empty"
-import { Badge } from "@/components/ui/badge"
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card"
 
 type AccountParams = Promise<{ id: string }>
-const resolveAccount = cache(async (params: AccountParams) => {
-    const { id } = await params
-    const account = await getOwnedFinancialAccount(id)
-    if (!account) notFound()
-    return account
-})
-
-const resolveWallets = cache(listOwnedAccountWallets)
-
-export async function AccountSummary({ params }: { params: AccountParams }) {
-    const account = await resolveAccount(params)
-    return (
-        <Card>
-            <RecurringSync accountId={account.id} />
-            <CardHeader>
-                <CardTitle>
-                    <h1 className="break-words">{account.name}</h1>
-                </CardTitle>
-                <CardDescription>
-                    Reporting currency: {account.reportingCurrency}
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-start gap-4">
-                <Badge variant="secondary">Owner</Badge>
-                <Link
-                    href={`/dashboard/accounts/${account.id}/recurring`}
-                    className="text-sm underline underline-offset-4"
-                >
-                    Recurring transactions
-                </Link>
-                <Link
-                    href={`/dashboard/accounts/${account.id}/categories`}
-                    className="text-sm underline underline-offset-4"
-                >
-                    Manage categories
-                </Link>
-                <Link
-                    href={`/dashboard/accounts/${account.id}/analysis`}
-                    className="text-sm underline underline-offset-4"
-                >
-                    Monthly analysis
-                </Link>
-                <p className="text-sm text-muted-foreground">
-                    Keep track of the money you hold in bank accounts, cash, and
-                    other wallets.
-                </p>
-            </CardContent>
-        </Card>
-    )
-}
-
 export async function AccountWallets({ params }: { params: AccountParams }) {
-    const account = await resolveAccount(params)
-    const wallets = await resolveWallets(account.id)
+    const account = await workspaceAccount((await params).id)
+    const wallets = await workspaceWallets(account.id)
     return (
         <section
             aria-labelledby="wallets-heading"

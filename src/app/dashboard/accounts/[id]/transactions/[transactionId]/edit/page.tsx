@@ -3,7 +3,9 @@ import { SectionLoading } from "@/components/site/section-loading"
 import { EditTransactionContent } from "./_components/edit-transaction-content"
 export default function Page({
     params,
+    searchParams,
 }: {
+    searchParams: Promise<Record<string, string | string[] | undefined>>
     params: Promise<{ id: string; transactionId: string }>
 }) {
     return (
@@ -20,7 +22,10 @@ export default function Page({
             <Suspense
                 fallback={<SectionLoading label="Loading transaction…" />}
             >
-                <EditTransactionContent params={params} />
+                <EditTransactionContent
+                    params={params}
+                    searchParams={searchParams}
+                />
             </Suspense>
         </main>
     )

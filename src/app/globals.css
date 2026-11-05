@@ -508,3 +508,358 @@ a:focus-visible {
         transform: none;
     }
 }
+
+/* The account is the workspace; navigation stays within thumb reach on phones. */
+.app-shell {
+    min-height: 100dvh;
+}
+.app-sidebar {
+    height: 100dvh;
+}
+.app-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 32px;
+    font-size: 11px;
+    color: var(--muted-foreground);
+}
+.mobile-bottom-nav {
+    display: none;
+}
+.account-area {
+    min-width: 0;
+}
+.account-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    border-bottom: 1px solid var(--border);
+    background: var(--background);
+}
+.account-toolbar-inner {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    max-width: 1080px;
+    margin: auto;
+    padding: 12px 32px;
+}
+.account-toolbar [data-slot="select-trigger"] {
+    font-size: 18px;
+    font-weight: 600;
+}
+.workspace-page {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    width: 100%;
+    max-width: 1000px;
+    margin-inline: auto;
+    padding: 28px 32px 40px;
+}
+.app-content:has(.account-area) {
+    min-height: calc(100dvh - 60px);
+}
+.app-shell:has(.account-area) .app-topbar {
+    display: none;
+}
+.balance-hero {
+    padding: 26px;
+    border-radius: 20px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+}
+.balance-value {
+    margin-top: 8px;
+    font-size: clamp(28px, 4vw, 40px);
+    line-height: 1.2;
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+.wallet-balance-strip {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    padding: 2px 2px 8px;
+}
+.wallet-balance-tile {
+    display: block;
+    min-width: 165px;
+    max-width: 260px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--card);
+    scroll-snap-align: start;
+}
+.balance-summary-compact .balance-hero {
+    padding: 0;
+    color: var(--foreground);
+    background: transparent;
+    border-radius: 0;
+}
+.balance-summary-compact .balance-hero > p:first-child {
+    font-size: 10px;
+    color: var(--muted-foreground);
+}
+.balance-summary-compact .balance-value {
+    display: inline-block;
+    margin: 4px 16px 0 0;
+    font-size: 26px;
+}
+.balance-summary-compact .balance-hero > p:last-child {
+    display: block;
+    margin-top: 4px;
+}
+.balance-summary-compact .wallet-balance-tile {
+    min-width: 150px;
+    padding: 10px 14px;
+    border-radius: 12px;
+}
+.balance-summary-compact .wallet-balance-tile > div {
+    display: none;
+}
+.balance-summary-compact .wallet-balance-tile > span {
+    margin-top: 0;
+}
+.balance-summary-compact .wallet-balance-tile > strong {
+    font-size: 14px;
+}
+.activity-stat {
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    background: var(--card);
+}
+.activity-summary-compact .activity-stat {
+    padding: 10px 12px;
+}
+.activity-summary-compact .activity-stat p {
+    margin-top: 6px;
+}
+.period-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.period-controls > div:last-of-type {
+    min-width: 260px;
+}
+.transaction-day {
+    contain: layout style;
+}
+.transaction-row {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 12px;
+    min-height: 76px;
+    padding: 14px 16px;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+.transaction-row:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -3px;
+    border-radius: 12px;
+}
+.transaction-icon {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: var(--muted);
+    color: var(--muted-foreground);
+}
+.transaction-add-button {
+    align-self: flex-end;
+}
+button,
+a {
+    -webkit-tap-highlight-color: transparent;
+}
+button:not([data-sortable-handle]),
+a {
+    touch-action: manipulation;
+}
+@media (hover: hover) and (pointer: fine) {
+    .wallet-balance-tile:hover,
+    .transaction-row:hover {
+        background: var(--accent);
+    }
+}
+.transaction-row:active {
+    background: var(--muted);
+}
+@media (max-width: 767px) {
+    .app-topbar {
+        min-height: 64px;
+        padding: 12px 16px;
+        padding-top: max(12px, env(safe-area-inset-top));
+    }
+    .app-content {
+        min-height: calc(100dvh - 64px);
+        padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    }
+    .app-footer {
+        display: none;
+    }
+    .mobile-bottom-nav {
+        position: fixed;
+        z-index: 30;
+        inset: auto 0 0;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        padding: 6px max(8px, env(safe-area-inset-right))
+            calc(6px + env(safe-area-inset-bottom))
+            max(8px, env(safe-area-inset-left));
+        border-top: 1px solid var(--border);
+        background: var(--background);
+    }
+    .mobile-nav-item {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+        min-height: 52px;
+        border-radius: 12px;
+        font-size: 10px;
+        color: var(--muted-foreground);
+    }
+    .mobile-nav-item[aria-current="page"] {
+        color: var(--primary);
+        background: var(--accent);
+        font-weight: 600;
+    }
+    .account-toolbar-inner {
+        gap: 12px;
+        padding: 8px max(16px, env(safe-area-inset-right)) 8px
+            max(16px, env(safe-area-inset-left));
+        padding-top: max(8px, env(safe-area-inset-top));
+    }
+    .workspace-page {
+        padding: 20px max(16px, env(safe-area-inset-right)) 28px
+            max(16px, env(safe-area-inset-left));
+        gap: 24px;
+    }
+    .workspace-page:has(.transaction-add-button) {
+        padding-bottom: 100px;
+    }
+    .balance-hero {
+        padding: 22px;
+    }
+    .balance-value {
+        font-size: 34px;
+    }
+    .wallet-balance-strip {
+        margin-right: -16px;
+        padding-right: 16px;
+    }
+    .period-controls {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .period-controls [data-slot="tabs-list"] {
+        width: 100%;
+    }
+    .period-controls [data-slot="tabs-trigger"] {
+        flex: 1;
+        min-height: 36px;
+    }
+    .activity-stat {
+        padding: 12px;
+    }
+    .activity-stat svg {
+        display: none;
+    }
+    .transaction-row {
+        gap: 10px;
+        padding: 14px 12px;
+    }
+    .transaction-row > svg:last-child {
+        display: none;
+    }
+    .transaction-icon {
+        width: 32px;
+        height: 32px;
+    }
+    .transaction-add-button {
+        position: fixed;
+        bottom: calc(80px + env(safe-area-inset-bottom));
+        right: max(16px, env(safe-area-inset-right));
+        z-index: 30;
+        min-height: 48px;
+        border-radius: 999px;
+        padding-inline: 20px;
+        box-shadow: 0 4px 16px #0002;
+    }
+}
+.balance-summary-compact .balance-hero > p:last-child {
+    display: none;
+}
+.balance-summary-compact .balance-hero > p:first-child::after {
+    content: " · posted, all dates";
+    text-transform: none;
+    letter-spacing: normal;
+}
+.activity-summary-compact details > p {
+    padding: 4px 16px 12px;
+}
+@media (max-width: 767px) {
+    .transactions-page {
+        gap: 16px;
+    }
+    .transactions-page > div {
+        gap: 16px;
+    }
+    .activity-summary-compact .activity-stat {
+        padding: 10px;
+    }
+    .activity-summary-compact .activity-stat p {
+        font-size: 12px;
+    }
+}
+[data-slot="dialog-content"] {
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+html:has(.app-shell) {
+    scroll-padding-top: 100px;
+    scroll-padding-bottom: calc(150px + env(safe-area-inset-bottom));
+}
+.wallet-balance-tile[aria-current="true"] {
+    border-color: var(--primary);
+    background: var(--accent);
+}
+@media (max-width: 767px) {
+    .account-toolbar [data-slot="button"],
+    .period-controls [data-slot="button"] {
+        min-width: 44px;
+        min-height: 44px;
+    }
+    [data-slot="dropdown-menu-item"] {
+        min-height: 44px;
+        padding: 10px;
+    }
+}
+.wallet-balance-tile[aria-pressed="true"] {
+    border-color: var(--primary);
+    background: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--primary);
+}
+.wallet-balance-tile[aria-pressed] {
+    cursor: pointer;
+    min-width: 150px;
+}

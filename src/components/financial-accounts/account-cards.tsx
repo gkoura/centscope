@@ -42,7 +42,11 @@ export function AccountCards({
                     <CardContent className="pointer-events-none relative flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
                             <SortableHandle />
-                            <Badge variant="secondary">Owner</Badge>
+                            <Badge variant="secondary">
+                                {account.id === accounts[0]?.id
+                                    ? "Default account"
+                                    : "Owner"}
+                            </Badge>
                         </div>
                         <ArrowUpRightIcon
                             className="account-card-arrow size-4 text-muted-foreground"

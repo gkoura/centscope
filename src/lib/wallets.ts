@@ -243,7 +243,7 @@ export async function listOwnedAccountWallets(financialAccountId: string) {
                     : null,
             }))
         },
-        { isolationLevel: "RepeatableRead", timeout: 15_000 }
+        { isolationLevel: "RepeatableRead", maxWait: 10_000, timeout: 15_000 }
     )
 }
 

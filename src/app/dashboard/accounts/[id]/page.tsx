@@ -1,55 +1,64 @@
-import Link from "next/link"
 import { Suspense } from "react"
 import { SectionLoading } from "@/components/site/section-loading"
+import { AccountWallets } from "./_components/account-sections"
 import {
-    AccountSummary,
-    AccountWallets,
-    AccountTransactions,
-} from "./_components/account-sections"
-
+    OverviewBalances,
+    OverviewAnalysis,
+    OverviewBalanceHistory,
+} from "./_components/overview-content"
+import type { TransactionQuery } from "@/lib/transaction-filters"
 export default function AccountPage({
     params,
     searchParams,
 }: {
     params: Promise<{ id: string }>
-    searchParams: Promise<{ before?: string | string[] }>
+    searchParams: Promise<TransactionQuery>
 }) {
     return (
-        <main className="mx-auto flex min-h-svh w-full max-w-3xl flex-col gap-6 p-6 sm:p-10">
-            <Link
-                href="/dashboard"
-                className="text-sm underline underline-offset-4"
-            >
-                Back to accounts
-            </Link>
+        <main className="workspace-page">
+            <header>
+                <p className="eyebrow mb-2">YOUR MONEY, AT A GLANCE</p>
+                <h1 className="text-2xl font-semibold tracking-tight">
+                    Overview
+                </h1>
+            </header>
+            <Suspense fallback={<SectionLoading label="Loading balances…" />}>
+                <OverviewBalances params={params} searchParams={searchParams} />
+            </Suspense>
             <Suspense
-                fallback={<SectionLoading label="Loading account details…" />}
+                fallback={<SectionLoading label="Loading monthly activity…" />}
             >
-                <AccountSummary params={params} />
+                <OverviewAnalysis params={params} searchParams={searchParams} />
             </Suspense>
             <Suspense
                 fallback={
-                    <>
-                        <h2 className="text-lg font-semibold">Wallets</h2>
-                        <SectionLoading label="Loading wallets…" />
-                    </>
+                    <div className="min-h-80">
+                        <SectionLoading label="Loading balance history…" />
+                    </div>
                 }
             >
-                <AccountWallets params={params} />
-            </Suspense>
-            <Suspense
-                fallback={
-                    <>
-                        <h2 className="text-lg font-semibold">Transactions</h2>
-                        <SectionLoading label="Loading transactions…" />
-                    </>
-                }
-            >
-                <AccountTransactions
+                <OverviewBalanceHistory
                     params={params}
                     searchParams={searchParams}
                 />
             </Suspense>
+            <details id="wallet-settings" className="wallet-management">
+                <summary className="cursor-pointer rounded-2xl border bg-card px-5 py-4 text-sm font-medium">
+                    Manage wallets{" "}
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                        Add, edit & reorder
+                    </span>
+                </summary>
+                <div className="pt-5">
+                    <Suspense
+                        fallback={
+                            <SectionLoading label="Loading wallet settings…" />
+                        }
+                    >
+                        <AccountWallets params={params} />
+                    </Suspense>
+                </div>
+            </details>
         </main>
     )
 }

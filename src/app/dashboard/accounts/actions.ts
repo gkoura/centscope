@@ -22,6 +22,6 @@ export async function createFinancialAccount(
     } catch {
         return { message: "We couldn’t create your account. Please try again." }
     }
-    revalidatePath("/dashboard")
+    revalidatePath("/dashboard", "layout")
     redirect(`/dashboard/accounts/${account.id}`)
 }

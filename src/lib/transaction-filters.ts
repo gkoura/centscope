@@ -39,9 +39,30 @@ export function parseTransactionFilters(
                 : undefined,
         status:
             status === "POSTED" || status === "PENDING" ? status : undefined,
-        wallet: get("wallet"),
+        wallet: walletFilterIds(query.wallet).join(",") || undefined,
         category: get("category"),
         from: date("from"),
         to: date("to"),
     }
+}
+
+/** A comma-separated URL value also accepts legacy single and repeated wallet keys. */
+export function walletFilterIds(
+    value: string | string[] | undefined
+): string[] {
+    const values = Array.isArray(value) ? value : value ? [value] : []
+    return [
+        ...new Set(
+            values
+                .flatMap((item) => item.split(","))
+                .map((item) => item.trim())
+                .filter((item) => /^[a-zA-Z0-9_-]{1,128}$/.test(item))
+        ),
+    ].slice(0, 100)
+}
+export function toggleWalletFilter(value: string | undefined, id: string) {
+    const ids = walletFilterIds(value)
+    return (
+        ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]
+    ).join(",")
 }

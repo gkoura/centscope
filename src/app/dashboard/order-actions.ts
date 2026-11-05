@@ -24,7 +24,7 @@ export async function saveAccountOrder(
     try {
         await reorderOwnedFinancialAccounts(input)
     } catch (error) {
-        revalidatePath("/dashboard")
+        revalidatePath("/dashboard", "layout")
         return {
             success: false,
             message:
@@ -33,7 +33,7 @@ export async function saveAccountOrder(
                     : "Couldn’t save your account order. Your changes are kept; try again.",
         }
     }
-    revalidatePath("/dashboard")
+    revalidatePath("/dashboard", "layout")
     return { success: true, items: await listOwnedFinancialAccounts() }
 }
 
@@ -54,7 +54,7 @@ export async function saveWalletOrder(
     try {
         await reorderOwnedAccountWallets(financialAccountId, input)
     } catch (error) {
-        revalidatePath(path)
+        revalidatePath(path, "layout")
         return {
             success: false,
             message:
@@ -63,7 +63,7 @@ export async function saveWalletOrder(
                     : "Couldn’t save your wallet order. Your changes are kept; try again.",
         }
     }
-    revalidatePath(path)
+    revalidatePath(path, "layout")
     revalidatePath(`${path}/transactions/new`)
     return {
         success: true,

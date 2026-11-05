@@ -185,3 +185,15 @@ This replaces the due-date generation/cron behavior above at the user's request.
 - Cross-account transfers were removed by user decision. Transfers are only between two different wallet allocations within one financial account; cross-currency wallets remain supported within that account.
 - Migration `20261104190000_same_account_transfers` enforces the same-account boundary in deferred ledger shape validation and recurrence template validation. It rejects existing cross-account records rather than deleting or reclassifying them. Server create/edit validates both endpoints against the context account, wallet options are account-scoped, and generation rejects cross-account templates.
 - Personal → Home is modeled manually as an expense with the Home category in Personal and an income in Home, so account spending/income analysis includes it. No automatic expense/income conversion or linking is introduced. Earlier cross-account implementation notes above are superseded by this revision.
+
+## Account workspace read semantics
+
+- The first active account in the existing owner-scoped `sortOrder` is the default landing account. No separate default-account field is stored; reordering updates the default across devices.
+- The account workspace displays all-date posted balances per currency, independently of transaction-period filters. Period activity is derived from qualifying owned ledger entries, counts distinct transaction IDs, excludes transfers/openings from income and spending, and separates currencies. Pending-only filters explicitly switch flow totals to pending entries.
+- Month history is unpaginated. Year/custom history uses `(occurredAt, id)` keyset pagination in both directions; summaries remain scoped to the complete filtered period. Inclusive calendar end dates are queried with `occurredAt < next UTC midnight`, preserving entries with non-midnight timestamps.
+
+### Composite wallet filters and smoothed balance history
+
+- Transaction wallet filters accept a single allocation ID, repeated `wallet` query keys, or a canonical comma-separated list (deduplicated, at most 100 IDs). Selected wallets are combined with OR, beneath the existing owner/account scope. An empty selection includes all wallets. Lists and period summaries use the same group; an internal transfer matching both selected wallets is shown/counted once.
+- Overview category spending rolls subcategory entries into their root category without changing stored ledger categories.
+- The rolling 12-month balance chart is a read-only analytical balance, per currency and active wallet allocation. Posted non-spread movements retain their transaction month. Each posted spread expense replaces its original cash deduction with the cumulative scheduled shares through each month end; prior-month shares carry into the displayed window. Cent remainders follow the same earliest-month rule as `monthlyShare`. Pending entries are excluded. Current/future months use recorded entries only, with no forecast or FX conversion. Recorded ledger balances and existing detailed spending analysis remain unchanged.

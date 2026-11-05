@@ -4,10 +4,11 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
+import { LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { authClient } from "@/lib/auth-client"
 
-export function SignOutButton() {
+export function SignOutButton({ compact = false }: { compact?: boolean }) {
     const router = useRouter()
     const queryClient = useQueryClient()
     const [pending, setPending] = useState(false)
@@ -27,8 +28,20 @@ export function SignOutButton() {
         }
     }
     return (
-        <Button variant="outline" disabled={pending} onClick={signOut}>
-            {pending ? "Signing out…" : "Sign out"}
+        <Button
+            variant="outline"
+            disabled={pending}
+            onClick={signOut}
+            aria-label={pending ? "Signing out…" : "Sign out"}
+            title="Sign out"
+            className={
+                compact ? "size-11 shrink-0 sm:w-auto sm:px-3" : undefined
+            }
+        >
+            {compact && <LogOut className="sm:hidden" aria-hidden="true" />}
+            <span className={compact ? "hidden sm:inline" : undefined}>
+                {pending ? "Signing out…" : "Sign out"}
+            </span>
         </Button>
     )
 }

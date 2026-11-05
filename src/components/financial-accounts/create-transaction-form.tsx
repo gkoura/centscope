@@ -125,7 +125,11 @@ export function CreateTransactionForm({
     categories,
     suggestions,
     editing,
+    returnTo,
+    initialWalletId,
 }: {
+    returnTo?: string
+    initialWalletId?: string
     financialAccountId: string
     requestId: string
     today: string
@@ -170,7 +174,8 @@ export function CreateTransactionForm({
     const [values, setValues] = useState({
         name: editing?.name ?? "",
         type: String(editing?.type ?? "EXPENSE"),
-        accountWalletId: editing?.accountWalletId ?? wallets[0]?.id ?? "",
+        accountWalletId:
+            editing?.accountWalletId ?? initialWalletId ?? wallets[0]?.id ?? "",
         categoryId:
             initialCategory?.parentId ??
             initialCategory?.id ??
@@ -212,6 +217,7 @@ export function CreateTransactionForm({
             ?.currency ?? ""
     return (
         <form action={action} className="flex flex-col gap-6">
+            <input type="hidden" name="returnTo" value={returnTo ?? ""} />
             <input
                 type="hidden"
                 name="financialAccountId"

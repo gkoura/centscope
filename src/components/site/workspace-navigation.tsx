@@ -1,61 +1,69 @@
 "use client"
-
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import {
     LayoutDashboard,
-    Plus,
+    Layers,
     ShieldCheck,
     ArrowLeftRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { accountViewSearch } from "@/lib/account-period"
 
+function useDestinations() {
+    const pathname = usePathname(),
+        query = useSearchParams()
+    const match = pathname.match(/^\/dashboard\/accounts\/([^/]+)/)
+    const id = match && match[1] !== "new" ? match[1] : null
+    const base = id ? `/dashboard/accounts/${id}` : "/dashboard"
+    return {
+        pathname,
+        id,
+        base,
+        items: [
+            {
+                href: id ? base + accountViewSearch(query, true) : base,
+                label: "Overview",
+                icon: LayoutDashboard,
+                active: pathname === base,
+            },
+            {
+                href: id
+                    ? `${base}/transactions${accountViewSearch(query)}`
+                    : "/dashboard?section=transactions",
+                label: "Transactions",
+                icon: ArrowLeftRight,
+                active: !!id && pathname.startsWith(`${base}/transactions`),
+            },
+            {
+                href: "/dashboard/accounts",
+                label: "Accounts",
+                icon: Layers,
+                active:
+                    pathname === "/dashboard/accounts" ||
+                    pathname === "/dashboard/accounts/new",
+            },
+            {
+                href: "/settings/security",
+                label: "Settings",
+                icon: ShieldCheck,
+                active: pathname.startsWith("/settings"),
+            },
+        ],
+    }
+}
 export function WorkspaceNavigation() {
-    const pathname = usePathname()
-    const accountId = pathname.match(/^\/dashboard\/accounts\/([^/]+)/)?.[1]
+    const { items } = useDestinations()
     return (
         <>
-            {accountId && accountId !== "new" && (
+            {items.map(({ href, label, icon: Icon, active }) => (
                 <Link
-                    href={`/dashboard/accounts/${accountId}/transactions`}
-                    aria-current={
-                        pathname.includes("/transactions") ? "page" : undefined
-                    }
-                    className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-muted-foreground hover:bg-accent hover:text-foreground",
-                        pathname.includes("/transactions") &&
-                            "bg-accent font-medium text-primary"
-                    )}
-                >
-                    <ArrowLeftRight className="size-4" />
-                    Transactions
-                </Link>
-            )}
-            {[
-                {
-                    href: "/dashboard",
-                    label: "Overview",
-                    icon: LayoutDashboard,
-                },
-                {
-                    href: "/dashboard/accounts/new",
-                    label: "Create account",
-                    icon: Plus,
-                },
-                {
-                    href: "/settings/security",
-                    label: "Sign-in & security",
-                    icon: ShieldCheck,
-                },
-            ].map(({ href, label, icon: Icon }) => (
-                <Link
-                    key={href}
+                    key={label}
                     href={href}
-                    aria-current={pathname === href ? "page" : undefined}
+                    aria-current={active ? "page" : undefined}
                     className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-muted-foreground hover:bg-accent hover:text-foreground",
-                        pathname === href &&
-                            "bg-accent font-medium text-primary"
+                        "flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-muted-foreground hover:bg-accent hover:text-foreground",
+                        active && "bg-accent font-medium text-primary"
                     )}
                 >
                     <Icon className="size-4" />
@@ -65,48 +73,33 @@ export function WorkspaceNavigation() {
         </>
     )
 }
-
 export function WorkspaceNavigationFallback() {
     return (
-        <>
-            <Link
-                href="/dashboard"
-                className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-muted-foreground"
-            >
-                <LayoutDashboard className="size-4" />
-                Overview
-            </Link>
-            <Link
-                href="/dashboard/accounts/new"
-                className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-muted-foreground"
-            >
-                <Plus className="size-4" />
-                Create account
-            </Link>
-            <Link
-                href="/settings/security"
-                className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-muted-foreground"
-            >
-                <ShieldCheck className="size-4" />
-                Sign-in &amp; security
-            </Link>
-        </>
+        <Link href="/dashboard" className="flex items-center gap-3 p-3 text-sm">
+            <LayoutDashboard className="size-4" />
+            Overview
+        </Link>
     )
 }
-
-export function MobileTransactionLink() {
-    const pathname = usePathname()
-    const accountId = pathname.match(/^\/dashboard\/accounts\/([^/]+)/)?.[1]
-    if (!accountId || accountId === "new") return null
+export function MobileWorkspaceNavigation() {
+    const { items } = useDestinations()
     return (
-        <Link
-            href={`/dashboard/accounts/${accountId}/transactions`}
-            aria-current={
-                pathname.includes("/transactions") ? "page" : undefined
-            }
-            className="shrink-0"
-        >
-            Transactions
-        </Link>
+        <nav aria-label="Main navigation" className="mobile-bottom-nav">
+            {items.map(({ href, label, icon: Icon, active }) => (
+                <Link
+                    key={label}
+                    href={href}
+                    aria-current={active ? "page" : undefined}
+                    className={cn("mobile-nav-item", active && "text-primary")}
+                >
+                    <Icon
+                        className="size-5"
+                        strokeWidth={active ? 2.25 : 1.7}
+                        aria-hidden="true"
+                    />
+                    <span>{label}</span>
+                </Link>
+            ))}
+        </nav>
     )
 }

@@ -27,6 +27,7 @@ import {
 import { RecurrenceError } from "@/lib/recurrence-engine"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { transactionReturnPath } from "@/lib/transaction-return"
 import { requireVerifiedSession } from "@/lib/auth/session"
 import {
     validateTransactionReference,
@@ -62,7 +63,13 @@ export async function createTransaction(
     }
     const path = `/dashboard/accounts/${result.data.financialAccountId}`
     revalidatePath(path, "layout")
-    redirect(`${path}/transactions`)
+    redirect(
+        transactionReturnPath(
+            form.get("returnTo"),
+            result.data.financialAccountId,
+            result.data.date
+        )
+    )
 }
 
 export async function changeTransactionStatus(
@@ -214,7 +221,13 @@ export async function updateTransaction(
     }
     const path = `/dashboard/accounts/${result.data.financialAccountId}`
     revalidatePath(path, "layout")
-    redirect(`${path}/transactions`)
+    redirect(
+        transactionReturnPath(
+            form.get("returnTo"),
+            result.data.financialAccountId,
+            result.data.date
+        )
+    )
 }
 
 export async function deleteTransaction(

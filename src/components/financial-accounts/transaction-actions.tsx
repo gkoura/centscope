@@ -31,7 +31,11 @@ const initialState: TransactionFormState = {}
 export function TransactionActions({
     financialAccountId,
     transaction,
+    returnTo,
+    onEdit,
 }: {
+    onEdit?: () => void
+    returnTo?: string
     financialAccountId: string
     transaction: {
         id: string
@@ -104,7 +108,8 @@ export function TransactionActions({
                 size="sm"
                 render={
                     <Link
-                        href={`/dashboard/accounts/${financialAccountId}/transactions/${transaction.id}/edit`}
+                        onClick={onEdit}
+                        href={`/dashboard/accounts/${financialAccountId}/transactions/${transaction.id}/edit${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`}
                     />
                 }
                 nativeButton={false}
