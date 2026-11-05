@@ -8,8 +8,9 @@ import {
 import { listOwnedAccountWallets } from "@/lib/wallets"
 export const workspaceAccounts = cache(listOwnedFinancialAccounts)
 export const workspaceWallets = cache(listOwnedAccountWallets)
+export const workspaceAccountOrNull = cache(getOwnedFinancialAccount)
 export const workspaceAccount = cache(async (id: string) => {
-    const account = await getOwnedFinancialAccount(id)
+    const account = await workspaceAccountOrNull(id)
     if (!account) notFound()
     return account
 })

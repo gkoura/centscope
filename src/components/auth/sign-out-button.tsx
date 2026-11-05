@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { authClient } from "@/lib/auth-client"
+import { clearWorkspaceCache } from "@/lib/workspace-cache-events"
 
 export function SignOutButton({ compact = false }: { compact?: boolean }) {
     const router = useRouter()
@@ -17,6 +18,7 @@ export function SignOutButton({ compact = false }: { compact?: boolean }) {
         try {
             const { error } = await authClient.signOut()
             if (error) throw new Error("Unable to sign out.")
+            await clearWorkspaceCache()
             await queryClient.cancelQueries()
             queryClient.clear()
             router.replace("/auth/sign-in")

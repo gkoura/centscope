@@ -1,5 +1,5 @@
 "use server"
-import { revalidatePath } from "next/cache"
+import { revalidateWorkspacePath } from "@/lib/workspace-cache-invalidation"
 import { syncOwnedRecurring, commandOwnedRecurring } from "@/lib/recurring"
 import { RecurrenceError } from "@/lib/recurrence-engine"
 export type RecurringState = {
@@ -13,7 +13,7 @@ export async function syncRecurring(
 ): Promise<RecurringState> {
     const result = await syncOwnedRecurring(accountId)
     if (result.created)
-        revalidatePath(`/dashboard/accounts/${accountId}`, "layout")
+        await revalidateWorkspacePath(`/dashboard/accounts/${accountId}`, "layout")
     return {
         created: result.created,
         hasMore: result.hasMore,
@@ -36,7 +36,7 @@ export async function recurringCommand(
                     : "We couldn’t update this schedule. Please try again.",
         }
     }
-    revalidatePath(
+    await revalidateWorkspacePath(
         `/dashboard/accounts/${String(form.get("financialAccountId"))}`,
         "layout"
     )

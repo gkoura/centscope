@@ -1,6 +1,6 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
+import { revalidateWorkspacePath } from "@/lib/workspace-cache-invalidation"
 import { redirect } from "next/navigation"
 import { requireVerifiedSession } from "@/lib/auth/session"
 import { createOwnedFinancialAccount } from "@/lib/financial-accounts"
@@ -22,6 +22,6 @@ export async function createFinancialAccount(
     } catch {
         return { message: "We couldn’t create your account. Please try again." }
     }
-    revalidatePath("/dashboard", "layout")
+    await revalidateWorkspacePath("/dashboard", "layout")
     redirect(`/dashboard/accounts/${account.id}`)
 }

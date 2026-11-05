@@ -1,6 +1,8 @@
 import Link from "next/link"
 import { Suspense } from "react"
-import { Brand } from "./brand"
+import { WorkspaceBrand } from "@/components/workspace/workspace-brand"
+import { WorkspaceCacheStatus } from "@/components/workspace/workspace-cache-status"
+import { WorkspaceSessionGuard } from "@/components/workspace/workspace-session-guard"
 import { ThemeToggle } from "./theme-toggle"
 import { SignOutButton } from "@/components/auth/sign-out-button"
 import {
@@ -11,8 +13,11 @@ import {
 export function AppShell({ children }: { children: React.ReactNode }) {
     return (
         <div className="app-shell">
+            <Suspense fallback={null}>
+                <WorkspaceSessionGuard />
+            </Suspense>
             <aside className="app-sidebar">
-                <Brand href="/dashboard" />
+                <WorkspaceBrand />
                 <p className="mt-10 mb-3 text-[10px] font-semibold tracking-[.15em] text-muted-foreground">
                     YOUR WORKSPACE
                 </p>
@@ -36,18 +41,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </aside>
             <div className="min-w-0 flex-1">
                 <header className="app-topbar">
-                    <Link
-                        href="/dashboard"
-                        className="font-semibold tracking-tight"
-                    >
-                        fintrack<span className="text-primary">.</span>
-                    </Link>
+                    <WorkspaceBrand compact />
                     <div className="flex items-center gap-3">
                         <ThemeToggle />
                         <SignOutButton />
                     </div>
                 </header>
                 <div id="main-content" tabIndex={-1} className="app-content">
+                    <WorkspaceCacheStatus />
                     {children}
                 </div>
                 <footer className="app-footer">

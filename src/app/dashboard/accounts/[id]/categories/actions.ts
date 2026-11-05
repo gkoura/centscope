@@ -1,6 +1,6 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
+import { revalidateWorkspacePath } from "@/lib/workspace-cache-invalidation"
 import { Prisma } from "@/generated/prisma/client"
 import { requireVerifiedSession } from "@/lib/auth/session"
 import {
@@ -31,10 +31,10 @@ function errorMessage(error: unknown) {
     return "We couldn’t save your category. Please try again."
 }
 
-function refreshCategories(id: string) {
-    revalidatePath(`/dashboard/accounts/${id}/categories`)
-    revalidatePath(`/dashboard/accounts/${id}`)
-    revalidatePath(`/dashboard/accounts/${id}/transactions/new`)
+async function refreshCategories(id: string) {
+    await revalidateWorkspacePath(`/dashboard/accounts/${id}/categories`)
+    await revalidateWorkspacePath(`/dashboard/accounts/${id}`)
+    await revalidateWorkspacePath(`/dashboard/accounts/${id}/transactions/new`)
 }
 
 export async function createCategory(
@@ -56,7 +56,7 @@ export async function createCategory(
     } catch (error) {
         return { message: errorMessage(error) }
     }
-    refreshCategories(result.data.financialAccountId)
+    await refreshCategories(result.data.financialAccountId)
     return {
         success: true,
         message:
@@ -84,7 +84,7 @@ export async function renameCategory(
     } catch (error) {
         return { message: errorMessage(error) }
     }
-    refreshCategories(input.financialAccountId)
+    await refreshCategories(input.financialAccountId)
     return { success: true }
 }
 
@@ -100,7 +100,7 @@ export async function archiveCategory(
     } catch (error) {
         return { message: errorMessage(error) }
     }
-    refreshCategories(input.financialAccountId)
+    await refreshCategories(input.financialAccountId)
     return { success: true }
 }
 
@@ -125,7 +125,7 @@ export async function deleteCategory(
             message: "We couldn’t delete your category. Please try again.",
         }
     }
-    refreshCategories(input.financialAccountId)
+    await refreshCategories(input.financialAccountId)
     return { success: true }
 }
 
@@ -146,10 +146,10 @@ export async function reorderCategories(raw: CategoryOrderBatchInput): Promise<
     try {
         await reorderOwnedCategoryGroups(input)
     } catch (error) {
-        refreshCategories(input.financialAccountId)
+        await refreshCategories(input.financialAccountId)
         return { success: false, message: errorMessage(error) }
     }
-    refreshCategories(input.financialAccountId)
+    await refreshCategories(input.financialAccountId)
     return {
         success: true,
         categories: await listOwnedAccountCategories(input.financialAccountId),

@@ -8,6 +8,7 @@ import { useState, type ReactNode } from "react"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { authClient } from "@/lib/auth-client"
+import { WorkspaceCacheProvider } from "@/components/workspace/workspace-cache-provider"
 
 export function AuthProviders({
     children,
@@ -53,7 +54,7 @@ export function AuthProviders({
                 }}
                 Link={Link}
             >
-                {children}
+                <WorkspaceCacheProvider>{children}</WorkspaceCacheProvider>
                 <Toaster />
             </AuthProvider>
         </QueryClientProvider>

@@ -25,7 +25,7 @@ import {
     type RecurringDeletionPreview,
 } from "@/lib/transaction-deletion-input"
 import { RecurrenceError } from "@/lib/recurrence-engine"
-import { revalidatePath } from "next/cache"
+import { revalidateWorkspacePath } from "@/lib/workspace-cache-invalidation"
 import { redirect } from "next/navigation"
 import { transactionReturnPath } from "@/lib/transaction-return"
 import { requireVerifiedSession } from "@/lib/auth/session"
@@ -62,7 +62,7 @@ export async function createTransaction(
         }
     }
     const path = `/dashboard/accounts/${result.data.financialAccountId}`
-    revalidatePath(path, "layout")
+    await revalidateWorkspacePath(path, "layout")
     redirect(
         transactionReturnPath(
             form.get("returnTo"),
@@ -91,7 +91,7 @@ export async function changeTransactionStatus(
                     : "We couldn’t change the status. Please try again.",
         }
     }
-    revalidatePath(`/dashboard/accounts/${input.financialAccountId}`, "layout")
+    await revalidateWorkspacePath(`/dashboard/accounts/${input.financialAccountId}`, "layout")
     return {}
 }
 
@@ -191,7 +191,7 @@ export async function finishTransactionImport(financialAccountId: string) {
         financialAccountId.length <= 128 &&
         (await getOwnedFinancialAccount(financialAccountId))
     )
-        revalidatePath(`/dashboard/accounts/${financialAccountId}`, "layout")
+        await revalidateWorkspacePath(`/dashboard/accounts/${financialAccountId}`, "layout")
 }
 
 export async function updateTransaction(
@@ -220,7 +220,7 @@ export async function updateTransaction(
         }
     }
     const path = `/dashboard/accounts/${result.data.financialAccountId}`
-    revalidatePath(path, "layout")
+    await revalidateWorkspacePath(path, "layout")
     redirect(
         transactionReturnPath(
             form.get("returnTo"),
@@ -264,7 +264,7 @@ export async function deleteTransaction(
                     : "We couldn’t confirm deletion. Retry safely or refresh to check the transaction.",
         }
     }
-    revalidatePath(`/dashboard/accounts/${input.financialAccountId}`, "layout")
+    await revalidateWorkspacePath(`/dashboard/accounts/${input.financialAccountId}`, "layout")
     return {}
 }
 

@@ -1,14 +1,12 @@
 import Link from "next/link"
 import { ChartNoAxesColumnIncreasing } from "lucide-react"
 
-export function Brand({ href = "/" }: { href?: "/" | "/dashboard" }) {
+export function Brand({ href = "/" }: { href?: string }) {
     return (
         <Link
             href={href}
             className="inline-flex items-center gap-2.5 text-xl font-semibold tracking-tight"
-            aria-label={
-                href === "/dashboard" ? "Fintrack dashboard" : "Fintrack home"
-            }
+            aria-label={href === "/" ? "Fintrack home" : "Fintrack dashboard"}
         >
             <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                 <ChartNoAxesColumnIncreasing

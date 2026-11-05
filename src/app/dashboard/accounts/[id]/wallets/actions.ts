@@ -10,7 +10,7 @@ import {
     deleteOwnedWallet,
     WalletDeletionError,
 } from "@/lib/wallet-deletion"
-import { revalidatePath } from "next/cache"
+import { revalidateWorkspacePath } from "@/lib/workspace-cache-invalidation"
 import { redirect } from "next/navigation"
 import { requireVerifiedSession } from "@/lib/auth/session"
 import {
@@ -44,7 +44,7 @@ export async function createWallet(
         }
     }
     const path = `/dashboard/accounts/${result.data.financialAccountId}`
-    revalidatePath(path)
+    await revalidateWorkspacePath(path)
     redirect(path)
 }
 
@@ -70,7 +70,7 @@ export async function updateWallet(
         }
     }
     // A physical wallet may be used in several of the owner's accounts.
-    revalidatePath("/dashboard", "layout")
+    await revalidateWorkspacePath("/dashboard", "layout")
     return { success: true }
 }
 
@@ -107,6 +107,6 @@ export async function deleteWallet(raw: unknown): Promise<WalletDetailsState> {
                     : "We couldn’t confirm deletion. No partial deletion is committed; retry safely or refresh to check the wallet.",
         }
     }
-    revalidatePath("/dashboard", "layout")
+    await revalidateWorkspacePath("/dashboard", "layout")
     return { success: true }
 }

@@ -1,7 +1,7 @@
 "use server"
 import { redirect } from "next/navigation"
 import { transactionReturnPath } from "@/lib/transaction-return"
-import { revalidatePath } from "next/cache"
+import { revalidateWorkspacePath } from "@/lib/workspace-cache-invalidation"
 import { requireVerifiedSession } from "@/lib/auth/session"
 import {
     validateTransferInput,
@@ -55,7 +55,7 @@ export async function saveTransfer(
         ? result.data.contextAccountId
         : (endpoints.find((e) => e.id === result.data!.sourceId)
               ?.financialAccountId ?? result.data.contextAccountId)
-    revalidatePath("/dashboard", "layout")
+    await revalidateWorkspacePath("/dashboard", "layout")
     redirect(
         transactionReturnPath(form.get("returnTo"), context, result.data.date)
     )
@@ -105,6 +105,6 @@ export async function setTransferStatus(
     } catch (error) {
         return { message: message(error) }
     }
-    revalidatePath("/dashboard", "layout")
+    await revalidateWorkspacePath("/dashboard", "layout")
     return {}
 }

@@ -5,6 +5,8 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
 import { AuthProviders } from "@/components/auth-providers"
+import { Suspense } from "react"
+import { WorkspaceRevisionSignal } from "@/components/workspace/workspace-revision-signal"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 
@@ -61,6 +63,9 @@ export default function RootLayout({
                         )}
                     >
                         {children}
+                        <Suspense fallback={null}>
+                            <WorkspaceRevisionSignal />
+                        </Suspense>
                     </AuthProviders>
                 </ThemeProvider>
             </body>

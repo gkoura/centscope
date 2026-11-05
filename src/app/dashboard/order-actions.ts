@@ -1,6 +1,6 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
+import { revalidateWorkspacePath } from "@/lib/workspace-cache-invalidation"
 import { requireVerifiedSession } from "@/lib/auth/session"
 import {
     listOwnedFinancialAccounts,
@@ -24,7 +24,7 @@ export async function saveAccountOrder(
     try {
         await reorderOwnedFinancialAccounts(input)
     } catch (error) {
-        revalidatePath("/dashboard", "layout")
+        await revalidateWorkspacePath("/dashboard", "layout")
         return {
             success: false,
             message:
@@ -33,7 +33,7 @@ export async function saveAccountOrder(
                     : "Couldn’t save your account order. Your changes are kept; try again.",
         }
     }
-    revalidatePath("/dashboard", "layout")
+    await revalidateWorkspacePath("/dashboard", "layout")
     return { success: true, items: await listOwnedFinancialAccounts() }
 }
 
@@ -54,7 +54,7 @@ export async function saveWalletOrder(
     try {
         await reorderOwnedAccountWallets(financialAccountId, input)
     } catch (error) {
-        revalidatePath(path, "layout")
+        await revalidateWorkspacePath(path, "layout")
         return {
             success: false,
             message:
@@ -63,8 +63,8 @@ export async function saveWalletOrder(
                     : "Couldn’t save your wallet order. Your changes are kept; try again.",
         }
     }
-    revalidatePath(path, "layout")
-    revalidatePath(`${path}/transactions/new`)
+    await revalidateWorkspacePath(path, "layout")
+    await revalidateWorkspacePath(`${path}/transactions/new`)
     return {
         success: true,
         items: await listOwnedAccountWallets(financialAccountId),
