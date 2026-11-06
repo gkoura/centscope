@@ -9,9 +9,6 @@ import { analyticsPeriodInput } from "@/lib/analytics"
 import { resolveAccountPeriod } from "@/lib/account-period"
 import type { TransactionQuery } from "@/lib/transaction-filters"
 import { SectionLoading } from "@/components/site/section-loading"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import { CalendarRange } from "lucide-react"
 
 type Props = { accountId: string; query: TransactionQuery }
 
@@ -29,19 +26,6 @@ export function CachedAnalyticsControls({ accountId, query }: Props) {
                 All wallets · posted activity for {period.label}. Currencies are
                 shown separately.
             </p>
-            <Button
-                variant="outline"
-                nativeButton={false}
-                className="self-start"
-                render={
-                    <Link
-                        href={`/dashboard/accounts/${accountId}/analysis?month=${period.view === "year" ? `${period.year}-01` : period.month}`}
-                    />
-                }
-            >
-                <CalendarRange data-icon="inline-start" /> Expense spread
-                analysis
-            </Button>
         </div>
     )
 }
