@@ -1,3 +1,4 @@
+import { AccountTools } from "@/components/financial-accounts/account-tools"
 import {
     CachedOverviewBalances,
     CachedOverviewAnalysis,
@@ -31,4 +32,8 @@ export async function OverviewBalanceHistory({ params, searchParams }: Props) {
             query={await searchParams}
         />
     )
+}
+
+export async function OverviewTools({ params }: Pick<Props, "params">) {
+    return <AccountTools accountId={(await params).id} />
 }

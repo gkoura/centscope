@@ -1,7 +1,9 @@
 import { Suspense } from "react"
+import { Skeleton } from "@/components/ui/skeleton"
 import { SectionLoading } from "@/components/site/section-loading"
 import { AccountWallets } from "./_components/account-sections"
 import {
+    OverviewTools,
     OverviewBalances,
     OverviewAnalysis,
     OverviewBalanceHistory,
@@ -18,9 +20,16 @@ export default function AccountPage({
         <main className="workspace-page">
             <header>
                 <p className="eyebrow mb-2">YOUR MONEY, AT A GLANCE</p>
-                <h1 className="text-2xl font-semibold tracking-tight">
-                    Overview
-                </h1>
+                <div className="flex items-center justify-between gap-3">
+                    <h1 className="text-2xl font-semibold tracking-tight">
+                        Overview
+                    </h1>
+                    <Suspense
+                        fallback={<Skeleton className="h-11 w-36 rounded-xl" />}
+                    >
+                        <OverviewTools params={params} />
+                    </Suspense>
+                </div>
             </header>
             <Suspense fallback={<SectionLoading label="Loading balances…" />}>
                 <OverviewBalances params={params} searchParams={searchParams} />

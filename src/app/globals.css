@@ -545,9 +545,10 @@ a:focus-visible {
 }
 .account-toolbar-inner {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 20px;
-    max-width: 1080px;
+    column-gap: 20px;
+    row-gap: 8px;
     margin: auto;
     padding: 12px 32px;
 }

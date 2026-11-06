@@ -2,16 +2,7 @@
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useTransition } from "react"
-import {
-    ArrowLeftRight,
-    LayoutDashboard,
-    Settings2,
-    Plus,
-    Tags,
-    Repeat2,
-    ChartNoAxesCombined,
-    Layers,
-} from "lucide-react"
+import { ArrowLeftRight, LayoutDashboard } from "lucide-react"
 import {
     Select,
     SelectTrigger,
@@ -20,16 +11,6 @@ import {
     SelectGroup,
     SelectItem,
 } from "@/components/ui/select"
-import {
-    DropdownMenu,
-    DropdownMenuTrigger,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu"
-import { Button } from "@/components/ui/button"
 import { SignOutButton } from "@/components/auth/sign-out-button"
 import { ThemeToggle } from "@/components/site/theme-toggle"
 import { cn } from "@/lib/utils"
@@ -67,7 +48,7 @@ export function AccountNavigation({
     return (
         <header className="account-toolbar" aria-busy={pending}>
             <div className="account-toolbar-inner">
-                <div className="min-w-0 flex-1 md:max-w-sm">
+                <div className="min-w-0 flex-1 md:max-w-64">
                     <span className="mb-1 block text-[10px] font-medium tracking-widest text-muted-foreground uppercase">
                         Account
                     </span>
@@ -99,7 +80,7 @@ export function AccountNavigation({
                 </div>
                 <nav
                     aria-label="Account views"
-                    className="hidden items-center gap-2 md:flex"
+                    className="order-3 hidden w-full shrink-0 items-center gap-2 md:flex lg:order-none lg:w-auto"
                 >
                     {[
                         {
@@ -131,62 +112,13 @@ export function AccountNavigation({
                         </Link>
                     ))}
                 </nav>
-                <div className="flex items-center gap-1">
+                <div
+                    role="group"
+                    aria-label="Appearance and session"
+                    className="ml-auto flex shrink-0 items-center gap-1 border-l pl-3 md:pl-5"
+                >
                     <ThemeToggle />
-                    <DropdownMenu>
-                        <DropdownMenuTrigger
-                            render={<Button variant="ghost" size="icon-lg" />}
-                            aria-label="Account tools"
-                        >
-                            <Settings2 />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-64">
-                            <DropdownMenuGroup>
-                                <DropdownMenuLabel>
-                                    Account tools
-                                </DropdownMenuLabel>
-                                {[
-                                    {
-                                        href: `${base}/wallets/new`,
-                                        label: "Add wallet",
-                                        icon: Plus,
-                                    },
-                                    {
-                                        href: `${base}/categories`,
-                                        label: "Categories",
-                                        icon: Tags,
-                                    },
-                                    {
-                                        href: `${base}/recurring`,
-                                        label: "Recurring transactions",
-                                        icon: Repeat2,
-                                    },
-                                    {
-                                        href: `${base}/analysis`,
-                                        label: "Detailed analysis",
-                                        icon: ChartNoAxesCombined,
-                                    },
-                                ].map(({ href, label, icon: Icon }) => (
-                                    <DropdownMenuItem
-                                        key={href}
-                                        render={<Link href={href} />}
-                                    >
-                                        <Icon />
-                                        {label}
-                                    </DropdownMenuItem>
-                                ))}
-                            </DropdownMenuGroup>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuGroup>
-                                <DropdownMenuItem
-                                    render={<Link href="/dashboard/accounts" />}
-                                >
-                                    <Layers />
-                                    Manage accounts & order
-                                </DropdownMenuItem>
-                            </DropdownMenuGroup>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+
                     <SignOutButton compact />
                 </div>
             </div>

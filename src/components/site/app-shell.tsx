@@ -30,9 +30,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </Suspense>
                 </nav>
                 <div className="mt-auto flex flex-col gap-4 pt-10">
-                    <div className="flex items-center justify-between">
-                        <ThemeToggle />
-                    </div>
                     <p className="text-xs leading-6 text-muted-foreground">
                         Make sense of every cent.
                     </p>
@@ -41,7 +38,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="min-w-0 flex-1">
                 <header className="app-topbar">
                     <WorkspaceBrand compact />
-                    <div className="flex items-center gap-3">
+                    <div
+                        role="group"
+                        aria-label="Appearance and session"
+                        className="ml-auto flex shrink-0 items-center gap-2 border-l pl-4"
+                    >
                         <ThemeToggle />
                         <SignOutButton />
                     </div>
