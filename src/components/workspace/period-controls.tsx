@@ -87,7 +87,7 @@ export function PeriodControls({
                             )
                     }}
                 >
-                    <TabsList aria-label="Transaction period" className="h-10">
+                    <TabsList aria-label="Date period" className="h-10">
                         <TabsTrigger value="month">Month</TabsTrigger>
                         <TabsTrigger value="year">Year</TabsTrigger>
                         <TabsTrigger value="custom">Custom</TabsTrigger>

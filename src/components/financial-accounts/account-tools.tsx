@@ -49,8 +49,8 @@ export function AccountTools({ accountId }: { accountId: string }) {
                             icon: Repeat2,
                         },
                         {
-                            href: `${base}/analysis`,
-                            label: "Detailed analysis",
+                            href: `${base}/analytics`,
+                            label: "Analytics",
                             icon: ChartNoAxesCombined,
                         },
                     ].map(({ href, label, icon: Icon }) => (

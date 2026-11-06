@@ -4,8 +4,10 @@ import type { summarizeActivity } from "@/lib/account-summary"
 export function ActivitySummary({
     activity,
     compact = false,
+    walletActivityExpanded = false,
 }: {
     compact?: boolean
+    walletActivityExpanded?: boolean
     activity: ReturnType<typeof summarizeActivity>
 }) {
     return (
@@ -101,7 +103,10 @@ export function ActivitySummary({
                 </p>
             )}
             {activity.wallets.length > 0 && (
-                <details className="rounded-xl border bg-card">
+                <details
+                    className="rounded-xl border bg-card"
+                    open={walletActivityExpanded}
+                >
                     <summary className="cursor-pointer px-4 py-3 text-xs font-medium">
                         Activity by wallet
                     </summary>

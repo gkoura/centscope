@@ -34,9 +34,8 @@ export function workspacePrefetchPlan(
     if (period.view !== "month") return null
     const foreground: WorkspaceRequest = overview
         ? {
-              resource: "activity",
+              resource: "reference",
               accountId,
-              query: { view: "month", month: period.month },
           }
         : { resource: "transactions", accountId, query }
     return {

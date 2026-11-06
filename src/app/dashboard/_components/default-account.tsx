@@ -9,7 +9,7 @@ export async function DefaultAccount({
     const accounts = await listOwnedFinancialAccounts()
     return redirect(
         accounts.length
-            ? `/dashboard/accounts/${accounts[0].id}${query.section === "transactions" ? "/transactions" : ""}`
+            ? `/dashboard/accounts/${accounts[0].id}${query.section === "transactions" ? "/transactions" : query.section === "analytics" ? "/analytics" : ""}`
             : "/dashboard/accounts"
     )
 }

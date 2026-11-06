@@ -6,6 +6,7 @@ import {
     Layers,
     ShieldCheck,
     ArrowLeftRight,
+    ChartNoAxesCombined,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { accountViewSearch } from "@/lib/account-period"
@@ -34,6 +35,14 @@ function useDestinations() {
                 label: "Transactions",
                 icon: ArrowLeftRight,
                 active: !!id && pathname.startsWith(`${base}/transactions`),
+            },
+            {
+                href: id
+                    ? `${base}/analytics${accountViewSearch(query)}`
+                    : "/dashboard?section=analytics",
+                label: "Analytics",
+                icon: ChartNoAxesCombined,
+                active: !!id && pathname.startsWith(`${base}/analytics`),
             },
             {
                 href: "/dashboard/accounts",

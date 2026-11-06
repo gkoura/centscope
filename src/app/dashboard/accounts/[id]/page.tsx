@@ -5,7 +5,6 @@ import { AccountWallets } from "./_components/account-sections"
 import {
     OverviewTools,
     OverviewBalances,
-    OverviewAnalysis,
     OverviewBalanceHistory,
 } from "./_components/overview-content"
 import type { TransactionQuery } from "@/lib/transaction-filters"
@@ -33,11 +32,6 @@ export default function AccountPage({
             </header>
             <Suspense fallback={<SectionLoading label="Loading balances…" />}>
                 <OverviewBalances params={params} searchParams={searchParams} />
-            </Suspense>
-            <Suspense
-                fallback={<SectionLoading label="Loading monthly activity…" />}
-            >
-                <OverviewAnalysis params={params} searchParams={searchParams} />
             </Suspense>
             <Suspense
                 fallback={

@@ -24,6 +24,7 @@ export function AccountNavigation({
     const [pending, startTransition] = useTransition()
     const base = `/dashboard/accounts/${accountId}`
     const inTransactions = pathname.startsWith(`${base}/transactions`)
+    const inAnalytics = pathname.startsWith(`${base}/analytics`)
     const options = accounts.map((account) => ({
         value: account.id,
         label: account.name,
@@ -37,7 +38,7 @@ export function AccountNavigation({
         }
         startTransition(() =>
             router.push(
-                `/dashboard/accounts/${id}${inTransactions ? "/transactions" : ""}${next.size ? `?${next}` : ""}`
+                `/dashboard/accounts/${id}${inTransactions ? "/transactions" : inAnalytics ? "/analytics" : ""}${next.size ? `?${next}` : ""}`
             )
         )
     }

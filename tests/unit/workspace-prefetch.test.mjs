@@ -408,8 +408,8 @@ test("only active account overview/month views speculate, and repeated filters m
         "month=2026-10&status=PENDING",
         today
     )
-    assert.deepEqual(overview.foreground.query, {
-        view: "month",
-        month: "2026-10",
+    assert.deepEqual(overview.foreground, {
+        resource: "reference",
+        accountId: "personal",
     })
 })

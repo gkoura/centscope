@@ -1,7 +1,6 @@
 import { AccountTools } from "@/components/financial-accounts/account-tools"
 import {
     CachedOverviewBalances,
-    CachedOverviewAnalysis,
     CachedOverviewBalanceHistory,
 } from "@/components/workspace/cached-overview"
 import type { TransactionQuery } from "@/lib/transaction-filters"
@@ -12,14 +11,6 @@ type Props = {
 export async function OverviewBalances({ params, searchParams }: Props) {
     return (
         <CachedOverviewBalances
-            accountId={(await params).id}
-            query={await searchParams}
-        />
-    )
-}
-export async function OverviewAnalysis({ params, searchParams }: Props) {
-    return (
-        <CachedOverviewAnalysis
             accountId={(await params).id}
             query={await searchParams}
         />
