@@ -1,8 +1,7 @@
 import { Suspense } from "react"
 import { SectionLoading } from "@/components/site/section-loading"
 import Link from "next/link"
-import { LinkedAccounts } from "@/components/auth/settings/security/linked-accounts"
-import { requireVerifiedSession } from "@/lib/auth/session"
+import { SecurityMethods } from "./_components/security-methods"
 
 export default function SecurityPage() {
     return (
@@ -14,20 +13,16 @@ export default function SecurityPage() {
                 Back to dashboard
             </Link>
             <h1 className="text-2xl font-semibold tracking-tight">
-                Sign-in methods
+                Account settings
             </h1>
             <p className="text-sm text-muted-foreground">
                 Connect Google using the same email address as your CentScope
-                account.
+                account. Manage your sign-in methods or delete your account
+                below.
             </p>
             <Suspense fallback={<SectionLoading />}>
                 <SecurityMethods />
             </Suspense>
         </main>
     )
-}
-
-async function SecurityMethods() {
-    await requireVerifiedSession()
-    return <LinkedAccounts />
 }

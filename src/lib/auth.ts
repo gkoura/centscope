@@ -1,12 +1,29 @@
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 import { after } from "next/server"
-import { sendVerificationEmail, sendPasswordResetEmail } from "@/lib/auth/email"
+import {
+    sendVerificationEmail,
+    sendPasswordResetEmail,
+    sendDeleteAccountEmail,
+} from "@/lib/auth/email"
+import { deleteAccountData } from "@/lib/auth/delete-account-data"
 import { prisma } from "@/lib/prisma"
 
 export const auth = betterAuth({
     appName: "CentScope",
     database: prismaAdapter(prisma, { provider: "postgresql" }),
+    user: {
+        deleteUser: {
+            enabled: true,
+            deleteTokenExpiresIn: 30 * 60,
+            sendDeleteAccountVerification: async ({ user, url }) => {
+                await sendDeleteAccountEmail({ to: user.email, url })
+            },
+            beforeDelete: async (user) => {
+                await deleteAccountData(user.id)
+            },
+        },
+    },
     socialProviders: {
         google: {
             clientId: process.env.GOOGLE_CLIENT_ID ?? "",

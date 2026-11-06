@@ -103,3 +103,24 @@ users can use password recovery to add a password.
 OAuth tokens are encrypted at rest. No additional Google API scopes are requested.
 Google consent/callback and account linking must still be verified with real
 OAuth credentials; compilation checks do not verify the external flow.
+
+## Account deletion
+
+Settings → Account settings → Danger zone offers permanent account deletion.
+The confirmation dialog requests an email; it does not delete data immediately.
+The single-use link expires after 30 minutes and requires a session for the same
+user. This supports both Google-only and password accounts. Configure
+`BETTER_AUTH_URL` to the deployed HTTPS origin and the existing Resend sender.
+
+After Better Auth validates the token, `deleteAccountData` removes recurring
+occurrences/rules, transactions (including ledger/spread rows), the user's audit
+snapshots, wallet allocations, child/root categories, financial accounts, wallets,
+verification records, and the user in one Serializable transaction. Deleting the
+user cascades to provider accounts and sessions. Better Auth then clears the
+session cookie. A foreign financial reference fails the deletion and rolls the
+whole cleanup back; no sharing/ownership transfer is implemented. The current
+budget and membership models are unshipped drafts and are not queried here.
+No schema changes or migrations are required.
+
+Audit retention during ordinary transaction deletion is unchanged. Full identity
+erasure intentionally removes that user's audit snapshots as well.

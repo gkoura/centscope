@@ -9,6 +9,17 @@ import { AuthProvider } from "@/components/auth/auth-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { authClient } from "@/lib/auth-client"
 import { WorkspaceCacheProvider } from "@/components/workspace/workspace-cache-provider"
+import { deleteUserPlugin } from "@/lib/auth/delete-user-plugin"
+
+const authPlugins = [
+    deleteUserPlugin({
+        sendDeleteAccountVerification: true,
+        localization: {
+            deleteAccountDescription:
+                "Permanently delete your account, financial accounts, wallets, transactions, categories and recurring schedules. This cannot be undone. We’ll email you a confirmation link before deleting anything.",
+        },
+    }),
+]
 
 export function AuthProviders({
     children,
@@ -30,6 +41,7 @@ export function AuthProviders({
         <QueryClientProvider client={queryClient}>
             <AuthProvider
                 authClient={authClient}
+                plugins={authPlugins}
                 baseURL={baseURL}
                 socialProviders={googleEnabled ? ["google"] : []}
                 multipleAccountsPerProvider={false}

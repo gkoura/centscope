@@ -1,7 +1,6 @@
 "use client"
 
 import {
-  authQueryKeys,
   isReauthenticationRequiredError,
   validateStringLength
 } from "@better-auth-ui/core"
@@ -37,6 +36,7 @@ import {
 } from "@/components/ui/input-group"
 import { deleteUserPlugin } from "@/lib/auth/delete-user-plugin"
 import { cn } from "cn"
+import { clearWorkspaceCache } from "@/lib/workspace-cache-events"
 import { isAuthFormFieldInvalid, useAuthForm } from "../auth-form"
 import { ReauthenticationAction } from "../reauthentication"
 
@@ -78,9 +78,11 @@ export function DeleteAccount({ className }: DeleteAccountProps) {
     defaultValues: { password: "" },
     onSubmit: async ({ value }) => {
       await deleteUser.mutateAsync(
-        needsPassword ? { password: value.password } : {},
+        needsPassword
+          ? { password: value.password }
+          : { callbackURL: "/auth/sign-in" },
         {
-          onSuccess: () => {
+          onSuccess: async () => {
             setConfirmOpen(false)
             form.reset()
 
@@ -88,7 +90,9 @@ export function DeleteAccount({ className }: DeleteAccountProps) {
               toast.success(deleteUserLocalization.deleteUserVerificationSent)
             } else {
               toast.success(deleteUserLocalization.deleteUserSuccess)
-              queryClient.removeQueries({ queryKey: authQueryKeys.all })
+              await clearWorkspaceCache()
+              await queryClient.cancelQueries()
+              queryClient.clear()
               navigate({
                 to: `${basePaths.auth}/${viewPaths.auth.signIn}`,
                 replace: true
@@ -101,6 +105,7 @@ export function DeleteAccount({ className }: DeleteAccountProps) {
   })
 
   const handleDialogOpenChange = (open: boolean) => {
+    if (deleteUser.isPending) return
     setConfirmOpen(open)
     deleteUser.reset()
     form.reset()
@@ -125,7 +130,7 @@ export function DeleteAccount({ className }: DeleteAccountProps) {
             className={cn(
               buttonVariants({ variant: "destructive", size: "sm" })
             )}
-            disabled={!accounts}
+            disabled={!accounts || deleteUser.isPending}
           >
             {deleteUserLocalization.deleteAccount}
           </AlertDialogTrigger>
@@ -234,7 +239,9 @@ export function DeleteAccount({ className }: DeleteAccountProps) {
                       variant="destructive"
                       disabled={deleteUser.isPending}
                     >
-                      {deleteUserLocalization.deleteAccount}
+                      {sendDeleteAccountVerification
+                        ? "Send confirmation email"
+                        : deleteUserLocalization.deleteAccount}
                     </form.AuthFormSubmitButton>
                   </AlertDialogFooter>
                 </form.AuthFormRoot>

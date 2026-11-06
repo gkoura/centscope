@@ -197,3 +197,12 @@ This replaces the due-date generation/cron behavior above at the user's request.
 - Transaction wallet filters accept a single allocation ID, repeated `wallet` query keys, or a canonical comma-separated list (deduplicated, at most 100 IDs). Selected wallets are combined with OR, beneath the existing owner/account scope. An empty selection includes all wallets. Lists and period summaries use the same group; an internal transfer matching both selected wallets is shown/counted once.
 - Overview category spending rolls subcategory entries into their root category without changing stored ledger categories.
 - The rolling 12-month balance chart is a read-only analytical balance, per currency and active wallet allocation. Posted non-spread movements retain their transaction month. Each posted spread expense replaces its original cash deduction with the cumulative scheduled shares through each month end; prior-month shares carry into the displayed window. Cent remainders follow the same earliest-month rule as `monthlyShare`. Pending entries are excluded. Current/future months use recorded entries only, with no forecast or FX conversion. Recorded ledger balances and existing detailed spending analysis remain unchanged.
+
+## Full account deletion (2026-11-06)
+
+The auth deletion hook explicitly removes the user's shipped financial records
+and retained audit snapshots before deleting the user, all in one Serializable
+transaction. Existing RESTRICT/CASCADE constraints remain intact. Any unsupported
+foreign/shared reference aborts the entire purge. User deletion cascades to auth
+sessions and linked provider accounts. No draft budget/membership tables are
+assumed to exist. Ordinary transaction deletion continues to retain its audits.
