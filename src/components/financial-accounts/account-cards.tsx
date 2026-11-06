@@ -1,4 +1,6 @@
 "use client"
+
+import { currencySymbol } from "@/lib/currency"
 import Link from "next/link"
 import { ArrowUpRightIcon } from "lucide-react"
 import type { listOwnedFinancialAccounts } from "@/lib/financial-accounts"
@@ -36,7 +38,8 @@ export function AccountCards({
                             <h2 className="wrap-break-word">{account.name}</h2>
                         </CardTitle>
                         <CardDescription>
-                            Reporting currency: {account.reportingCurrency}
+                            Reporting currency:{" "}
+                            {currencySymbol(account.reportingCurrency)}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="pointer-events-none relative flex items-center justify-between gap-3">

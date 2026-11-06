@@ -1,4 +1,6 @@
 "use client"
+
+import { currencySymbol } from "@/lib/currency"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { WalletDeleteDialog } from "./wallet-delete-dialog"
@@ -46,7 +48,7 @@ export function WalletCards({
                                     (option) => option.value === wallet.type
                                 )?.label
                             }{" "}
-                            · {wallet.currency}
+                            · {currencySymbol(wallet.currency)}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-3">

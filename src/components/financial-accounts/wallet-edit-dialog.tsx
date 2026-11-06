@@ -1,5 +1,7 @@
 "use client"
 
+import { currencySymbol, currencyLabel } from "@/lib/currency"
+
 import { useActionState, useState } from "react"
 import { Pencil } from "lucide-react"
 import { updateWallet } from "@/app/dashboard/accounts/[id]/wallets/actions"
@@ -174,7 +176,7 @@ function WalletEditForm({
                         </FieldLabel>
                         <Input
                             id={`wallet-currency-${wallet.id}`}
-                            value={wallet.currency}
+                            value={currencyLabel(wallet.currency)}
                             readOnly
                             aria-describedby={`wallet-currency-help-${wallet.id}`}
                         />
@@ -188,7 +190,7 @@ function WalletEditForm({
                     </Field>
                     <Field>
                         <FieldLabel htmlFor={`wallet-opening-${wallet.id}`}>
-                            Opening balance ({wallet.currency})
+                            Opening balance ({currencySymbol(wallet.currency)})
                         </FieldLabel>
                         <Input
                             id={`wallet-opening-${wallet.id}`}

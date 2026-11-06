@@ -1,8 +1,6 @@
-export const reportingCurrencies = [
-    { value: "EUR", label: "EUR — Euro" },
-    { value: "GBP", label: "GBP — British pound" },
-    { value: "USD", label: "USD — US dollar" },
-] as const
+import { currencyOptions } from "./currency.ts"
+
+export const reportingCurrencies = currencyOptions
 
 export type CreateAccountState = {
     errors?: { name?: string; reportingCurrency?: string }

@@ -1,5 +1,7 @@
 "use client"
 
+import { currencySymbol } from "@/lib/currency"
+
 import { useState } from "react"
 import {
     CartesianGrid,
@@ -70,7 +72,7 @@ export function BalanceHistoryChart({
                                     key={item.currency}
                                     value={item.currency}
                                 >
-                                    {item.currency}
+                                    {currencySymbol(item.currency)}
                                 </TabsTrigger>
                             ))}
                         </TabsList>
@@ -90,7 +92,7 @@ export function BalanceHistoryChart({
                 <ChartContainer
                     config={config}
                     role="group"
-                    aria-label={`Smoothed monthly balances in ${current.currency}`}
+                    aria-label={`Smoothed monthly balances in ${currencySymbol(current.currency)}`}
                     className="aspect-auto h-64 w-full min-w-0 [&_.recharts-surface:focus-visible]:outline-2 [&_.recharts-surface:focus-visible]:outline-offset-2 [&_.recharts-surface:focus-visible]:outline-ring"
                 >
                     <LineChart
@@ -115,6 +117,9 @@ export function BalanceHistoryChart({
                             axisLine={false}
                             tickFormatter={(value) =>
                                 new Intl.NumberFormat("en", {
+                                    style: "currency",
+                                    currency: current.currency,
+                                    currencyDisplay: "narrowSymbol",
                                     notation: "compact",
                                     maximumFractionDigits: 1,
                                 }).format(Number(value))
@@ -168,11 +173,13 @@ export function BalanceHistoryChart({
                 </p>
                 <details className="rounded-xl border">
                     <summary className="cursor-pointer px-4 py-3 text-xs font-medium">
-                        View monthly amounts · {current.currency}
+                        View monthly amounts ·{" "}
+                        {currencySymbol(current.currency)}
                     </summary>
                     <table className="w-full border-t text-sm">
                         <caption className="sr-only">
-                            Smoothed end-of-month balances in {current.currency}
+                            Smoothed end-of-month balances in{" "}
+                            {currencySymbol(current.currency)}
                         </caption>
                         <thead>
                             <tr>

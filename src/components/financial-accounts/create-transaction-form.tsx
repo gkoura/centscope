@@ -1,5 +1,7 @@
 "use client"
 
+import { currencySymbol } from "@/lib/currency"
+
 import Link from "next/link"
 import { RecurrenceFields, type RecurrenceEditing } from "./recurrence-fields"
 import type { EditScope } from "@/lib/recurrence-input"
@@ -365,7 +367,7 @@ export function CreateTransactionForm({
                     </Field>
                     <Field data-invalid={Boolean(state.errors?.amount)}>
                         <FieldLabel htmlFor="transaction-amount">
-                            Amount ({currency})
+                            Amount ({currencySymbol(currency)})
                         </FieldLabel>
                         <MoneyInput
                             id="transaction-amount"
@@ -429,7 +431,7 @@ export function CreateTransactionForm({
                         value={values.accountWalletId}
                         options={wallets.map((wallet) => ({
                             value: wallet.id,
-                            label: `${wallet.name} (${wallet.currency})`,
+                            label: `${wallet.name} (${currencySymbol(wallet.currency)})`,
                         }))}
                         onChange={(value) => update("accountWalletId", value)}
                         error={state.errors?.accountWalletId}

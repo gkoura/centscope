@@ -1,4 +1,6 @@
 "use client"
+
+import { currencySymbol } from "@/lib/currency"
 import { useWorkspaceQuery, useWorkspaceDay } from "./use-workspace-query"
 import { WorkspaceQueryState } from "./workspace-query-state"
 import dynamic from "next/dynamic"
@@ -156,7 +158,7 @@ export function CachedOverviewAnalysis({
                             >
                                 {byCurrency.length > 1 && (
                                     <p className="text-xs font-medium text-muted-foreground">
-                                        {currency}
+                                        {currencySymbol(currency)}
                                     </p>
                                 )}
                                 {categories.map((category) => (

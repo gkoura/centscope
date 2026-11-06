@@ -93,8 +93,14 @@ test("formats balances without floating-point rounding or losing a negative frac
         formatWalletMoney("9999999999999999.99", "EUR"),
         /9,999,999,999,999,999\.99/
     )
-    assert.match(formatWalletMoney("-0.01", "GBP"), /-GBP\s0\.01/)
-    assert.match(formatWalletMoney("0.00", "USD"), /USD\s0\.00/)
+    assert.equal(formatWalletMoney("-0.01", "GBP"), "-£0.01")
+    assert.equal(formatWalletMoney("0.00", "USD"), "$0.00")
+    assert.equal(formatWalletMoney("13.59", "EUR"), "€13.59")
+    assert.equal(formatWalletMoney("1356.78", "USD"), "$1,356.78")
+    assert.equal(
+        formatWalletMoney("9999999999999999.99", "EUR"),
+        "€9,999,999,999,999,999.99"
+    )
 })
 
 function editInput(overrides = {}) {

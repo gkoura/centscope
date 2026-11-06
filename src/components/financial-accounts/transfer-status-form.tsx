@@ -1,4 +1,6 @@
 "use client"
+
+import { currencySymbol } from "@/lib/currency"
 import { useActionState, useState, useRef } from "react"
 import { setTransferStatus } from "@/app/dashboard/accounts/[id]/transactions/transfer-actions"
 import type { TransferFormState } from "@/lib/transfer-input"
@@ -147,7 +149,8 @@ export function TransferStatusForm({
                                 <FieldLabel
                                     htmlFor={`post-sent-${transaction.id}`}
                                 >
-                                    Amount sent ({source.currency})
+                                    Amount sent (
+                                    {currencySymbol(source.currency)})
                                 </FieldLabel>
                                 <Input
                                     id={`post-sent-${transaction.id}`}
@@ -161,7 +164,8 @@ export function TransferStatusForm({
                                 <FieldLabel
                                     htmlFor={`post-received-${transaction.id}`}
                                 >
-                                    Amount received ({destination.currency})
+                                    Amount received (
+                                    {currencySymbol(destination.currency)})
                                 </FieldLabel>
                                 <Input
                                     id={`post-received-${transaction.id}`}

@@ -1,4 +1,6 @@
 "use client"
+
+import { currencySymbol, currencyLabel } from "@/lib/currency"
 import { useWorkspaceQuery, useWorkspaceDay } from "./use-workspace-query"
 import { WorkspaceQueryState } from "./workspace-query-state"
 import Link from "next/link"
@@ -102,7 +104,7 @@ export function CachedMonthlyAnalysis({
                         >
                             {["EUR", "GBP", "USD"].map((code) => (
                                 <NativeSelectOption key={code} value={code}>
-                                    {code}
+                                    {currencyLabel(code)}
                                 </NativeSelectOption>
                             ))}
                         </NativeSelect>
@@ -124,7 +126,8 @@ export function CachedMonthlyAnalysis({
                                     key={item.id}
                                     value={item.id}
                                 >
-                                    {item.name} ({item.currency})
+                                    {item.name} ({currencySymbol(item.currency)}
+                                    )
                                 </NativeSelectOption>
                             ))}
                         </NativeSelect>

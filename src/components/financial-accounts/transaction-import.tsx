@@ -1,5 +1,7 @@
 "use client"
 
+import { currencySymbol } from "@/lib/currency"
+
 import Link from "next/link"
 import { useMemo, useRef, useState, useTransition } from "react"
 import { Download, FileUp, CheckCircle2 } from "lucide-react"
@@ -204,7 +206,8 @@ export function TransactionImport({
                                 <ul className="mt-2 flex flex-col gap-1 text-muted-foreground">
                                     {wallets.map((wallet) => (
                                         <li key={wallet.id}>
-                                            {wallet.name} ({wallet.currency})
+                                            {wallet.name} (
+                                            {currencySymbol(wallet.currency)})
                                         </li>
                                     ))}
                                 </ul>

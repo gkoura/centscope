@@ -1,4 +1,6 @@
 "use client"
+
+import { currencySymbol } from "@/lib/currency"
 import { periodEntryDate } from "@/lib/transaction-return"
 import Link from "next/link"
 import { useState, useTransition } from "react"
@@ -254,7 +256,9 @@ export function TransactionControls({
                                                     htmlFor={`filter-wallet-${wallet.id}`}
                                                 >
                                                     {wallet.name} ·{" "}
-                                                    {wallet.currency}
+                                                    {currencySymbol(
+                                                        wallet.currency
+                                                    )}
                                                 </FieldLabel>
                                             </Field>
                                         ))}

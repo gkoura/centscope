@@ -1,10 +1,7 @@
 import { normalizeDecimalInput } from "./decimal-input.ts"
+import { currencyOptions } from "./currency.ts"
 
-export const walletCurrencies = [
-    { value: "EUR", label: "EUR — Euro" },
-    { value: "GBP", label: "GBP — British pound" },
-    { value: "USD", label: "USD — US dollar" },
-] as const
+export const walletCurrencies = currencyOptions
 export const walletTypes = [
     { value: "BANK", label: "Bank account" },
     { value: "CASH", label: "Cash" },
@@ -112,7 +109,7 @@ export function formatWalletMoney(amount: string, currency: string): string {
     return new Intl.NumberFormat("en-GB", {
         style: "currency",
         currency,
-        currencyDisplay: "code",
+        currencyDisplay: "narrowSymbol",
     })
         .formatToParts(signed)
         .map((part) =>

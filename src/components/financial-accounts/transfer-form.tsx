@@ -1,4 +1,6 @@
 "use client"
+
+import { currencySymbol } from "@/lib/currency"
 import { useActionState, useState } from "react"
 import { saveTransfer } from "@/app/dashboard/accounts/[id]/transactions/transfer-actions"
 import { type TransferFormState, transferRate } from "@/lib/transfer-input"
@@ -107,7 +109,8 @@ export function TransferForm({
                 >
                     {options.map((w) => (
                         <option key={w.id} value={w.id}>
-                            {w.wallet.name} ({w.wallet.currency})
+                            {w.wallet.name} ({currencySymbol(w.wallet.currency)}
+                            )
                         </option>
                     ))}
                 </select>
@@ -171,7 +174,7 @@ export function TransferForm({
                     <Field>
                         <FieldLabel htmlFor="transfer-amount">
                             {fx ? "Amount sent" : "Amount"} (
-                            {source?.wallet.currency})
+                            {currencySymbol(source?.wallet.currency ?? "")})
                         </FieldLabel>
                         <Input
                             id="transfer-amount"
@@ -185,7 +188,11 @@ export function TransferForm({
                     {fx && (
                         <Field>
                             <FieldLabel htmlFor="transfer-received">
-                                Amount received ({destination?.wallet.currency})
+                                Amount received (
+                                {currencySymbol(
+                                    destination?.wallet.currency ?? ""
+                                )}
+                                )
                             </FieldLabel>
                             <Input
                                 id="transfer-received"
@@ -199,7 +206,7 @@ export function TransferForm({
                             />
                             <FieldDescription>
                                 {rate
-                                    ? `1 ${source?.wallet.currency} = ${rate} ${destination?.wallet.currency}. `
+                                    ? `1 ${currencySymbol(source?.wallet.currency ?? "")} = ${rate} ${currencySymbol(destination?.wallet.currency ?? "")}. `
                                     : ""}
                                 Pending amounts are estimates; confirm the
                                 actual amounts when posting.

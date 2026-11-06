@@ -74,6 +74,7 @@ const formatPrice = (amount: number, currency: string) => {
   return new Intl.NumberFormat(undefined, {
     style: "currency",
     currency,
+    currencyDisplay: "narrowSymbol",
     maximumFractionDigits: amount % divisor === 0 ? 0 : fractionDigits
   }).format(amount / divisor)
 }
