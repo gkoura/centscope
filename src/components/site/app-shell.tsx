@@ -34,7 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         <ThemeToggle />
                     </div>
                     <p className="text-xs leading-6 text-muted-foreground">
-                        Your money, in focus.
+                        Make sense of every cent.
                     </p>
                 </div>
             </aside>
@@ -51,7 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     {children}
                 </div>
                 <footer className="app-footer">
-                    <span>CentScope · Your money, in focus.</span>
+                    <span>CentScope · Make sense of every cent.</span>
                     <Link href="/dashboard/accounts">Manage accounts</Link>
                 </footer>
             </div>

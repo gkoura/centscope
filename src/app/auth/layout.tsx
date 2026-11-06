@@ -41,7 +41,7 @@ export default function AuthLayout({
                     </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                    Your money, in focus.
+                    Make sense of every cent.
                 </p>
             </aside>
             <div className="flex min-w-0 flex-col">
@@ -70,7 +70,7 @@ export default function AuthLayout({
                     </p>
                 </main>
                 <footer className="p-6 text-center text-xs text-muted-foreground">
-                    CentScope · Your money, in focus.
+                    CentScope · Make sense of every cent.
                 </footer>
             </div>
         </div>

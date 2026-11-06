@@ -71,7 +71,7 @@ export function AuthEmailLayout({
                             </Link>
                         </Section>
                         <Text style={styles.footer}>
-                            CentScope · Your money, in focus.
+                            CentScope · Make sense of every cent.
                         </Text>
                     </Section>
                 </Container>

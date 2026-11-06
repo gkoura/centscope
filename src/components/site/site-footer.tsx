@@ -10,7 +10,7 @@ export async function SiteFooter() {
                 <div className="flex flex-col gap-3">
                     <Brand />
                     <p className="text-sm text-muted-foreground">
-                        Your money, in focus.
+                        Make sense of every cent.
                     </p>
                 </div>
                 <nav

@@ -1,6 +1,6 @@
 # CentScope
 
-Your money, in focus.
+Make sense of every cent.
 
 CentScope is a personal finance tracking app built with Next.js and shadcn/ui.
 

@@ -1,6 +1,6 @@
 # CentScope naming rebrand — 2026-11-06
 
-CentScope is a personal finance tracking app: “cent” plus “scope”, a clear view of your money. Display name: **CentScope**. Lowercase identifier: `centscope`. Tagline: **Your money, in focus.**
+CentScope is a personal finance tracking app: “cent” plus “scope”, a clear view of your money. Display name: **CentScope**. Lowercase identifier: `centscope`. Tagline: **Make sense of every cent.**
 
 The rebrand changes public text, wordmarks, metadata/application name, auth app name and email copy, sender display names, CSV sample filename, package name and documentation. It preserves colors, typography, icons, route structure, financial behavior, server authorization, Suspense boundaries, Cache Components and Partial Prefetching. There is no existing web manifest or separately branded raster asset to rename; the existing chart icon is unchanged.
 

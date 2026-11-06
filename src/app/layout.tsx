@@ -30,11 +30,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
     applicationName: "CentScope",
     title: {
-        default: "CentScope — Your money, in focus.",
+        default: "CentScope — Make sense of every cent.",
         template: "%s | CentScope",
     },
     description:
-        "CentScope is a personal finance tracking app. Your money, in focus.",
+        "CentScope is a personal finance tracking app. Make sense of every cent.",
 }
 
 export default function RootLayout({

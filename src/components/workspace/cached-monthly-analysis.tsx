@@ -191,7 +191,7 @@ export function CachedMonthlyAnalysis({
                                 key={category.name}
                                 className="flex justify-between gap-4 p-4"
                             >
-                                <span className="min-w-0 break-words">
+                                <span className="min-w-0 wrap-break-word">
                                     {category.name}
                                 </span>
                                 <span className="shrink-0 tabular-nums">
@@ -223,7 +223,7 @@ export function CachedMonthlyAnalysis({
                                 <div className="flex min-w-0 flex-col gap-1">
                                     <Link
                                         href={`/dashboard/accounts/${id}/transactions/${row.id}/edit`}
-                                        className="font-medium break-words underline underline-offset-4"
+                                        className="font-medium wrap-break-word underline underline-offset-4"
                                     >
                                         {row.name}
                                     </Link>

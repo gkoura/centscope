@@ -35,7 +35,7 @@ export function SiteHeader() {
                         nativeButton={false}
                         className="hidden sm:inline-flex"
                     >
-                        Get started
+                        Sign up
                     </Button>
                 </div>
             </div>

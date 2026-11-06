@@ -292,7 +292,7 @@ export function WalletEditDialog({
             >
                 <DialogHeader>
                     <DialogTitle>Edit wallet</DialogTitle>
-                    <DialogDescription className="break-words">
+                    <DialogDescription className="wrap-break-word">
                         Update the details for {wallet.name}.
                     </DialogDescription>
                 </DialogHeader>
