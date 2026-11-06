@@ -1,8 +1,6 @@
 "use client"
-import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useTransition } from "react"
-import { ArrowLeftRight, LayoutDashboard } from "lucide-react"
 import {
     Select,
     SelectTrigger,
@@ -13,8 +11,6 @@ import {
 } from "@/components/ui/select"
 import { SignOutButton } from "@/components/auth/sign-out-button"
 import { ThemeToggle } from "@/components/site/theme-toggle"
-import { cn } from "@/lib/utils"
-import { accountViewSearch } from "@/lib/account-period"
 export function AccountNavigation({
     accountId,
     accounts,
@@ -78,40 +74,6 @@ export function AccountNavigation({
                         </SelectContent>
                     </Select>
                 </div>
-                <nav
-                    aria-label="Account views"
-                    className="order-3 hidden w-full shrink-0 items-center gap-2 md:flex lg:order-none lg:w-auto"
-                >
-                    {[
-                        {
-                            href: base + accountViewSearch(query, true),
-                            label: "Overview",
-                            icon: LayoutDashboard,
-                            active: pathname === base,
-                        },
-                        {
-                            href: `${base}/transactions${accountViewSearch(query)}`,
-                            label: "Transactions",
-                            icon: ArrowLeftRight,
-                            active: inTransactions,
-                        },
-                    ].map(({ href, label, icon: Icon, active }) => (
-                        <Link
-                            key={label}
-                            href={href}
-                            aria-current={active ? "page" : undefined}
-                            className={cn(
-                                "inline-flex items-center gap-2 rounded-xl px-4 py-3 text-sm",
-                                active
-                                    ? "bg-primary/10 font-medium text-primary"
-                                    : "text-muted-foreground hover:bg-muted"
-                            )}
-                        >
-                            <Icon className="size-4" />
-                            {label}
-                        </Link>
-                    ))}
-                </nav>
                 <div
                     role="group"
                     aria-label="Appearance and session"

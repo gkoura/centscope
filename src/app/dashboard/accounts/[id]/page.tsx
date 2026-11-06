@@ -17,7 +17,7 @@ export default function AccountPage({
     searchParams: Promise<TransactionQuery>
 }) {
     return (
-        <main className="workspace-page">
+        <main className="workspace-page overview-page">
             <header>
                 <p className="eyebrow mb-2">YOUR MONEY, AT A GLANCE</p>
                 <div className="flex items-center justify-between gap-3">

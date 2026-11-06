@@ -43,8 +43,28 @@ export function BalanceSummary({
                     Current posted balance
                     {totals.length > 1 ? " · currencies shown separately" : ""}
                 </p>
+                {!compact && wallets.length > 0 && (
+                    <dl
+                        className="balance-wallet-split"
+                        aria-label="Balance by wallet"
+                    >
+                        {wallets.map((wallet) => (
+                            <div key={wallet.id} className="min-w-0">
+                                <dt className="min-w-0 text-xs [overflow-wrap:anywhere] opacity-80">
+                                    {wallet.name}
+                                </dt>
+                                <dd className="mt-1 text-base font-medium [overflow-wrap:anywhere] tabular-nums">
+                                    {formatWalletMoney(
+                                        wallet.balance,
+                                        wallet.currency
+                                    )}
+                                </dd>
+                            </div>
+                        ))}
+                    </dl>
+                )}
             </div>
-            {wallets.length > 0 && (
+            {compact && wallets.length > 0 && (
                 <WalletBalanceTiles
                     wallets={wallets.map(({ id, name, currency, balance }) => ({
                         id,

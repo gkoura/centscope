@@ -54,35 +54,28 @@ export function CachedOverviewBalances({
                 accountId={account.id}
                 periodQuery={periodQuery(period)}
             />
-            <div className="grid grid-cols-2 gap-3">
-                <Button
-                    size="lg"
-                    className="h-11"
-                    nativeButton={false}
-                    render={
-                        <Link
-                            href={
-                                wallets.length
-                                    ? `/dashboard/accounts/${id}/transactions/new?${new URLSearchParams({ returnTo: transactionsHref, date: periodEntryDate(period, today) })}`
-                                    : `/dashboard/accounts/${id}/wallets/new`
-                            }
-                        />
-                    }
-                >
-                    <Plus data-icon="inline-start" />
-                    {wallets.length ? "Add transaction" : "Add wallet"}
-                </Button>
-                <Button
-                    size="lg"
-                    className="h-11"
-                    variant="outline"
-                    nativeButton={false}
-                    render={<Link href={transactionsHref} />}
-                >
-                    Transactions
-                    <ArrowRight data-icon="inline-end" />
-                </Button>
-            </div>
+            <Button
+                size="icon-lg"
+                className="overview-add-button"
+                nativeButton={false}
+                title={
+                    wallets.length ? "Add transaction" : "Add your first wallet"
+                }
+                aria-label={
+                    wallets.length ? "Add transaction" : "Add your first wallet"
+                }
+                render={
+                    <Link
+                        href={
+                            wallets.length
+                                ? `/dashboard/accounts/${id}/transactions/new?${new URLSearchParams({ returnTo: transactionsHref, date: periodEntryDate(period, today) })}`
+                                : `/dashboard/accounts/${id}/wallets/new`
+                        }
+                    />
+                }
+            >
+                <Plus />
+            </Button>
         </>
     )
 }
