@@ -4,6 +4,8 @@ import {
     type RepeatInput,
     type EditScope,
 } from "./recurrence-input.ts"
+import { normalizeDecimalInput } from "./decimal-input.ts"
+
 export type TransferInput = {
     contextAccountId: string
     sourceId: string
@@ -24,8 +26,9 @@ export type TransferFormState = {
     errors?: Partial<Record<keyof TransferInput, string>>
 }
 export function positiveTransferMoney(value: string): string | null {
-    if (!/^(?:0|[1-9]\d{0,15})(?:\.\d{1,2})?$/.test(value)) return null
-    const [whole, part = ""] = value.split(".")
+    const normalized = normalizeDecimalInput(value)
+    if (!/^(?:0|[1-9]\d{0,15})(?:\.\d{1,2})?$/.test(normalized)) return null
+    const [whole, part = ""] = normalized.split(".")
     const result = `${whole}.${part.padEnd(2, "0")}`
     return result === "0.00" ? null : result
 }

@@ -390,7 +390,8 @@ export function CreateTransactionForm({
                             {values.type === "EXPENSE"
                                 ? "Expenses subtract from"
                                 : "Incomes add to"}{" "}
-                            this wallet when posted.
+                            this wallet when posted. Use a dot or comma for
+                            decimals.
                         </FieldDescription>
                         {state.errors?.amount ? (
                             <FieldError id="transaction-amount-error">

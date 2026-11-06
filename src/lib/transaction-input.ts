@@ -5,6 +5,7 @@ import {
     type EditScope,
 } from "./recurrence-input.ts"
 import { validSpread, type ExpenseSpread } from "./expense-spread.ts"
+import { normalizeDecimalInput } from "./decimal-input.ts"
 export const transactionTypes = [
     { value: "EXPENSE", label: "Expense" },
     { value: "INCOME", label: "Income" },
@@ -48,7 +49,7 @@ export function validateTransactionInput(
         requestId: text(form, "requestId"),
         type: text(form, "type"),
         name: text(form, "name"),
-        amount: text(form, "amount"),
+        amount: normalizeDecimalInput(text(form, "amount")),
         date: text(form, "date"),
         status: text(form, "status"),
         notes: text(form, "notes") || null,

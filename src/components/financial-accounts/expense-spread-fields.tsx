@@ -8,6 +8,7 @@ import {
     shiftMonth,
 } from "@/lib/expense-spread"
 import { formatWalletMoney } from "@/lib/wallet-input"
+import { normalizeDecimalInput } from "@/lib/decimal-input"
 import { Input } from "@/components/ui/input"
 import {
     Field,
@@ -39,10 +40,11 @@ export function ExpenseSpreadFields({
         monthCount: Number(count),
     }
     let preview = ""
-    if (validSpread(spread) && /^\d+(?:\.\d{1,2})?$/.test(amount)) {
-        const first = monthlyShare(amount, spread, spread.startMonth)
+    const normalizedAmount = normalizeDecimalInput(amount)
+    if (validSpread(spread) && /^\d+(?:\.\d{1,2})?$/.test(normalizedAmount)) {
+        const first = monthlyShare(normalizedAmount, spread, spread.startMonth)
         const last = monthlyShare(
-            amount,
+            normalizedAmount,
             spread,
             shiftMonth(spread.startMonth, spread.monthCount - 1)
         )

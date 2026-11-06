@@ -30,6 +30,11 @@ test("money remains exact at the storage limit and for fractional/negative amoun
         ["-0.00", "0.00"],
         ["0.10", "0.10"],
         ["-125.5", "-125.50"],
+        ["13,59", "13.59"],
+        ["-125,5", "-125.50"],
+        ["-0,00", "0.00"],
+        [" 0,01 ", "0.01"],
+        ["9999999999999999,99", "9999999999999999.99"],
         ["9999999999999999.99", "9999999999999999.99"],
     ]) {
         assert.equal(parseOpeningBalance(raw), expected)
@@ -39,6 +44,10 @@ test("money remains exact at the storage limit and for fractional/negative amoun
 test("rejects excessive precision, overflow, exponent notation, grouping and non-finite money", () => {
     for (const raw of [
         "0.001",
+        "13,591",
+        "1,000",
+        "1.234,56",
+        "13,,59",
         "10000000000000000",
         "1e3",
         "1,000.00",

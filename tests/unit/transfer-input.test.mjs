@@ -28,11 +28,23 @@ test("transfer money is canonical and exact up to the existing storage limit", (
     )
     assert.equal(positiveTransferMoney("1.2"), "1.20")
     assert.equal(positiveTransferMoney("0.01"), "0.01")
+    assert.equal(positiveTransferMoney("13,59"), "13.59")
+    assert.equal(positiveTransferMoney(" 0,01 "), "0.01")
+    assert.equal(
+        positiveTransferMoney("9999999999999999,99"),
+        "9999999999999999.99"
+    )
     for (const value of [
         "0",
         "0.00",
         "-1",
         "1.001",
+        "13,591",
+        "0,00",
+        "-13,59",
+        "1.234,56",
+        "1,234.56",
+        "13,,59",
         "NaN",
         "Infinity",
         "1e3",
@@ -40,6 +52,14 @@ test("transfer money is canonical and exact up to the existing storage limit", (
         "10000000000000000",
     ])
         assert.equal(positiveTransferMoney(value), null)
+})
+test("normalizes both transfer amounts and computes the preview rate for comma decimals", () => {
+    const result = validateTransferInput(
+        form({ amount: "13,59", destinationAmount: "12,5" })
+    )
+    assert.equal(result.data.amount, "13.59")
+    assert.equal(result.data.destinationAmount, "12.50")
+    assert.equal(transferRate("100,00", "85,50"), "0.855")
 })
 test("transfer form requires separate allocations, positive amounts and explicit status", () => {
     assert.equal(validateTransferInput(form()).data.name, "Transfer")

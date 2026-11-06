@@ -38,6 +38,13 @@ test("rejects negative, zero, over-precision, overflow and non-finite transactio
         "0",
         "0.00",
         "0.001",
+        "13,591",
+        "0,00",
+        "1,000",
+        "1.234,56",
+        "1,234.56",
+        "13,,59",
+        "13,5,9",
         "10000000000000000",
         "1e3",
         "NaN",
@@ -48,6 +55,21 @@ test("rejects negative, zero, over-precision, overflow and non-finite transactio
             validateTransactionInput(form({ amount })).errors?.amount,
             amount
         )
+})
+test("accepts decimal commas for expense and income without losing cents or storage-limit precision", () => {
+    for (const type of ["EXPENSE", "INCOME"]) {
+        for (const [amount, expected] of [
+            ["13,59", "13.59"],
+            ["13,5", "13.50"],
+            [" 0,01 ", "0.01"],
+            ["9999999999999999,99", "9999999999999999.99"],
+        ]) {
+            assert.equal(
+                validateTransactionInput(form({ type, amount })).data?.amount,
+                expected
+            )
+        }
+    }
 })
 test("requires a category and valid date while keeping status independent of date", () => {
     assert.ok(

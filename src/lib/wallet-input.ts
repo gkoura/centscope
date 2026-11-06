@@ -1,3 +1,5 @@
+import { normalizeDecimalInput } from "./decimal-input.ts"
+
 export const walletCurrencies = [
     { value: "EUR", label: "EUR — Euro" },
     { value: "GBP", label: "GBP — British pound" },
@@ -32,7 +34,7 @@ export type WalletFormState = {
 
 // Decimal text -> canonical decimal text. Never pass money through Number.
 export function parseOpeningBalance(value: string): string | null {
-    const text = value.trim() || "0"
+    const text = normalizeDecimalInput(value) || "0"
     if (!/^-?(?:0|[1-9]\d{0,15})(?:\.\d{1,2})?$/.test(text)) return null
     const negative = text.startsWith("-")
     const [whole, fraction = ""] = text.replace(/^-/, "").split(".")
