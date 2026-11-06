@@ -17,7 +17,7 @@ export default function SecurityPage() {
                 Sign-in methods
             </h1>
             <p className="text-sm text-muted-foreground">
-                Connect Google using the same email address as your Fintrack
+                Connect Google using the same email address as your CentScope
                 account.
             </p>
             <Suspense fallback={<SectionLoading />}>

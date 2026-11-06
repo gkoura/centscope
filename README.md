@@ -1,6 +1,8 @@
-# Next.js template
+# CentScope
 
-This is a Next.js template with shadcn/ui.
+Your money, in focus.
+
+CentScope is a personal finance tracking app built with Next.js and shadcn/ui.
 
 ## Adding components
 

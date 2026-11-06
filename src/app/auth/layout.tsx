@@ -41,7 +41,7 @@ export default function AuthLayout({
                     </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                    Your money. Your life. In perspective.
+                    Your money, in focus.
                 </p>
             </aside>
             <div className="flex min-w-0 flex-col">
@@ -70,7 +70,7 @@ export default function AuthLayout({
                     </p>
                 </main>
                 <footer className="p-6 text-center text-xs text-muted-foreground">
-                    Fintrack · A little clarity. A lot more possibility.
+                    CentScope · Your money, in focus.
                 </footer>
             </div>
         </div>

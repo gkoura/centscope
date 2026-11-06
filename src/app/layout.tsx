@@ -28,12 +28,13 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
+    applicationName: "CentScope",
     title: {
-        default: "Fintrack — Your money, in perspective",
-        template: "%s | Fintrack",
+        default: "CentScope — Your money, in focus.",
+        template: "%s | CentScope",
     },
     description:
-        "A calmer place to organize your financial accounts. Give every purpose a place with Fintrack.",
+        "CentScope is a personal finance tracking app. Your money, in focus.",
 }
 
 export default function RootLayout({

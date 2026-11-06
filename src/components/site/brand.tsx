@@ -6,7 +6,7 @@ export function Brand({ href = "/" }: { href?: string }) {
         <Link
             href={href}
             className="inline-flex items-center gap-2.5 text-xl font-semibold tracking-tight"
-            aria-label={href === "/" ? "Fintrack home" : "Fintrack dashboard"}
+            aria-label={href === "/" ? "CentScope home" : "CentScope dashboard"}
         >
             <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
                 <ChartNoAxesColumnIncreasing
@@ -14,7 +14,7 @@ export function Brand({ href = "/" }: { href?: string }) {
                     aria-hidden="true"
                 />
             </span>
-            fintrack<span className="text-primary">.</span>
+            CentScope<span className="text-primary">.</span>
         </Link>
     )
 }

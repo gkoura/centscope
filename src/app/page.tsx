@@ -31,13 +31,9 @@ export default function Page() {
                             LESS GUESSWORK. MORE CLARITY.
                         </p>
                         <h1>
-                            Your money.
+                            Your money,
                             <br />
-                            Your life.
-                            <br />
-                            <span className="text-primary">
-                                In perspective.
-                            </span>
+                            <span className="text-primary">in focus.</span>
                         </h1>
                         <p className="hero-description">
                             A calmer place to make sense of your finances. Bring

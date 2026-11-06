@@ -5,7 +5,7 @@ import { sendVerificationEmail, sendPasswordResetEmail } from "@/lib/auth/email"
 import { prisma } from "@/lib/prisma"
 
 export const auth = betterAuth({
-    appName: "Fintrack",
+    appName: "CentScope",
     database: prismaAdapter(prisma, { provider: "postgresql" }),
     socialProviders: {
         google: {

@@ -136,7 +136,7 @@ export function TransactionImport({
         )
         const anchor = document.createElement("a")
         anchor.href = url
-        anchor.download = "fintrack-transactions-sample.csv"
+        anchor.download = "centscope-transactions-sample.csv"
         anchor.click()
         URL.revokeObjectURL(url)
     }

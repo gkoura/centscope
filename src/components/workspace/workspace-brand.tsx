@@ -8,7 +8,7 @@ export function WorkspaceBrand({ compact = false }: { compact?: boolean }) {
     const href = data?.[0] ? `/dashboard/accounts/${data[0].id}` : "/dashboard"
     return compact ? (
         <Link href={href} className="font-semibold tracking-tight">
-            fintrack<span className="text-primary">.</span>
+            CentScope<span className="text-primary">.</span>
         </Link>
     ) : (
         <Brand href={href} />

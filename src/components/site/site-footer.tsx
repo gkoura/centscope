@@ -10,7 +10,7 @@ export async function SiteFooter() {
                 <div className="flex flex-col gap-3">
                     <Brand />
                     <p className="text-sm text-muted-foreground">
-                        A little clarity. A lot more possibility.
+                        Your money, in focus.
                     </p>
                 </div>
                 <nav
@@ -22,7 +22,7 @@ export async function SiteFooter() {
                     <Link href="/auth/sign-up">Create an account</Link>
                 </nav>
                 <p className="text-xs text-muted-foreground">
-                    © {new Date().getFullYear()} Fintrack
+                    © {new Date().getFullYear()} CentScope
                 </p>
             </div>
         </footer>

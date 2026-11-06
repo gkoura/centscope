@@ -14,8 +14,12 @@ BETTER_AUTH_SECRET=<a cryptographically random secret of at least 32 characters>
 DATABASE_URL_POOLED=<existing PostgreSQL pooled connection string>
 DATABASE_URL_UNPOOLED=<existing PostgreSQL direct connection string>
 RESEND_API_KEY=<your Resend sending API key>
-AUTH_EMAIL_FROM=Fintrack <auth@your-verified-domain.example>
+AUTH_EMAIL_FROM=CentScope <auth@your-verified-domain.example>
 ```
+
+The application uses CentScope as the sender display name while preserving the
+mailbox configured in `AUTH_EMAIL_FROM`, including existing configurations with
+an older display name. Do not change a working sender address for the rebrand.
 
 Use a sender on a domain verified in Resend. For initial development, Resend's
 `onboarding@resend.dev` test sender can send only to the Resend account owner's
@@ -88,7 +92,7 @@ Both values are required before Google buttons appear. Never expose the client
 secret through a NEXT_PUBLIC variable. For production, add the actual HTTPS
 callback URI and configure the consent audience appropriately.
 
-Test Google from sign-in or sign-up. An existing verified Fintrack user with a
+Test Google from sign-in or sign-up. An existing verified CentScope user with a
 matching verified Google email should keep the same identity and financial data.
 An unverified local registration must verify its email before automatic linking.
 From the dashboard, **Manage sign-in methods** opens `/settings/security` for

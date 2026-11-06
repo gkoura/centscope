@@ -5,9 +5,9 @@ type AuthEmail = { to: string; url: string }
 export async function sendVerificationEmail({ to, url }: AuthEmail) {
     await sendAuthEmail(
         to,
-        "Verify your Fintrack email",
+        "Verify your CentScope email",
         [
-            "Welcome to Fintrack.",
+            "Welcome to CentScope.",
             "Verify your email address by opening this link:",
             url,
             "This link expires in one hour.",
@@ -19,7 +19,7 @@ export async function sendVerificationEmail({ to, url }: AuthEmail) {
 export async function sendPasswordResetEmail({ to, url }: AuthEmail) {
     await sendAuthEmail(
         to,
-        "Reset your Fintrack password",
+        "Reset your CentScope password",
         [
             "Reset your password by opening this link:",
             url,
@@ -44,7 +44,8 @@ async function sendAuthEmail(to: string, subject: string, text: string) {
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            from,
+            // Keep the configured, verified mailbox; branding owns only its display name.
+            from: `CentScope <${from.match(/<([^<>]+)>\s*$/)?.[1] ?? from.trim()}>`,
             to: [to],
             subject,
             text,

@@ -13,7 +13,7 @@ export function SiteHeader() {
                     className="hidden items-center gap-8 text-sm text-muted-foreground md:flex"
                 >
                     <Link href="/#features" className="hover:text-foreground">
-                        Why Fintrack
+                        Why CentScope
                     </Link>
                     <Link
                         href="/#how-it-works"

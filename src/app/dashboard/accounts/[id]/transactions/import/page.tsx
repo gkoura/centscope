@@ -11,7 +11,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
                 </h1>
                 <p className="text-muted-foreground">
                     Use our CSV template to bring your transaction history into
-                    Fintrack.
+                    CentScope.
                 </p>
             </header>
             <Suspense fallback={<SectionLoading label="Loading import…" />}>
