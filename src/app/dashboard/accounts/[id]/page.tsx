@@ -4,6 +4,7 @@ import { SectionLoading } from "@/components/site/section-loading"
 import { AccountWallets } from "./_components/account-sections"
 import {
     OverviewTools,
+    OverviewRecurring,
     OverviewBalances,
     OverviewBalanceHistory,
 } from "./_components/overview-content"
@@ -62,6 +63,13 @@ export default function AccountPage({
                     </Suspense>
                 </div>
             </details>
+            <Suspense
+                fallback={
+                    <SectionLoading label="Loading recurring transactions…" />
+                }
+            >
+                <OverviewRecurring params={params} />
+            </Suspense>
         </main>
     )
 }

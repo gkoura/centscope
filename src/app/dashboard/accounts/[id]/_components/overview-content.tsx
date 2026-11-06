@@ -1,3 +1,4 @@
+import { CachedRecurringSummary } from "@/components/workspace/cached-recurring-summary"
 import { AccountTools } from "@/components/financial-accounts/account-tools"
 import {
     CachedOverviewBalances,
@@ -27,4 +28,8 @@ export async function OverviewBalanceHistory({ params, searchParams }: Props) {
 
 export async function OverviewTools({ params }: Pick<Props, "params">) {
     return <AccountTools accountId={(await params).id} />
+}
+
+export async function OverviewRecurring({ params }: Pick<Props, "params">) {
+    return <CachedRecurringSummary accountId={(await params).id} />
 }

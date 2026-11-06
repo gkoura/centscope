@@ -18,6 +18,7 @@ export const workspaceResources = [
     "suggestions",
     "analysis",
     "transferWallets",
+    "recurring",
 ] as const
 export type WorkspaceResource = (typeof workspaceResources)[number]
 export type WorkspaceRequest = {

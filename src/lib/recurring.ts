@@ -1,4 +1,5 @@
 import "server-only"
+import type { RecurringSummaryItem } from "@/lib/recurring-summary"
 import {
     lockAccounts,
     lockAllocations,
@@ -109,33 +110,37 @@ export async function syncOwnedRecurring(accountId: string) {
     if (!account) throw new RecurrenceError("This account is unavailable.")
     return processRecurring(accountId, user.id)
 }
+
+function ownedRecurringWhere(accountId: string, userId: string) {
+    return {
+        createdById: userId,
+        OR: [
+            { source: { financialAccountId: accountId } },
+            { destination: { financialAccountId: accountId } },
+        ],
+        AND: [
+            {
+                OR: [
+                    { destinationId: null },
+                    {
+                        destination: {
+                            wallet: { ownerId: userId },
+                            financialAccount: { ownerId: userId },
+                        },
+                    },
+                ],
+            },
+        ],
+        source: {
+            financialAccount: { ownerId: userId, archivedAt: null },
+            wallet: { ownerId: userId },
+        },
+    }
+}
 export async function listOwnedRecurring(accountId: string) {
     const { user } = await requireVerifiedSession()
     const rules = await prisma.recurrenceRule.findMany({
-        where: {
-            createdById: user.id,
-            OR: [
-                { source: { financialAccountId: accountId } },
-                { destination: { financialAccountId: accountId } },
-            ],
-            AND: [
-                {
-                    OR: [
-                        { destinationId: null },
-                        {
-                            destination: {
-                                wallet: { ownerId: user.id },
-                                financialAccount: { ownerId: user.id },
-                            },
-                        },
-                    ],
-                },
-            ],
-            source: {
-                financialAccount: { ownerId: user.id, archivedAt: null },
-                wallet: { ownerId: user.id },
-            },
-        },
+        where: ownedRecurringWhere(accountId, user.id),
         include: {
             source: { include: { wallet: true } },
             destination: { include: { wallet: true } },
@@ -181,6 +186,66 @@ export async function listOwnedRecurring(accountId: string) {
                 date: row.transaction!.occurredAt.toISOString().slice(0, 10),
             })),
     }))
+}
+
+export async function listOwnedRecurringSummary(
+    accountId: string
+): Promise<RecurringSummaryItem[]> {
+    const { user } = await requireVerifiedSession()
+    const rules = await prisma.recurrenceRule.findMany({
+        where: { ...ownedRecurringWhere(accountId, user.id), stoppedAt: null },
+        select: {
+            id: true,
+            name: true,
+            type: true,
+            amount: true,
+            destinationAmount: true,
+            frequency: true,
+            interval: true,
+            startsAt: true,
+            endsAt: true,
+            endAfter: true,
+            pausedAt: true,
+            source: {
+                select: {
+                    financialAccountId: true,
+                    wallet: { select: { currency: true } },
+                },
+            },
+            destination: { select: { wallet: { select: { currency: true } } } },
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+    })
+    return rules.flatMap((rule) => {
+        if (
+            rule.type !== "EXPENSE" &&
+            rule.type !== "INCOME" &&
+            rule.type !== "TRANSFER"
+        )
+            return []
+        const incoming =
+            rule.source.financialAccountId !== accountId && rule.destination
+        return [
+            {
+                id: rule.id,
+                name: rule.name,
+                type: rule.type,
+                amount: (incoming
+                    ? (rule.destinationAmount ?? rule.amount)
+                    : rule.amount
+                ).toFixed(2),
+                currency: incoming
+                    ? incoming.wallet.currency
+                    : rule.source.wallet.currency,
+                frequency: rule.frequency,
+                interval: rule.interval,
+                startsOn: rule.startsAt.toISOString().slice(0, 10),
+                endsOn: rule.endsAt?.toISOString().slice(0, 10) ?? null,
+                endAfter: rule.endAfter,
+                paused: Boolean(rule.pausedAt),
+            },
+        ]
+    })
 }
 export async function commandOwnedRecurring(form: FormData) {
     const { user } = await requireVerifiedSession()
