@@ -9,6 +9,7 @@ import {
 import type { UsernameAuthClient } from "@better-auth-ui/core/plugins/username"
 import { useAuth, useSession, useUpdateUser } from "@better-auth-ui/react"
 import { useEffect, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
@@ -25,6 +26,7 @@ import { ChangeAvatar } from "./change-avatar"
 
 export type UserProfileProps = {
   className?: string
+  showAvatar?: boolean
 }
 
 /**
@@ -33,13 +35,17 @@ export type UserProfileProps = {
  * @param className - Optional additional CSS class names applied to the card container
  * @returns A JSX element containing the profile card with avatar upload and editable name/username fields
  */
-export function UserProfile({ className }: UserProfileProps) {
+export function UserProfile({ className, showAvatar = true }: UserProfileProps) {
+  const router = useRouter()
   const { additionalFields, authClient, avatar, localization, profile } =
     useAuth<UsernameAuthClient>()
   const { data: session } = useSession(authClient)
 
   const { mutateAsync: updateUser, isPending } = useUpdateUser(authClient, {
-    onSuccess: () => toast.success(localization.settings.profileUpdatedSuccess)
+    onSuccess: () => {
+      toast.success(localization.settings.profileUpdatedSuccess)
+      router.refresh()
+    }
   })
 
   const profileFields = useMemo(
@@ -55,14 +61,15 @@ export function UserProfile({ className }: UserProfileProps) {
     },
     onSubmit: async ({ value }) => {
       await updateUser({
-        ...(profile.name && { name: value.name }),
+        ...(profile.name && { name: value.name.trim() }),
         ...getAdditionalFieldSubmitValues(profileFields, value.additionalFields)
       })
+      form.reset({ ...value, name: value.name.trim() })
     }
   })
 
   useEffect(() => {
-    if (!session) return
+    if (!session || form.state.isDirty) return
     form.reset({
       additionalFields: getAdditionalFieldDefaultValues(
         fieldsWithModelValues(
@@ -74,7 +81,7 @@ export function UserProfile({ className }: UserProfileProps) {
     })
   }, [form, profileFields, session])
 
-  if (!avatar.enabled && !hasProfileFields) return null
+  if (!(showAvatar && avatar.enabled) && !hasProfileFields) return null
 
   return (
     <div>
@@ -86,7 +93,8 @@ export function UserProfile({ className }: UserProfileProps) {
         <form.AuthFormRoot>
           <Card className={cn(className)}>
             <CardContent className="flex flex-col gap-6">
-              <ChangeAvatar />
+              <form.AuthFormServerError />
+              {showAvatar && <ChangeAvatar />}
 
               {profile.name && (
                 <form.AppField

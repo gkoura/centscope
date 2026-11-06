@@ -124,3 +124,21 @@ No schema changes or migrations are required.
 
 Audit retention during ordinary transaction deletion is unchanged. Full identity
 erasure intentionally removes that user's audit snapshots as well.
+
+## Settings: profile, passwords and sessions
+
+`/settings/security` groups profile and read-only verified email under Account,
+with password management, Google linking, and active sessions under Security.
+Each server-rendered private section authenticates beneath its own Suspense
+boundary; the public headings remain prerendered. Account deletion stays at the
+bottom in its danger zone.
+
+Profile changes save explicitly and preserve unsaved edits during session
+refresh. Password accounts require the current password, enforce the existing
+15–128-character policy, and revoke other sessions after a successful change.
+Google-only users receive a reset link to set a password; the last sign-in method
+cannot be unlinked. Session rows show browser/OS, the current device, sign-in time,
+and session refresh time (not precise last activity). Other sessions can be
+revoked individually or together; signing out everywhere clears the browser's
+workspace cache before navigating to sign-in. Email changes, avatars, passkeys,
+and two-factor setup are outside this first settings slice. No migration needed.

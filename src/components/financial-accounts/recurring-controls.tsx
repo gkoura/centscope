@@ -106,6 +106,7 @@ export function SyncRecurringButton({ accountId }: { accountId: string }) {
         <div className="flex flex-col items-start gap-2">
             <Button
                 variant="outline"
+                className="min-h-11"
                 disabled={pending}
                 onClick={() =>
                     start(async () => {

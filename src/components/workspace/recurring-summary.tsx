@@ -1,5 +1,11 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import Link from "next/link"
+import { SyncRecurringButton } from "@/components/financial-accounts/recurring-controls"
+import {
+    Card,
+    CardHeader,
+    CardTitle,
+    CardContent,
+    CardFooter,
+} from "@/components/ui/card"
 import {
     ArrowUpRight,
     ArrowDownLeft,
@@ -19,7 +25,6 @@ export function RecurringSummary({
     accountId: string
     rules: RecurringSummaryItem[]
 }) {
-    const href = `/dashboard/accounts/${accountId}/recurring`
     return (
         <Card
             role="region"
@@ -29,20 +34,13 @@ export function RecurringSummary({
             <CardHeader className="gap-0 px-0">
                 <CardTitle>
                     <h2 id="recurring-summary-heading">
-                        <Link
-                            href={href}
-                            className="flex min-h-14 items-center gap-3 px-5 py-4 text-base font-semibold tracking-tight hover:bg-muted focus-visible:outline-offset-[-3px]"
-                        >
+                        <span className="flex min-h-14 items-center gap-3 px-5 py-4">
                             <Repeat2
                                 className="size-4 shrink-0 text-primary"
                                 aria-hidden="true"
                             />
                             Recurring transactions
-                            <ArrowUpRight
-                                className="ml-auto size-4 shrink-0 text-muted-foreground"
-                                aria-hidden="true"
-                            />
-                        </Link>
+                        </span>
                     </h2>
                 </CardTitle>
             </CardHeader>
@@ -109,6 +107,9 @@ export function RecurringSummary({
                     </p>
                 )}
             </CardContent>
+            <CardFooter className="justify-end px-5 py-4">
+                <SyncRecurringButton accountId={accountId} />
+            </CardFooter>
         </Card>
     )
 }

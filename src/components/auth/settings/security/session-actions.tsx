@@ -8,6 +8,8 @@ import {
 import { LogOut } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { useQueryClient } from "@tanstack/react-query"
+import { clearWorkspaceCache } from "@/lib/workspace-cache-events"
 
 import {
   AlertDialog,
@@ -27,6 +29,7 @@ type PendingAction = "other" | "all"
 export function SessionActions(props: { hasOtherSessions: boolean }) {
   const { authClient, basePaths, localization, navigate, viewPaths } = useAuth()
   const [action, setAction] = useState<PendingAction | null>(null)
+  const queryClient = useQueryClient()
 
   const revokeOtherSessions = useRevokeOtherSessions(authClient, {
     onSuccess: () => {
@@ -35,11 +38,15 @@ export function SessionActions(props: { hasOtherSessions: boolean }) {
     }
   })
   const revokeSessions = useRevokeSessions(authClient, {
-    onSuccess: () =>
+    onSuccess: async () => {
+      await clearWorkspaceCache()
+      await queryClient.cancelQueries()
+      queryClient.clear()
       navigate({
         to: `${basePaths.auth}/${viewPaths.auth.signIn}`,
         replace: true
       })
+    }
   })
 
   const isPending = revokeOtherSessions.isPending || revokeSessions.isPending

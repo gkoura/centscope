@@ -3,7 +3,6 @@ import {
     Settings2,
     Plus,
     Tags,
-    Repeat2,
     ChartNoAxesCombined,
     Layers,
 } from "lucide-react"
@@ -42,11 +41,6 @@ export function AccountTools({ accountId }: { accountId: string }) {
                             href: `${base}/categories`,
                             label: "Categories",
                             icon: Tags,
-                        },
-                        {
-                            href: `${base}/recurring`,
-                            label: "Recurring transactions",
-                            icon: Repeat2,
                         },
                         {
                             href: `${base}/analytics`,

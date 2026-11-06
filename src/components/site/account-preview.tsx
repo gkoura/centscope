@@ -147,7 +147,7 @@ export function AccountPreview() {
                 </div>
                 <div className={styles.categories}>
                     <p className="mb-3 text-xs font-semibold">
-                        Where your money went
+                        Categories Overview
                     </p>
                     {[
                         { name: "Housing", amount: "850 €", width: "34.3%" },

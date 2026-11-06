@@ -3,12 +3,13 @@ import { Suspense } from "react"
 import { WorkspaceBrand } from "@/components/workspace/workspace-brand"
 import { WorkspaceCacheStatus } from "@/components/workspace/workspace-cache-status"
 import { WorkspaceSessionGuard } from "@/components/workspace/workspace-session-guard"
-import { ThemeToggle } from "./theme-toggle"
-import { SignOutButton } from "@/components/auth/sign-out-button"
+import { WorkspaceHeader } from "./workspace-header"
 import {
     MobileWorkspaceNavigation,
     WorkspaceNavigation,
     WorkspaceNavigationFallback,
+    SidebarSettingsLink,
+    SidebarSettingsNavigation,
 } from "./workspace-navigation"
 export function AppShell({ children }: { children: React.ReactNode }) {
     return (
@@ -30,23 +31,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </Suspense>
                 </nav>
                 <div className="mt-auto flex flex-col gap-4 pt-10">
+                    <nav aria-label="Account settings">
+                        <Suspense fallback={<SidebarSettingsLink />}>
+                            <SidebarSettingsNavigation />
+                        </Suspense>
+                    </nav>
                     <p className="text-xs leading-6 text-muted-foreground">
                         Make sense of every cent.
                     </p>
                 </div>
             </aside>
             <div className="min-w-0 flex-1">
-                <header className="app-topbar">
-                    <WorkspaceBrand compact />
-                    <div
-                        role="group"
-                        aria-label="Appearance and session"
-                        className="ml-auto flex shrink-0 items-center gap-2 border-l pl-4"
-                    >
-                        <ThemeToggle />
-                        <SignOutButton />
-                    </div>
-                </header>
+                <Suspense fallback={null}>
+                    <WorkspaceHeader />
+                </Suspense>
                 <div id="main-content" tabIndex={-1} className="app-content">
                     <WorkspaceCacheStatus />
                     {children}

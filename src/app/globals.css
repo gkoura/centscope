@@ -535,6 +535,7 @@ a:focus-visible {
 }
 .account-area {
     min-width: 0;
+    min-height: calc(100dvh - 60px);
 }
 .account-toolbar {
     position: sticky;
@@ -562,12 +563,6 @@ a:focus-visible {
     max-width: 1000px;
     margin-inline: auto;
     padding: 28px 32px 40px;
-}
-.app-content:has(.account-area) {
-    min-height: calc(100dvh - 60px);
-}
-.app-shell:has(.account-area) .app-topbar {
-    display: none;
 }
 .balance-hero {
     padding: 26px;
@@ -733,6 +728,9 @@ a {
         padding: 12px 16px;
         padding-top: max(12px, env(safe-area-inset-top));
     }
+    .account-area {
+        min-height: 0;
+    }
     .app-content {
         min-height: calc(100dvh - 64px);
         padding-bottom: calc(80px + env(safe-area-inset-bottom));
@@ -745,7 +743,7 @@ a {
         z-index: 30;
         inset: auto 0 0;
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
         padding: 6px max(8px, env(safe-area-inset-right))
             calc(6px + env(safe-area-inset-bottom))
             max(8px, env(safe-area-inset-left));

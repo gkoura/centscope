@@ -4,9 +4,9 @@ import { usePathname, useSearchParams } from "next/navigation"
 import {
     LayoutDashboard,
     Layers,
-    ShieldCheck,
     ArrowLeftRight,
     ChartNoAxesCombined,
+    Settings2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { accountViewSearch } from "@/lib/account-period"
@@ -51,12 +51,6 @@ function useDestinations() {
                 active:
                     pathname === "/dashboard/accounts" ||
                     pathname === "/dashboard/accounts/new",
-            },
-            {
-                href: "/settings/security",
-                label: "Settings",
-                icon: ShieldCheck,
-                active: pathname.startsWith("/settings"),
             },
         ],
     }
@@ -111,4 +105,25 @@ export function MobileWorkspaceNavigation() {
             ))}
         </nav>
     )
+}
+
+export function SidebarSettingsLink({ active = false }: { active?: boolean }) {
+    return (
+        <Link
+            href="/settings/security"
+            aria-current={active ? "page" : undefined}
+            className={cn(
+                "flex min-h-11 items-center gap-3 rounded-xl px-3 py-3 text-sm text-muted-foreground hover:bg-accent hover:text-foreground",
+                active && "bg-accent font-medium text-primary"
+            )}
+        >
+            <Settings2 className="size-4" aria-hidden="true" />
+            Settings
+        </Link>
+    )
+}
+
+export function SidebarSettingsNavigation() {
+    const pathname = usePathname()
+    return <SidebarSettingsLink active={pathname.startsWith("/settings")} />
 }

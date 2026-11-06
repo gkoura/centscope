@@ -7,6 +7,7 @@ import {
 import { useRequestPasswordResetOtp } from "@better-auth-ui/react/plugins/email-otp"
 
 import {
+  authQueryKeys,
   getAuthLinkURL,
   getViewURL,
   isPasswordCompromisedError,
@@ -23,6 +24,7 @@ import {
 } from "@better-auth-ui/react"
 import { Eye, EyeOff } from "lucide-react"
 import { useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
@@ -37,7 +39,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "cn"
-import { isAuthFormFieldInvalid, useAuthForm } from "../../auth-form"
+import { isAuthFormFieldInvalid, setAuthFormServerError, useAuthForm } from "../../auth-form"
 import { OpenEmailButton } from "../../open-email-button"
 import { PasswordStrengthMeter } from "../../password-strength-meter"
 
@@ -57,12 +59,16 @@ export type ChangePasswordProps = {
 export function ChangePassword({ className }: ChangePasswordProps) {
   const { authClient, emailAndPassword, localization } = useAuth()
   const { data: session } = useSession(authClient)
-  const { data: accounts, isPending: isAccountsPending } =
+  const { data: accounts, isPending: isAccountsPending, error: accountsError } =
     useListAccounts(authClient)
 
   const hasCredentialAccount = accounts?.some(
     (account) => account.providerId === "credential"
   )
+
+  if (accountsError) {
+    return <p role="alert" className="text-sm text-destructive">Unable to load your sign-in methods. Refresh the page to try again.</p>
+  }
 
   if (!isAccountsPending && !hasCredentialAccount) {
     return <SetPassword className={className} />
@@ -148,7 +154,7 @@ function SetPassword({ className }: { className?: string }) {
   return (
     <div>
       <h2 className="text-sm font-semibold mb-3">
-        {localization.settings.changePassword}
+        {localization.settings.setPassword}
       </h2>
 
       <Card className={cn(className)}>
@@ -209,16 +215,20 @@ function ChangePasswordForm({
   session: ReturnType<typeof useSession>["data"]
 }) {
   const { authClient } = useAuth<EmailOtpAuthClient>()
+  const queryClient = useQueryClient()
   const { mutateAsync: changePassword, isPending } = useChangePassword(
     authClient,
     {
+      meta: { errorPresentation: "inline" },
       onError: (error) => {
+        setAuthFormServerError(form, error.error ?? error, "Unable to change your password. Try again.")
         // The haveIBeenPwned plugin rejects on the password itself, so it
         // belongs against the field rather than in a toast.
         setIsCompromised(isPasswordCompromisedError(error))
       },
-      onSuccess: () => {
+      onSuccess: async () => {
         form.reset()
+        await queryClient.invalidateQueries({ queryKey: authQueryKeys.listSessions(session?.user.id) })
         toast.success(localization.settings.changePasswordSuccess)
       }
     }
@@ -239,15 +249,11 @@ function ChangePasswordForm({
       newPassword: ""
     },
     onSubmit: async ({ value }) => {
-      try {
-        await changePassword({
-          currentPassword: value.currentPassword,
-          newPassword: value.newPassword,
-          revokeOtherSessions: true
-        })
-      } catch {
-        // The mutation reports the error through its configured handler.
-      }
+      await changePassword({
+        currentPassword: value.currentPassword,
+        newPassword: value.newPassword,
+        revokeOtherSessions: true
+      })
     }
   })
 
@@ -261,6 +267,10 @@ function ChangePasswordForm({
         <form.AuthFormRoot>
           <Card className={cn(className)}>
             <CardContent className="flex flex-col gap-6">
+              <form.AuthFormServerError />
+              <p className="text-sm text-muted-foreground">
+                Changing your password signs out other devices. You’ll stay signed in on this device.
+              </p>
               <form.AppField
                 name="currentPassword"
                 validators={{

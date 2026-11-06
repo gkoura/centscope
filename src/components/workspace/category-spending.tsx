@@ -28,7 +28,7 @@ export function CategorySpending({
                     id="category-spending-heading"
                     className="text-base font-semibold tracking-tight"
                 >
-                    Where your money went
+                    Categories Overview
                 </h2>
                 <Button
                     variant={percentage ? "default" : "outline"}

@@ -3,7 +3,7 @@
 import { useAuth, useRevokeSession, useSession } from "@better-auth-ui/react"
 import type { Session } from "better-auth"
 import Bowser from "bowser"
-import { LogOut, Monitor, Smartphone, X } from "lucide-react"
+import { Monitor, Smartphone, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -17,6 +17,7 @@ import {
   ItemTitle
 } from "@/components/ui/item"
 import { Spinner } from "@/components/ui/spinner"
+import { SignOutButton } from "@/components/auth/sign-out-button"
 
 function timeAgo(date: Date) {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
@@ -55,7 +56,7 @@ export type ActiveSessionProps = {
  * @returns A JSX element containing the active session row
  */
 export function ActiveSession({ activeSession }: ActiveSessionProps) {
-  const { authClient, basePaths, localization, viewPaths, navigate } = useAuth()
+  const { authClient, localization } = useAuth()
   const { data: session } = useSession(authClient, { refetchOnMount: false })
 
   const { mutate: revokeSession, isPending: isRevoking } = useRevokeSession(
@@ -65,7 +66,7 @@ export function ActiveSession({ activeSession }: ActiveSessionProps) {
     }
   )
 
-  const isCurrentSession = activeSession.token === session?.session.token
+  const isCurrentSession = activeSession.id === session?.session.id
   const ua = activeSession.userAgent
     ? Bowser.parse(activeSession.userAgent)
     : undefined
@@ -86,38 +87,28 @@ export function ActiveSession({ activeSession }: ActiveSessionProps) {
           <Badge variant="secondary">
             {localization.settings.currentSession}
           </Badge>
-        ) : (
-          activeSession.createdAt && (
-            <ItemDescription className="capitalize">
-              {timeAgo(activeSession.createdAt)}
-            </ItemDescription>
-          )
-        )}
+        ) : null}
+        <ItemDescription>
+          Signed in {timeAgo(new Date(activeSession.createdAt))}
+        </ItemDescription>
+        <ItemDescription>
+          Session refreshed {timeAgo(new Date(activeSession.updatedAt))}
+        </ItemDescription>
       </ItemContent>
       <ItemActions>
-        <Button
+        {isCurrentSession ? <SignOutButton /> : <Button
           variant="outline"
           size="sm"
-          onClick={() =>
-            isCurrentSession
-              ? navigate({
-                  to: `${basePaths.auth}/${viewPaths.auth.signOut}`
-                })
-              : revokeSession(activeSession)
-          }
+          onClick={() => revokeSession(activeSession)}
           disabled={isRevoking}
           aria-label={
-            isCurrentSession
-              ? localization.auth.signOut
-              : localization.settings.revokeSession
+            `Sign out ${ua?.browser.name || "unknown browser"}${ua?.os.name ? ` on ${ua.os.name}` : ""}`
           }
         >
-          {isRevoking ? <Spinner /> : isCurrentSession ? <LogOut /> : <X />}
+          {isRevoking ? <Spinner /> : <X />}
 
-          {isCurrentSession
-            ? localization.auth.signOut
-            : localization.settings.revoke}
-        </Button>
+          {localization.settings.revoke}
+        </Button>}
       </ItemActions>
     </Item>
   )

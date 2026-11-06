@@ -12,7 +12,6 @@ import {
     Plus,
     ArrowLeftRight,
     Upload,
-    Repeat2,
 } from "lucide-react"
 import { periodQuery, type AccountPeriod } from "@/lib/account-period"
 import type { TransactionFilters } from "@/lib/transaction-filters"
@@ -301,11 +300,6 @@ export function TransactionControls({
                                     href: `${base}/import`,
                                     name: "Import CSV",
                                     icon: Upload,
-                                },
-                                {
-                                    href: `/dashboard/accounts/${accountId}/recurring`,
-                                    name: "Recurring transactions",
-                                    icon: Repeat2,
                                 },
                             ].map(({ href, name, icon: Icon }) => (
                                 <DropdownMenuItem

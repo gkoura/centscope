@@ -9,7 +9,7 @@ import {
     SelectGroup,
     SelectItem,
 } from "@/components/ui/select"
-import { SignOutButton } from "@/components/auth/sign-out-button"
+import { UserMenu } from "@/components/site/user-menu"
 import { ThemeToggle } from "@/components/site/theme-toggle"
 export function AccountNavigation({
     accountId,
@@ -81,8 +81,7 @@ export function AccountNavigation({
                     className="ml-auto flex shrink-0 items-center gap-1 border-l pl-3 md:pl-5"
                 >
                     <ThemeToggle />
-
-                    <SignOutButton compact />
+                    <UserMenu />
                 </div>
             </div>
         </header>
