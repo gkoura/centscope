@@ -3,7 +3,6 @@
 import { useActionState, useState } from "react"
 import { createWallet } from "@/app/dashboard/accounts/[id]/wallets/actions"
 import {
-    openingStatuses,
     walletCurrencies,
     walletTypes,
     type WalletFormState,
@@ -25,6 +24,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import { StatusSwitch } from "./status-switch"
 import { DatePicker } from "@/components/ui/date-picker"
 import { Spinner } from "@/components/ui/spinner"
 
@@ -213,12 +213,11 @@ export function CreateWalletForm({
                         </FieldError>
                     ) : null}
                 </Field>
-                <WalletSelectField
+                <StatusSwitch
                     name="openingStatus"
                     label="Opening balance status"
                     value={values.openingStatus}
-                    options={openingStatuses}
-                    onChange={(value) => update("openingStatus", value)}
+                    onValueChange={(value) => update("openingStatus", value)}
                     error={state.errors?.openingStatus}
                     description="Posted counts toward your balance immediately. Pending does not. The date does not change the status. A zero opening balance creates no transaction."
                 />

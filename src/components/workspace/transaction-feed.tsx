@@ -7,6 +7,7 @@ import {
     ArrowLeftRight,
     Wallet,
     Repeat2,
+    CalendarRange,
     ChevronRight,
 } from "lucide-react"
 import type { listOwnedAccountTransactions } from "@/lib/transactions"
@@ -83,17 +84,41 @@ export function TransactionFeed({
                                 return (
                                     <li
                                         key={transaction.id}
-                                        className="border-b last:border-b-0"
+                                        className="transaction-entry relative border-b last:border-b-0"
                                     >
                                         <button
                                             type="button"
-                                            className="transaction-row"
+                                            className="transaction-open-button absolute inset-0 size-full"
                                             onClick={() =>
                                                 setSelectedId(transaction.id)
                                             }
                                             aria-label={`View ${transaction.name}, ${transaction.status.toLowerCase()}, ${formatWalletMoney(transaction.amount, transaction.currency)}`}
-                                        >
-                                            <span className="transaction-icon">
+                                            aria-describedby={
+                                                [
+                                                    transaction.occurrence
+                                                        ? `recurring-${transaction.id}`
+                                                        : "",
+                                                    transaction.expenseSpread
+                                                        ? `spread-${transaction.id}`
+                                                        : "",
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(" ") || undefined
+                                            }
+                                        />
+                                        <div className="transaction-row pointer-events-none relative">
+                                            <span
+                                                className="transaction-icon"
+                                                data-flow={
+                                                    transaction.type ===
+                                                    "INCOME"
+                                                        ? "income"
+                                                        : transaction.type ===
+                                                            "EXPENSE"
+                                                          ? "expense"
+                                                          : undefined
+                                                }
+                                            >
                                                 <Icon
                                                     className="size-4"
                                                     aria-hidden="true"
@@ -113,33 +138,113 @@ export function TransactionFeed({
                                                 </span>
                                             </span>
                                             <span className="max-w-[45%] min-w-0 shrink-0 text-right">
-                                                <span className="block text-sm font-semibold wrap-break-word tabular-nums">
+                                                <span
+                                                    data-flow={
+                                                        transaction.type ===
+                                                        "INCOME"
+                                                            ? "income"
+                                                            : transaction.type ===
+                                                                "EXPENSE"
+                                                              ? "expense"
+                                                              : undefined
+                                                    }
+                                                    className="block text-sm font-semibold wrap-break-word tabular-nums"
+                                                >
                                                     {transaction.transfer
                                                         ?.direction ===
                                                     "INTERNAL"
                                                         ? "Between wallets"
                                                         : `${transaction.type === "INCOME" ? "+" : ""}${formatWalletMoney(transaction.amount, transaction.currency)}`}
                                                 </span>
-                                                <span className="mt-1 flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
-                                                    {transaction.occurrence && (
-                                                        <Repeat2
-                                                            className="size-3"
-                                                            aria-label="Recurring"
-                                                        />
-                                                    )}
-                                                    {transaction.status ===
-                                                    "PENDING"
-                                                        ? "Pending"
-                                                        : transaction.expenseSpread
-                                                          ? `Spread · ${transaction.expenseSpread.monthCount} months`
-                                                          : "Posted"}
-                                                </span>
                                             </span>
                                             <ChevronRight
                                                 className="size-3 shrink-0 text-muted-foreground"
                                                 aria-hidden="true"
                                             />
-                                        </button>
+                                        </div>
+                                        <div className="pointer-events-none relative flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 pb-2 sm:px-4">
+                                            <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                                {transaction.occurrence && (
+                                                    <Badge
+                                                        id={`recurring-${transaction.id}`}
+                                                        variant="secondary"
+                                                        title="Part of a repeating transaction"
+                                                    >
+                                                        <Repeat2
+                                                            data-icon="inline-start"
+                                                            aria-hidden="true"
+                                                        />
+                                                        Recurring
+                                                    </Badge>
+                                                )}
+                                                {transaction.expenseSpread && (
+                                                    <Badge
+                                                        id={`spread-${transaction.id}`}
+                                                        variant="secondary"
+                                                        title={`Expense allocated across ${transaction.expenseSpread.monthCount} months`}
+                                                    >
+                                                        <CalendarRange
+                                                            data-icon="inline-start"
+                                                            aria-hidden="true"
+                                                        />
+                                                        Spread ·{" "}
+                                                        {
+                                                            transaction
+                                                                .expenseSpread
+                                                                .monthCount
+                                                        }{" "}
+                                                        mo
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            <div className="pointer-events-auto relative ml-auto max-w-full">
+                                                {transaction.canChangeStatus ? (
+                                                    transaction.transfer ? (
+                                                        <TransferStatusForm
+                                                            compact
+                                                            financialAccountId={
+                                                                accountId
+                                                            }
+                                                            transaction={{
+                                                                ...transaction,
+                                                                transfer:
+                                                                    transaction.transfer,
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <TransactionStatusForm
+                                                            compact
+                                                            financialAccountId={
+                                                                accountId
+                                                            }
+                                                            transactionId={
+                                                                transaction.id
+                                                            }
+                                                            name={
+                                                                transaction.name
+                                                            }
+                                                            status={
+                                                                transaction.status
+                                                            }
+                                                            version={
+                                                                transaction.version
+                                                            }
+                                                        />
+                                                    )
+                                                ) : (
+                                                    <span
+                                                        className="inline-flex min-h-11 items-center text-xs text-muted-foreground"
+                                                        title="This entry is read-only"
+                                                    >
+                                                        {transaction.status ===
+                                                        "POSTED"
+                                                            ? "Posted"
+                                                            : "Pending"}{" "}
+                                                        · Read-only
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
                                     </li>
                                 )
                             })}
@@ -165,24 +270,51 @@ export function TransactionFeed({
                                     {selected.walletName}
                                 </DialogDescription>
                             </DialogHeader>
-                            <p className="text-3xl font-semibold tracking-tight wrap-break-word tabular-nums">
+                            <p
+                                data-flow={
+                                    selected.type === "INCOME"
+                                        ? "income"
+                                        : selected.type === "EXPENSE"
+                                          ? "expense"
+                                          : undefined
+                                }
+                                className="text-3xl font-semibold tracking-tight wrap-break-word tabular-nums"
+                            >
+                                {selected.type === "INCOME" ? "+" : ""}
                                 {formatWalletMoney(
                                     selected.amount,
                                     selected.currency
                                 )}
                             </p>
                             <div className="flex flex-wrap gap-2">
-                                <Badge
-                                    variant={
-                                        selected.status === "POSTED"
-                                            ? "secondary"
-                                            : "outline"
-                                    }
-                                >
-                                    {selected.status === "POSTED"
-                                        ? "Posted"
-                                        : "Pending"}
-                                </Badge>
+                                {(selected.type === "INCOME" ||
+                                    selected.type === "EXPENSE") && (
+                                    <Badge
+                                        variant="outline"
+                                        data-flow={
+                                            selected.type === "INCOME"
+                                                ? "income"
+                                                : "expense"
+                                        }
+                                    >
+                                        {selected.type === "INCOME"
+                                            ? "Income"
+                                            : "Expense"}
+                                    </Badge>
+                                )}
+                                {!selected.canChangeStatus && (
+                                    <Badge
+                                        variant={
+                                            selected.status === "POSTED"
+                                                ? "secondary"
+                                                : "outline"
+                                        }
+                                    >
+                                        {selected.status === "POSTED"
+                                            ? "Posted"
+                                            : "Pending"}
+                                    </Badge>
+                                )}
                                 {selected.occurrence && (
                                     <Badge variant="outline">Recurring</Badge>
                                 )}

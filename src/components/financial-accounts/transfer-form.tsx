@@ -14,6 +14,7 @@ import {
     FieldError,
     FieldGroup,
 } from "@/components/ui/field"
+import { StatusSwitch } from "./status-switch"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -250,26 +251,13 @@ export function TransferForm({
                             />
                         )}
                     </Field>
-                    <Field>
-                        <FieldLabel htmlFor="transfer-status">
-                            Status
-                        </FieldLabel>
-                        <select
-                            id="transfer-status"
-                            name="status"
-                            className={selectClass}
-                            value={values.status}
-                            onChange={(e) => update("status", e.target.value)}
-                        >
-                            <option value="POSTED">Posted</option>
-                            <option value="PENDING">Pending</option>
-                        </select>
-                        <FieldDescription>
-                            Posted affects both wallets now. Pending affects
-                            neither balance. Dates never change status
-                            automatically.
-                        </FieldDescription>
-                    </Field>
+                    <StatusSwitch
+                        name="status"
+                        value={values.status}
+                        onValueChange={(value) => update("status", value)}
+                        error={state.errors?.status}
+                        description="Posted affects both wallets now. Pending affects neither balance. Dates never change status automatically."
+                    />
                     <Field>
                         <FieldLabel htmlFor="transfer-notes">
                             Notes (optional)

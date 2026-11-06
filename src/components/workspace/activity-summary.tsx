@@ -55,12 +55,32 @@ export function ActivitySummary({
                             <div key={label} className="activity-stat">
                                 <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                                     <Icon
+                                        data-flow={
+                                            label === "Income"
+                                                ? "income"
+                                                : label === "Expenses"
+                                                  ? "expense"
+                                                  : undefined
+                                        }
                                         className="size-3.5"
                                         aria-hidden="true"
                                     />
                                     {label}
                                 </span>
-                                <p className="mt-2 text-sm font-semibold wrap-break-word tabular-nums sm:text-lg">
+                                <p
+                                    data-flow={
+                                        label === "Income"
+                                            ? "income"
+                                            : label === "Expenses"
+                                              ? "expense"
+                                              : amount.startsWith("-")
+                                                ? "expense"
+                                                : amount === "0.00"
+                                                  ? undefined
+                                                  : "income"
+                                    }
+                                    className="mt-2 text-sm font-semibold wrap-break-word tabular-nums sm:text-lg"
+                                >
                                     {formatWalletMoney(amount, total.currency)}
                                 </p>
                             </div>
@@ -104,16 +124,21 @@ export function ActivitySummary({
                                     {wallet.name}
                                 </span>
                                 <span className="text-muted-foreground">
-                                    In{" "}
-                                    {formatWalletMoney(
-                                        wallet.income,
-                                        wallet.currency
-                                    )}
-                                    · Out{" "}
-                                    {formatWalletMoney(
-                                        wallet.expenses,
-                                        wallet.currency
-                                    )}
+                                    <span data-flow="income">
+                                        In{" "}
+                                        {formatWalletMoney(
+                                            wallet.income,
+                                            wallet.currency
+                                        )}
+                                    </span>
+                                    {" · "}
+                                    <span data-flow="expense">
+                                        Out{" "}
+                                        {formatWalletMoney(
+                                            wallet.expenses,
+                                            wallet.currency
+                                        )}
+                                    </span>
                                 </span>
                             </li>
                         ))}

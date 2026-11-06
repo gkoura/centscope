@@ -146,7 +146,10 @@ export function CachedMonthlyAnalysis({
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-2xl font-semibold tabular-nums">
+                        <p
+                            data-flow="expense"
+                            className="text-2xl font-semibold tabular-nums"
+                        >
                             {money(current.total)}
                         </p>
                         <p className="mt-2 text-sm text-muted-foreground">
@@ -161,7 +164,10 @@ export function CachedMonthlyAnalysis({
                         <CardTitle>Planned costs</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-2xl font-semibold tabular-nums">
+                        <p
+                            data-flow="expense"
+                            className="text-2xl font-semibold tabular-nums"
+                        >
                             {money(current.planned)}
                         </p>
                         <p className="mt-2 text-sm text-muted-foreground">

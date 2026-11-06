@@ -1,13 +1,12 @@
 "use client"
-import { useActionState, useState } from "react"
+import { useActionState, useState, useRef } from "react"
 import { setTransferStatus } from "@/app/dashboard/accounts/[id]/transactions/transfer-actions"
 import type { TransferFormState } from "@/lib/transfer-input"
-import { Button } from "@/components/ui/button"
+import { StatusSwitch } from "./status-switch"
 import { Input } from "@/components/ui/input"
 import { Field, FieldLabel, FieldError } from "@/components/ui/field"
 import {
     AlertDialog,
-    AlertDialogTrigger,
     AlertDialogContent,
     AlertDialogHeader,
     AlertDialogTitle,
@@ -18,9 +17,11 @@ import {
 } from "@/components/ui/alert-dialog"
 type Endpoint = { amount: string; currency: string; walletName: string }
 export function TransferStatusForm({
+    compact = false,
     financialAccountId,
     transaction,
 }: {
+    compact?: boolean
     financialAccountId: string
     transaction: {
         id: string
@@ -30,15 +31,26 @@ export function TransferStatusForm({
         transfer: { source: Endpoint; destination: Endpoint }
     }
 }) {
+    const [requested, setRequested] = useState<{
+        version: number
+        status: "POSTED" | "PENDING"
+    } | null>(null)
     const [state, action, pending] = useActionState(
-            setTransferStatus,
+            async (previous: TransferFormState, form: FormData) => {
+                const result = await setTransferStatus(previous, form)
+                if (result.message || result.errors) setRequested(null)
+                return result
+            },
             {} as TransferFormState
         ),
         [open, setOpen] = useState(false)
+    const formRef = useRef<HTMLFormElement>(null)
+    const switchRef = useRef<HTMLButtonElement>(null)
     const { source, destination } = transaction.transfer,
         target = transaction.status === "POSTED" ? "PENDING" : "POSTED",
         confirm =
             target === "POSTED" && source.currency !== destination.currency
+    const awaitingRefresh = requested?.version === transaction.version
     const hidden = (
         <>
             <input
@@ -57,20 +69,29 @@ export function TransferStatusForm({
     )
     if (!confirm)
         return (
-            <form action={action} className="flex flex-col items-start gap-2">
+            <form
+                ref={formRef}
+                action={action}
+                className="flex flex-col items-start gap-2"
+            >
                 {hidden}
-                <Button
-                    size="sm"
-                    variant="outline"
-                    type="submit"
-                    disabled={pending}
-                    aria-label={`Mark ${transaction.name} as ${target.toLowerCase()}`}
-                >
-                    {pending ? "Saving…" : `Mark ${target.toLowerCase()}`}
-                </Button>
-                {state.message && (
-                    <FieldError role="alert">{state.message}</FieldError>
-                )}
+                <StatusSwitch
+                    compact={compact}
+                    value={
+                        awaitingRefresh ? requested.status : transaction.status
+                    }
+                    onValueChange={(next) => {
+                        setRequested({
+                            version: transaction.version,
+                            status: next,
+                        })
+                        formRef.current?.requestSubmit()
+                    }}
+                    saving={pending || awaitingRefresh}
+                    error={state.message}
+                    accessibleLabel={`Posted status for ${transaction.name}`}
+                    description="Posted updates both wallet balances. Pending does not."
+                />
             </form>
         )
     return (
@@ -81,68 +102,92 @@ export function TransferStatusForm({
                 else setOpen(value)
             }}
         >
-            <AlertDialogTrigger render={<Button size="sm" variant="outline" />}>
-                Confirm and post
-            </AlertDialogTrigger>
-            <AlertDialogContent className="max-h-[85svh] overflow-y-auto">
-                <form action={action} className="flex flex-col gap-4">
-                    {hidden}
-                    <input type="hidden" name="confirmed" value="yes" />
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>
-                            Confirm actual transfer amounts
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Posting updates both wallets together. Confirm what
-                            left {source.walletName} and what arrived in{" "}
-                            {destination.walletName}. This changes only this
-                            occurrence.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <fieldset
-                        disabled={pending}
+            <StatusSwitch
+                compact={compact}
+                value={transaction.status}
+                onValueChange={() => setOpen(true)}
+                controlRef={switchRef}
+                disabled={pending}
+                accessibleLabel={`Posted status for ${transaction.name}`}
+                description="Confirm the actual amounts before posting this currency transfer."
+            />
+            {open && (
+                <AlertDialogContent
+                    finalFocus={switchRef}
+                    className="max-h-[85svh] overflow-y-auto"
+                >
+                    <form
+                        action={action}
+                        onSubmit={() =>
+                            setRequested({
+                                version: transaction.version,
+                                status: target,
+                            })
+                        }
                         className="flex flex-col gap-4"
                     >
-                        <Field>
-                            <FieldLabel htmlFor={`post-sent-${transaction.id}`}>
-                                Amount sent ({source.currency})
-                            </FieldLabel>
-                            <Input
-                                id={`post-sent-${transaction.id}`}
-                                name="amount"
-                                inputMode="decimal"
-                                defaultValue={source.amount}
-                                required
-                            />
-                        </Field>
-                        <Field>
-                            <FieldLabel
-                                htmlFor={`post-received-${transaction.id}`}
-                            >
-                                Amount received ({destination.currency})
-                            </FieldLabel>
-                            <Input
-                                id={`post-received-${transaction.id}`}
-                                name="destinationAmount"
-                                inputMode="decimal"
-                                defaultValue={destination.amount}
-                                required
-                            />
-                        </Field>
-                    </fieldset>
-                    {state.message && (
-                        <FieldError role="alert">{state.message}</FieldError>
-                    )}
-                    <AlertDialogFooter>
-                        <AlertDialogCancel type="button" disabled={pending}>
-                            Cancel
-                        </AlertDialogCancel>
-                        <AlertDialogAction type="submit" disabled={pending}>
-                            {pending ? "Posting…" : "Confirm and post"}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </form>
-            </AlertDialogContent>
+                        {hidden}
+                        <input type="hidden" name="confirmed" value="yes" />
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>
+                                Confirm actual transfer amounts
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Posting updates both wallets together. Confirm
+                                what left {source.walletName} and what arrived
+                                in {destination.walletName}. This changes only
+                                this occurrence.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <fieldset
+                            disabled={pending}
+                            className="flex flex-col gap-4"
+                        >
+                            <Field>
+                                <FieldLabel
+                                    htmlFor={`post-sent-${transaction.id}`}
+                                >
+                                    Amount sent ({source.currency})
+                                </FieldLabel>
+                                <Input
+                                    id={`post-sent-${transaction.id}`}
+                                    name="amount"
+                                    inputMode="decimal"
+                                    defaultValue={source.amount}
+                                    required
+                                />
+                            </Field>
+                            <Field>
+                                <FieldLabel
+                                    htmlFor={`post-received-${transaction.id}`}
+                                >
+                                    Amount received ({destination.currency})
+                                </FieldLabel>
+                                <Input
+                                    id={`post-received-${transaction.id}`}
+                                    name="destinationAmount"
+                                    inputMode="decimal"
+                                    defaultValue={destination.amount}
+                                    required
+                                />
+                            </Field>
+                        </fieldset>
+                        {state.message && (
+                            <FieldError role="alert">
+                                {state.message}
+                            </FieldError>
+                        )}
+                        <AlertDialogFooter>
+                            <AlertDialogCancel type="button" disabled={pending}>
+                                Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction type="submit" disabled={pending}>
+                                {pending ? "Posting…" : "Confirm and post"}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </form>
+                </AlertDialogContent>
+            )}
         </AlertDialog>
     )
 }

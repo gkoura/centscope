@@ -25,7 +25,7 @@ import {
     ComboboxLabel,
 } from "@/components/ui/combobox"
 import type { TransactionSuggestion } from "@/lib/transaction-input"
-import { openingStatuses } from "@/lib/wallet-input"
+import { StatusSwitch } from "./status-switch"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -76,6 +76,13 @@ function TransactionSelect({
             >
                 <SelectTrigger
                     id={id}
+                    data-flow={
+                        name === "type"
+                            ? value === "INCOME"
+                                ? "income"
+                                : "expense"
+                            : undefined
+                    }
                     className="w-full"
                     aria-invalid={Boolean(error)}
                     aria-describedby={
@@ -92,7 +99,17 @@ function TransactionSelect({
                 <SelectContent>
                     <SelectGroup>
                         {options.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
+                            <SelectItem
+                                key={option.value}
+                                value={option.value}
+                                data-flow={
+                                    name === "type"
+                                        ? option.value === "INCOME"
+                                            ? "income"
+                                            : "expense"
+                                        : undefined
+                                }
+                            >
                                 {option.label}
                             </SelectItem>
                         ))}
@@ -473,12 +490,10 @@ export function CreateTransactionForm({
                             </FieldError>
                         ) : null}
                     </Field>
-                    <TransactionSelect
+                    <StatusSwitch
                         name="status"
-                        label="Status"
                         value={values.status}
-                        options={openingStatuses}
-                        onChange={(value) => update("status", value)}
+                        onValueChange={(value) => update("status", value)}
                         error={state.errors?.status}
                         description="Posted affects your balance now. Pending does not. The date never changes the status automatically."
                     />

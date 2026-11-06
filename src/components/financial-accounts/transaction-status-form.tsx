@@ -1,34 +1,46 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useRef, useState } from "react"
 import { changeTransactionStatus } from "@/app/dashboard/accounts/[id]/transactions/actions"
 import type { TransactionFormState } from "@/lib/transaction-input"
-import { Button } from "@/components/ui/button"
-import { FieldError } from "@/components/ui/field"
+import { StatusSwitch } from "./status-switch"
 
 const initialState: TransactionFormState = {}
 export function TransactionStatusForm({
+    compact = false,
     financialAccountId,
     transactionId,
     name,
     status,
     version,
 }: {
+    compact?: boolean
     financialAccountId: string
     transactionId: string
     name: string
     status: "POSTED" | "PENDING"
     version: number
 }) {
+    const [requested, setRequested] = useState<{
+        version: number
+        status: "POSTED" | "PENDING"
+    } | null>(null)
     const [state, action, pending] = useActionState(
-        changeTransactionStatus,
+        async (previous: TransactionFormState, form: FormData) => {
+            const result = await changeTransactionStatus(previous, form)
+            if (result.message || result.errors) setRequested(null)
+            return result
+        },
         initialState
     )
+    const formRef = useRef<HTMLFormElement>(null)
     const target = status === "POSTED" ? "PENDING" : "POSTED"
+    const awaitingRefresh = requested?.version === version
     return (
         <form
+            ref={formRef}
             action={action}
-            className="flex max-w-56 flex-col items-start gap-2"
+            className="flex max-w-full flex-col items-start gap-2"
         >
             <input
                 type="hidden"
@@ -38,20 +50,19 @@ export function TransactionStatusForm({
             <input type="hidden" name="transactionId" value={transactionId} />
             <input type="hidden" name="expectedVersion" value={version} />
             <input type="hidden" name="status" value={target} />
-            <Button
-                type="submit"
-                variant="outline"
-                size="sm"
-                disabled={pending}
-                aria-label={`Mark ${name} as ${target.toLowerCase()}`}
-            >
-                {pending ? "Saving…" : `Mark ${target.toLowerCase()}`}
-            </Button>
-            {state.message ? (
-                <FieldError role="alert" className="whitespace-normal">
-                    {state.message}
-                </FieldError>
-            ) : null}
+            <StatusSwitch
+                compact={compact}
+                value={awaitingRefresh ? requested.status : status}
+                onValueChange={(next) => {
+                    setRequested({ version, status: next })
+                    formRef.current?.requestSubmit()
+                }}
+                disabled={pending || awaitingRefresh}
+                saving={pending || awaitingRefresh}
+                error={state.message}
+                accessibleLabel={`Posted status for ${name}`}
+                description="Posted affects your balance. Pending does not."
+            />
         </form>
     )
 }

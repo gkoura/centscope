@@ -3,12 +3,9 @@
 import { useActionState, useState } from "react"
 import { Pencil } from "lucide-react"
 import { updateWallet } from "@/app/dashboard/accounts/[id]/wallets/actions"
+import { StatusSwitch } from "./status-switch"
 import { DatePicker } from "@/components/ui/date-picker"
-import {
-    openingStatuses,
-    walletTypes,
-    type WalletDetailsState,
-} from "@/lib/wallet-input"
+import { walletTypes, type WalletDetailsState } from "@/lib/wallet-input"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -228,44 +225,13 @@ function WalletEditForm({
                             onChange={setOpeningDate}
                         />
                     </Field>
-                    <Field>
-                        <FieldLabel
-                            htmlFor={`wallet-opening-status-${wallet.id}`}
-                        >
-                            Opening balance status
-                        </FieldLabel>
-                        <Select
-                            name="openingStatus"
-                            value={openingStatus}
-                            items={openingStatuses}
-                            onValueChange={(value) => {
-                                if (value) setOpeningStatus(value)
-                            }}
-                        >
-                            <SelectTrigger
-                                id={`wallet-opening-status-${wallet.id}`}
-                                className="w-full"
-                            >
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    {openingStatuses.map((option) => (
-                                        <SelectItem
-                                            key={option.value}
-                                            value={option.value}
-                                        >
-                                            {option.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                        <FieldDescription>
-                            Posted counts toward your balance. Pending does not.
-                            The date never changes the status automatically.
-                        </FieldDescription>
-                    </Field>
+                    <StatusSwitch
+                        name="openingStatus"
+                        label="Opening balance status"
+                        value={openingStatus}
+                        onValueChange={setOpeningStatus}
+                        description="Posted counts toward your balance. Pending does not. The date never changes the status automatically."
+                    />
                 </FieldGroup>
             </fieldset>
             {state.message && (

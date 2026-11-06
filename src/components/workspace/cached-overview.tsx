@@ -165,7 +165,10 @@ export function CachedOverviewAnalysis({
                                             <span className="min-w-0 truncate">
                                                 {category.name}
                                             </span>
-                                            <span className="shrink-0 font-medium tabular-nums">
+                                            <span
+                                                data-flow="expense"
+                                                className="shrink-0 font-medium tabular-nums"
+                                            >
                                                 {formatWalletMoney(
                                                     category.amount,
                                                     currency
@@ -174,7 +177,7 @@ export function CachedOverviewAnalysis({
                                         </div>
                                         <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                                             <div
-                                                className="h-full rounded-full bg-primary/70"
+                                                className="h-full rounded-full bg-expense/70"
                                                 style={{
                                                     width: `${total > BigInt(0) ? Number((moneyCents(category.amount) * BigInt(10000)) / total) / 100 : 0}%`,
                                                 }}
