@@ -27,7 +27,7 @@ import {
 import type { TransactionSuggestion } from "@/lib/transaction-input"
 import { StatusSwitch } from "./status-switch"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { MoneyInput } from "./money-input"
 import { Textarea } from "@/components/ui/textarea"
 import {
     Field,
@@ -367,17 +367,12 @@ export function CreateTransactionForm({
                         <FieldLabel htmlFor="transaction-amount">
                             Amount ({currency})
                         </FieldLabel>
-                        <Input
+                        <MoneyInput
                             id="transaction-amount"
                             name="amount"
-                            inputMode="decimal"
                             value={values.amount}
-                            onChange={(event) =>
-                                update("amount", event.target.value)
-                            }
+                            onValueChange={(value) => update("amount", value)}
                             required
-                            placeholder="0.00"
-                            maxLength={20}
                             aria-invalid={Boolean(state.errors?.amount)}
                             aria-describedby={
                                 state.errors?.amount
@@ -390,12 +385,41 @@ export function CreateTransactionForm({
                             {values.type === "EXPENSE"
                                 ? "Expenses subtract from"
                                 : "Incomes add to"}{" "}
-                            this wallet when posted. Use a dot or comma for
-                            decimals.
+                            this wallet when posted. Numbers are formatted for
+                            your locale.
                         </FieldDescription>
                         {state.errors?.amount ? (
                             <FieldError id="transaction-amount-error">
                                 {state.errors.amount}
+                            </FieldError>
+                        ) : null}
+                    </Field>
+                    <Field data-invalid={Boolean(state.errors?.date)}>
+                        <FieldLabel htmlFor="transaction-date">Date</FieldLabel>
+                        <fieldset disabled={editScope !== "ONLY"}>
+                            <DatePicker
+                                id="transaction-date"
+                                name="date"
+                                value={values.date}
+                                onChange={(value) => update("date", value)}
+                                aria-invalid={Boolean(state.errors?.date)}
+                                aria-describedby={
+                                    state.errors?.date
+                                        ? "transaction-date-error"
+                                        : undefined
+                                }
+                            />
+                        </fieldset>
+                        {editScope !== "ONLY" && (
+                            <input
+                                type="hidden"
+                                name="date"
+                                value={editing?.date ?? values.date}
+                            />
+                        )}
+                        {state.errors?.date ? (
+                            <FieldError id="transaction-date-error">
+                                {state.errors.date}
                             </FieldError>
                         ) : null}
                     </Field>
@@ -462,35 +486,6 @@ export function CreateTransactionForm({
                             this occurrence to change its date.
                         </p>
                     )}
-                    <Field data-invalid={Boolean(state.errors?.date)}>
-                        <FieldLabel htmlFor="transaction-date">Date</FieldLabel>
-                        <fieldset disabled={editScope !== "ONLY"}>
-                            <DatePicker
-                                id="transaction-date"
-                                name="date"
-                                value={values.date}
-                                onChange={(value) => update("date", value)}
-                                aria-invalid={Boolean(state.errors?.date)}
-                                aria-describedby={
-                                    state.errors?.date
-                                        ? "transaction-date-error"
-                                        : undefined
-                                }
-                            />
-                        </fieldset>
-                        {editScope !== "ONLY" && (
-                            <input
-                                type="hidden"
-                                name="date"
-                                value={editing?.date ?? values.date}
-                            />
-                        )}
-                        {state.errors?.date ? (
-                            <FieldError id="transaction-date-error">
-                                {state.errors.date}
-                            </FieldError>
-                        ) : null}
-                    </Field>
                     <StatusSwitch
                         name="status"
                         value={values.status}
