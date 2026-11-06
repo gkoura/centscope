@@ -1,18 +1,25 @@
 import "server-only"
+import { createElement, type ReactElement } from "react"
+import { render, toPlainText } from "react-email"
+import VerifyEmail from "../../../emails/verify-email"
+import ResetPassword from "../../../emails/reset-password"
+import DeleteAccount from "../../../emails/delete-account"
 
 type AuthEmail = { to: string; url: string }
+
+export async function sendDeleteAccountEmail({ to, url }: AuthEmail) {
+    await sendAuthEmail(
+        to,
+        "Confirm deletion of your CentScope account",
+        createElement(DeleteAccount, { url })
+    )
+}
 
 export async function sendVerificationEmail({ to, url }: AuthEmail) {
     await sendAuthEmail(
         to,
         "Verify your CentScope email",
-        [
-            "Welcome to CentScope.",
-            "Verify your email address by opening this link:",
-            url,
-            "This link expires in one hour.",
-            "If you did not create this account, you can ignore this email.",
-        ].join("\n\n")
+        createElement(VerifyEmail, { url })
     )
 }
 
@@ -20,16 +27,15 @@ export async function sendPasswordResetEmail({ to, url }: AuthEmail) {
     await sendAuthEmail(
         to,
         "Reset your CentScope password",
-        [
-            "Reset your password by opening this link:",
-            url,
-            "This link expires in 30 minutes and can only be used once.",
-            "If you did not request this reset, ignore this email. Your password has not changed.",
-        ].join("\n\n")
+        createElement(ResetPassword, { url })
     )
 }
 
-async function sendAuthEmail(to: string, subject: string, text: string) {
+async function sendAuthEmail(
+    to: string,
+    subject: string,
+    template: ReactElement
+) {
     const apiKey = process.env.RESEND_API_KEY
     const from = process.env.AUTH_EMAIL_FROM
     if (!apiKey || !from) {
@@ -37,6 +43,8 @@ async function sendAuthEmail(to: string, subject: string, text: string) {
             "Auth email requires RESEND_API_KEY and AUTH_EMAIL_FROM."
         )
     }
+    const html = await render(template)
+    const text = toPlainText(html)
     const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -48,6 +56,7 @@ async function sendAuthEmail(to: string, subject: string, text: string) {
             from: `CentScope <${from.match(/<([^<>]+)>\s*$/)?.[1] ?? from.trim()}>`,
             to: [to],
             subject,
+            html,
             text,
         }),
         signal: AbortSignal.timeout(10_000),
