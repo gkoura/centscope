@@ -52,3 +52,5 @@ This organization change did not execute any tests.
 `tests/unit/workspace-cache.test.mjs` exercises privacy partitioning, canonical period/filter keys, expiry, persistence limits, hydration precedence and background-refresh failures. It runs in the regular unit suite. See `docs/CACHING.md` for the browser data flow and the authenticated manual regression scenarios, including blocked-network reload, mutation freshness, draft preservation, user isolation and logout cleanup. Use disposable users/records for browser write checks.
 
 `tests/unit/request-session.test.mjs` verifies that the Route Handler session context stays isolated across concurrent requests and is absent after failures.
+
+`tests/unit/workspace-prefetch.test.mjs` verifies the bounded four-month plan, route/filter selection, foreground priority, fresh-query reuse, stale/invalidation refresh, navigation handoff before and after observer mounting, pause/resume, cancellation, failures and identity isolation. It uses deterministic fetch/idle mocks and runs without a database.
