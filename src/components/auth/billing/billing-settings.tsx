@@ -1,5 +1,7 @@
 "use client"
 
+import { appendCurrencySymbol } from "@/lib/currency"
+
 import {
   type BillingAdapter,
   type BillingInterval,
@@ -71,12 +73,10 @@ const formatPrice = (amount: number, currency: string) => {
     }).resolvedOptions().maximumFractionDigits ?? 2
   const divisor = 10 ** fractionDigits
 
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency,
-    currencyDisplay: "narrowSymbol",
+  return appendCurrencySymbol(new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: amount % divisor === 0 ? 0 : fractionDigits,
     maximumFractionDigits: amount % divisor === 0 ? 0 : fractionDigits
-  }).format(amount / divisor)
+  }).format(amount / divisor), currency)
 }
 
 const availableIntervals = (plans: BillingPlan[]) =>

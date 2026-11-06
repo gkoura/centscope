@@ -1,6 +1,7 @@
 import test from "node:test"
 import assert from "node:assert/strict"
 import {
+    appendCurrencySymbol,
     currencySymbol,
     currencyLabel,
     currencyOptions,
@@ -37,4 +38,10 @@ test("wallet and reporting-currency options keep canonical codes as form values"
             value
         )
     }
+})
+
+test("places currency symbols after ordinary and compact amounts", () => {
+    assert.equal(appendCurrencySymbol("13.57", "USD"), "13.57 $")
+    assert.equal(appendCurrencySymbol("-13.57", "EUR"), "-13.57 €")
+    assert.equal(appendCurrencySymbol("1.2K", "GBP"), "1.2K £")
 })

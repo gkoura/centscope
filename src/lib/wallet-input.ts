@@ -1,5 +1,5 @@
 import { normalizeDecimalInput } from "./decimal-input.ts"
-import { currencyOptions } from "./currency.ts"
+import { appendCurrencySymbol, currencyOptions } from "./currency.ts"
 
 export const walletCurrencies = currencyOptions
 export const walletTypes = [
@@ -106,10 +106,9 @@ export function formatWalletMoney(amount: string, currency: string): string {
     const [whole, fraction = ""] = amount.replace(/^-/, "").split(".")
     const integer = BigInt(whole)
     const signed = negative ? (integer === BigInt(0) ? -0 : -integer) : integer
-    return new Intl.NumberFormat("en-GB", {
-        style: "currency",
-        currency,
-        currencyDisplay: "narrowSymbol",
+    const formatted = new Intl.NumberFormat("en-GB", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
     })
         .formatToParts(signed)
         .map((part) =>
@@ -118,6 +117,7 @@ export function formatWalletMoney(amount: string, currency: string): string {
                 : part.value
         )
         .join("")
+    return appendCurrencySymbol(formatted, currency)
 }
 
 export type WalletDetailsInput = {

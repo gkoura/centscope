@@ -21,9 +21,9 @@ import { Badge } from "@/components/ui/badge"
 import styles from "./account-preview.module.css"
 
 const wallets = [
-    { name: "Bank", amount: "€2,940" },
-    { name: "Savings", amount: "€9,600" },
-    { name: "Cash", amount: "€300" },
+    { name: "Bank", amount: "2,940 €" },
+    { name: "Savings", amount: "9,600 €" },
+    { name: "Cash", amount: "300 €" },
 ]
 
 function PreviewToolbar({ phone = false }: { phone?: boolean }) {
@@ -53,7 +53,7 @@ function PreviewBalances() {
         <>
             <div className={styles.balance}>
                 <p>Total balance</p>
-                <strong>€12,840.00</strong>
+                <strong>12,840.00 €</strong>
                 <span>Current posted balance</span>
             </div>
             <div className={styles.wallets}>
@@ -119,19 +119,19 @@ export function AccountPreview() {
                     {[
                         {
                             label: "Income",
-                            amount: "€3,250",
+                            amount: "3,250 €",
                             flow: "income",
                             icon: ArrowDownLeft,
                         },
                         {
                             label: "Expenses",
-                            amount: "€2,480",
+                            amount: "2,480 €",
                             flow: "expense",
                             icon: ArrowUpRight,
                         },
                         {
                             label: "Net",
-                            amount: "+€770",
+                            amount: "+770 €",
                             flow: "income",
                             icon: ArrowLeftRight,
                         },
@@ -150,13 +150,17 @@ export function AccountPreview() {
                         Where your money went
                     </p>
                     {[
-                        { name: "Housing", amount: "€850", width: "34.3%" },
+                        { name: "Housing", amount: "850 €", width: "34.3%" },
                         {
                             name: "Food & drink",
-                            amount: "€430",
+                            amount: "430 €",
                             width: "17.3%",
                         },
-                        { name: "Insurance", amount: "€1,200", width: "48.4%" },
+                        {
+                            name: "Insurance",
+                            amount: "1,200 €",
+                            width: "48.4%",
+                        },
                     ].map(({ name, amount, width }) => (
                         <div key={name}>
                             <p>
@@ -211,21 +215,21 @@ export function PhonePreview() {
                     {
                         name: "Rent",
                         detail: "Bank · Housing",
-                        amount: "−€850.00",
+                        amount: "−850.00 €",
                         icon: House,
                         recurring: true,
                     },
                     {
                         name: "Annual insurance",
                         detail: "Bank · Insurance",
-                        amount: "−€1,200.00",
+                        amount: "−1,200.00 €",
                         icon: ShoppingBag,
                         spread: true,
                     },
                     {
                         name: "Morning coffee",
                         detail: "Cash · Food & drink",
-                        amount: "−€3.50",
+                        amount: "−3.50 €",
                         icon: Coffee,
                     },
                 ].map(
@@ -328,7 +332,7 @@ export function WalletStructure() {
                     <p className="text-xs text-muted-foreground">
                         Combined balance
                     </p>
-                    <p className="mt-1 font-semibold tabular-nums">€12,840</p>
+                    <p className="mt-1 font-semibold tabular-nums">12,840 €</p>
                 </div>
             </div>
             <div className={styles.wallets}>
@@ -358,7 +362,7 @@ export function SpreadExample() {
                     <p className="text-xs text-muted-foreground">
                         Annual insurance
                     </p>
-                    <p className="mt-1 font-semibold">€1,200 paid once</p>
+                    <p className="mt-1 font-semibold">1,200 € paid once</p>
                 </div>
                 <Badge variant="secondary">
                     <CalendarRange data-icon="inline-start" />
@@ -370,7 +374,7 @@ export function SpreadExample() {
                     <div key={month}>
                         <span>{month}</span>
                         <div />
-                        <strong>€100</strong>
+                        <strong>100 €</strong>
                     </div>
                 ))}
                 <div className={styles.remainingMonths}>
@@ -379,8 +383,8 @@ export function SpreadExample() {
                 </div>
             </div>
             <p className="mt-4 text-xs leading-6 text-muted-foreground">
-                €100 per month in smoothed analysis. The original €1,200 payment
-                stays recorded once.
+                100 € per month in smoothed analysis. The original 1,200 €
+                payment stays recorded once.
             </p>
         </div>
     )

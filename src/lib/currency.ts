@@ -10,6 +10,10 @@ export function currencySymbol(currency: string): string {
     return symbols[currency] ?? currency
 }
 
+export function appendCurrencySymbol(amount: string, currency: string): string {
+    return `${amount} ${currencySymbol(currency)}`
+}
+
 export function currencyLabel(currency: string): string {
     return (
         currencyOptions.find((option) => option.value === currency)?.label ??

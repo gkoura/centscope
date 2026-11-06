@@ -1,6 +1,6 @@
 "use client"
 
-import { currencySymbol } from "@/lib/currency"
+import { appendCurrencySymbol, currencySymbol } from "@/lib/currency"
 
 import { useState } from "react"
 import {
@@ -116,13 +116,13 @@ export function BalanceHistoryChart({
                             tickLine={false}
                             axisLine={false}
                             tickFormatter={(value) =>
-                                new Intl.NumberFormat("en", {
-                                    style: "currency",
-                                    currency: current.currency,
-                                    currencyDisplay: "narrowSymbol",
-                                    notation: "compact",
-                                    maximumFractionDigits: 1,
-                                }).format(Number(value))
+                                appendCurrencySymbol(
+                                    new Intl.NumberFormat("en", {
+                                        notation: "compact",
+                                        maximumFractionDigits: 1,
+                                    }).format(Number(value)),
+                                    current.currency
+                                )
                             }
                         />
                         <ReferenceLine y={0} stroke="var(--border)" />
