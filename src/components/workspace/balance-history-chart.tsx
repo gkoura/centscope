@@ -17,6 +17,7 @@ import {
     type ChartConfig,
 } from "@/components/ui/chart"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { BalanceHistoryHelp } from "./balance-history-help"
 import { formatWalletMoney } from "@/lib/wallet-input"
 import type { smoothedBalanceHistory } from "@/lib/smoothed-balance"
 import {
@@ -57,8 +58,9 @@ export function BalanceHistoryChart({
     return (
         <Card>
             <CardHeader>
-                <CardTitle>
+                <CardTitle className="flex items-center gap-1">
                     <h2>Balance over time</h2>
+                    <BalanceHistoryHelp />
                 </CardTitle>
                 <CardDescription>
                     Smoothed end-of-month balance ·{" "}
