@@ -21,6 +21,7 @@ import {
     WalletStructure,
     SpreadExample,
 } from "@/components/site/account-preview"
+import { connection } from "next/server"
 
 export default function Page() {
     return (
@@ -168,7 +169,7 @@ export default function Page() {
                             className="absolute inset-x-0 inset-y-16 rounded-[3rem] bg-muted/70"
                             aria-hidden="true"
                         />
-                        <div className="relative w-full max-w-[310px]">
+                        <div className="relative w-full max-w-77.5">
                             <PhonePreview />
                         </div>
                     </div>
@@ -306,8 +307,15 @@ export default function Page() {
 }
 
 async function SessionRedirect() {
-    const session = await auth.api.getSession({ headers: await headers() })
-    if (session) redirect("/dashboard")
+    await connection()
+
+    const session = await auth.api.getSession({
+        headers: await headers(),
+    })
+
+    if (session) {
+        redirect("/dashboard")
+    }
 
     return null
 }
