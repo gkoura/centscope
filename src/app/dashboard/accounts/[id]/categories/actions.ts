@@ -15,7 +15,7 @@ import {
     validateCategoryOrderBatch,
     type CategoryOrderBatchInput,
     validCategoryName,
-    parseSubcategoryNames,
+    parseCategoryNames,
     validateCategoryEdit,
     validateCategoryInput,
     type CategoryFormState,
@@ -43,8 +43,12 @@ export async function createCategory(
 ): Promise<CategoryFormState> {
     await requireVerifiedSession()
     let names: string[] | undefined
-    if (form.get("parentId") && typeof form.get("names") === "string") {
-        const parsed = parseSubcategoryNames(form.get("names") as string)
+    if (form.has("names")) {
+        const raw = form.get("names")
+        const parsed = parseCategoryNames(
+            typeof raw === "string" ? raw : "",
+            form.get("parentId") ? "subcategories" : "categories"
+        )
         if (parsed.error) return { errors: { name: parsed.error } }
         names = parsed.names
         form.set("name", names[0])
@@ -61,8 +65,10 @@ export async function createCategory(
         success: true,
         message:
             names && names.length > 1
-                ? `${names.length} subcategories created.`
-                : "Category created.",
+                ? `${names.length} ${result.data.parentId ? "subcategories" : "categories"} created.`
+                : result.data.parentId
+                  ? "Subcategory created."
+                  : "Category created.",
     }
 }
 

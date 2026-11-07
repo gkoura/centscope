@@ -663,12 +663,12 @@ export function CategoryManager({
                             <DialogTitle>
                                 {creating?.parentId
                                     ? "New subcategories"
-                                    : "New category"}
+                                    : "New categories"}
                             </DialogTitle>
                             <DialogDescription>
                                 {creating?.parentId
                                     ? `Add more detail under ${categories.find((c) => c.id === creating.parentId)?.name}.`
-                                    : "Give your transactions a place that makes sense to you."}
+                                    : "Add one category or paste a list to create several at once."}
                             </DialogDescription>
                         </DialogHeader>
                         {creating && (

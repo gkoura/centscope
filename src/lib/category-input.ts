@@ -69,14 +69,18 @@ export function validateCategoryInput(
     }
 }
 
-export function parseSubcategoryNames(value: string): {
+export function parseCategoryNames(
+    value: string,
+    group: "categories" | "subcategories" = "categories"
+): {
     names: string[]
     error?: string
 } {
+    const singular = group === "categories" ? "category" : "subcategory"
     if (value.length > 2500)
         return {
             names: [],
-            error: "Add up to 30 subcategories at a time, with names up to 80 characters.",
+            error: `Add up to 30 ${group} at a time, with names up to 80 characters.`,
         }
     const names = value
         .split(/\r?\n/)
@@ -89,7 +93,7 @@ export function parseSubcategoryNames(value: string): {
     )
         return {
             names: [],
-            error: "Enter one subcategory per line, up to 30 names of 80 characters each.",
+            error: `Enter one ${singular} per line, up to 30 names of 80 characters each.`,
         }
     if (
         new Set(names.map((name) => name.toLocaleLowerCase())).size !==
@@ -97,9 +101,13 @@ export function parseSubcategoryNames(value: string): {
     )
         return {
             names: [],
-            error: "Each subcategory in this list needs a different name.",
+            error: `Each ${singular} in this list needs a different name.`,
         }
     return { names }
+}
+
+export function parseSubcategoryNames(value: string) {
+    return parseCategoryNames(value, "subcategories")
 }
 
 export function validateCategoryEdit(form: FormData) {

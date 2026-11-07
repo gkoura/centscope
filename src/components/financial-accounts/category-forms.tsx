@@ -77,6 +77,7 @@ export function CreateCategoryForm({
     )
     const [type, setType] = useState<string>(defaultType)
     const [parentId, setParentId] = useState(defaultParentId)
+    const [names, setNames] = useState("")
     useEffect(() => {
         if (state.success) onSuccess?.(type as CategoryChoice["type"])
     }, [state.success, onSuccess, type])
@@ -106,41 +107,34 @@ export function CreateCategoryForm({
                 <Field data-invalid={Boolean(state.errors?.name)}>
                     <FieldLabel htmlFor="new-category-name">
                         {selectedParentId === "root"
-                            ? "Name"
+                            ? "Category names"
                             : "Subcategory names"}
                     </FieldLabel>
-                    {selectedParentId === "root" ? (
-                        <Input
-                            id="new-category-name"
-                            name="name"
-                            required
-                            maxLength={80}
-                            placeholder="e.g. Travel"
-                            aria-invalid={Boolean(state.errors?.name)}
-                            aria-describedby={
-                                state.errors?.name
-                                    ? "new-category-name-error"
-                                    : undefined
-                            }
-                        />
-                    ) : (
-                        <Textarea
-                            id="new-category-name"
-                            name="names"
-                            required
-                            maxLength={2500}
-                            rows={5}
-                            placeholder={"Restaurants\nCoffee shops\nTakeaway"}
-                            aria-invalid={Boolean(state.errors?.name)}
-                            aria-describedby="new-category-names-description new-category-name-error"
-                        />
-                    )}
-                    {selectedParentId !== "root" ? (
-                        <FieldDescription id="new-category-names-description">
-                            Enter or paste one name per line. Create up to 30
-                            subcategories at once.
-                        </FieldDescription>
-                    ) : null}
+                    <Textarea
+                        id="new-category-name"
+                        name="names"
+                        value={names}
+                        onChange={(event) => setNames(event.target.value)}
+                        required
+                        maxLength={2500}
+                        rows={5}
+                        placeholder={
+                            selectedParentId === "root"
+                                ? type === "INCOME"
+                                    ? "Salary\nFreelance\nInvestments"
+                                    : "Travel\nEducation\nSubscriptions"
+                                : "Restaurants\nCoffee shops\nTakeaway"
+                        }
+                        aria-invalid={Boolean(state.errors?.name)}
+                        aria-describedby={`new-category-names-description${state.errors?.name ? " new-category-name-error" : ""}`}
+                    />
+                    <FieldDescription id="new-category-names-description">
+                        Enter or paste one name per line. Create up to 30{" "}
+                        {selectedParentId === "root"
+                            ? "categories"
+                            : "subcategories"}{" "}
+                        at once, with up to 80 characters per name.
+                    </FieldDescription>
                     {state.errors?.name ? (
                         <FieldError id="new-category-name-error">
                             {state.errors.name}
@@ -254,7 +248,7 @@ export function CreateCategoryForm({
                     {pending
                         ? "Creating…"
                         : selectedParentId === "root"
-                          ? "Create category"
+                          ? "Create categories"
                           : "Create subcategories"}
                 </Button>
             </div>

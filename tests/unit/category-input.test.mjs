@@ -82,7 +82,8 @@ test("editing requires a valid optimistic timestamp and resource IDs", () => {
 })
 
 test("category order only accepts complete duplicate-free permutations", async () => {
-    const { validateCategoryOrder } = await import("../../src/lib/category-input.ts")
+    const { validateCategoryOrder } =
+        await import("../../src/lib/category-input.ts")
     const input = {
         financialAccountId: "account",
         type: "EXPENSE",
@@ -111,7 +112,8 @@ test("category order only accepts complete duplicate-free permutations", async (
 })
 
 test("optimistic order comparison detects changed order and group membership", async () => {
-    const { categoryOrderMatches } = await import("../../src/lib/category-input.ts")
+    const { categoryOrderMatches } =
+        await import("../../src/lib/category-input.ts")
     assert.equal(categoryOrderMatches(["a", "b"], ["a", "b"]), true)
     assert.equal(categoryOrderMatches(["b", "a"], ["a", "b"]), false)
     assert.equal(categoryOrderMatches(["a"], ["a", "b"]), false)
@@ -120,7 +122,8 @@ test("optimistic order comparison detects changed order and group membership", a
 })
 
 test("transaction picker preserves saved sibling order and groups children with their parent", async () => {
-    const { categorySelectOptions } = await import("../../src/lib/category-input.ts")
+    const { categorySelectOptions } =
+        await import("../../src/lib/category-input.ts")
     const rows = [
         { id: "z", name: "Travel", type: "EXPENSE", parentId: null },
         { id: "child-z", name: "Trains", type: "EXPENSE", parentId: "z" },
@@ -140,7 +143,8 @@ test("transaction picker preserves saved sibling order and groups children with 
 })
 
 test("explicit ordering saves validate all sibling groups without duplicates", async () => {
-    const { validateCategoryOrderBatch } = await import("../../src/lib/category-input.ts")
+    const { validateCategoryOrderBatch } =
+        await import("../../src/lib/category-input.ts")
     const root = {
         type: "EXPENSE",
         parentId: null,
@@ -170,7 +174,8 @@ test("explicit ordering saves validate all sibling groups without duplicates", a
 })
 
 test("draft order batches only changed groups and recognizes inverse moves as clean", async () => {
-    const { categoryOrderChanges } = await import("../../src/lib/category-input.ts")
+    const { categoryOrderChanges } =
+        await import("../../src/lib/category-input.ts")
     const original = [
         { id: "a", type: "EXPENSE", parentId: null },
         { id: "b", type: "EXPENSE", parentId: null },
@@ -203,14 +208,75 @@ test("draft order batches only changed groups and recognizes inverse moves as cl
     assert.deepEqual(categoryOrderChanges(original, original), [])
 })
 
-
 test("subcategory batches trim pasted lines and preserve punctuation and international names", () => {
-    assert.deepEqual(parseSubcategoryNames(" Restaurants \r\n\r\nΚαφές\nFood, takeaway "), { names: ["Restaurants", "Καφές", "Food, takeaway"] })
+    assert.deepEqual(
+        parseSubcategoryNames(" Restaurants \r\n\r\nΚαφές\nFood, takeaway "),
+        { names: ["Restaurants", "Καφές", "Food, takeaway"] }
+    )
 })
 
 test("subcategory batches reject empty, duplicate, invalid and oversized lists", () => {
-    for (const value of [" \n", "Coffee\n coffee", "a".repeat(81), "Bad\tname", Array.from({ length: 31 }, (_, i) => `Name ${i}`).join("\n"), "a".repeat(2501)]) {
+    for (const value of [
+        " \n",
+        "Coffee\n coffee",
+        "a".repeat(81),
+        "Bad\tname",
+        Array.from({ length: 31 }, (_, i) => `Name ${i}`).join("\n"),
+        "a".repeat(2501),
+    ]) {
         assert.ok(parseSubcategoryNames(value).error)
     }
-    assert.equal(parseSubcategoryNames(Array.from({ length: 30 }, (_, i) => `Name ${i}`).join("\n")).names.length, 30)
+    assert.equal(
+        parseSubcategoryNames(
+            Array.from({ length: 30 }, (_, i) => `Name ${i}`).join("\n")
+        ).names.length,
+        30
+    )
+})
+
+test("top-level category batches accept one or many names without a parent", async () => {
+    const { parseCategoryNames } =
+        await import("../../src/lib/category-input.ts")
+    const parsed = parseCategoryNames(
+        " Travel \r\n\r\nEducation\nΚαθημερινά 🛒\nFood, takeaway "
+    )
+    assert.deepEqual(parsed.names, [
+        "Travel",
+        "Education",
+        "Καθημερινά 🛒",
+        "Food, takeaway",
+    ])
+    for (const type of ["EXPENSE", "INCOME"]) {
+        const result = validateCategoryInput(
+            form({ financialAccountId: "account", type, name: parsed.names[0] })
+        )
+        assert.equal(result.data.parentId, null)
+        assert.equal(result.data.type, type)
+    }
+    assert.deepEqual(parseCategoryNames("Travel"), { names: ["Travel"] })
+    assert.equal(
+        parseCategoryNames(
+            Array.from({ length: 30 }, (_, i) => `Category ${i}`).join("\n")
+        ).names.length,
+        30
+    )
+})
+test("bulk categories reject duplicate, empty, hidden-character and oversized batches", async () => {
+    const { parseCategoryNames } =
+        await import("../../src/lib/category-input.ts")
+    for (const value of [
+        " \n",
+        "Travel\n travel",
+        "a".repeat(81),
+        "Hidden\u0000name",
+        Array.from({ length: 31 }, (_, i) => `Name ${i}`).join("\n"),
+        "a".repeat(2501),
+    ]) {
+        const parsed = parseCategoryNames(value)
+        assert.ok(parsed.error)
+        assert.deepEqual(parsed.names, [])
+        assert.equal(parsed.error.includes("subcategory"), false)
+    }
+    assert.match(parseCategoryNames("Travel\ntravel").error, /category/)
+    assert.match(parseSubcategoryNames("Coffee\ncoffee").error, /subcategory/)
 })
