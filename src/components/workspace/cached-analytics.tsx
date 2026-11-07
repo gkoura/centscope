@@ -9,6 +9,22 @@ import { analyticsPeriodInput } from "@/lib/analytics"
 import { resolveAccountPeriod } from "@/lib/account-period"
 import type { TransactionQuery } from "@/lib/transaction-filters"
 import { SectionLoading } from "@/components/site/section-loading"
+import dynamic from "next/dynamic"
+
+const MonthlyTrends = dynamic(
+    () => import("./monthly-trends").then((module) => module.MonthlyTrends),
+    { loading: () => <SectionLoading label="Loading monthly trends…" /> }
+)
+
+export function CachedAnalyticsMonthlyTrends({
+    accountId,
+}: {
+    accountId: string
+}) {
+    const today = useWorkspaceDay()
+    if (!today) return <SectionLoading label="Loading monthly trends…" />
+    return <MonthlyTrends key={accountId} accountId={accountId} today={today} />
+}
 
 type Props = { accountId: string; query: TransactionQuery }
 
@@ -57,5 +73,11 @@ export function CachedAnalyticsCategories({ accountId, query }: Props) {
                 label="Loading category spending…"
             />
         )
-    return <CategorySpending categories={result.data.categories} />
+    return (
+        <CategorySpending
+            key={accountId}
+            categories={result.data.categories}
+            incomeCategories={result.data.incomeCategories}
+        />
+    )
 }

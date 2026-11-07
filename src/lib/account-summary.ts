@@ -26,6 +26,10 @@ export function summarizeActivity(
         string,
         { name: string; currency: string; amount: bigint }
     >()
+    const incomeCategories = new Map<
+        string,
+        { name: string; currency: string; amount: bigint }
+    >()
     const ids = new Set<string>(),
         pendingIds = new Set<string>()
     for (const entry of entries) {
@@ -51,18 +55,22 @@ export function summarizeActivity(
             } else if (entry.status === status && entry.type === "EXPENSE") {
                 total.expenses -= amount
                 wallet.expenses -= amount
+            }
+            if (entry.status === status) {
+                const categoryTotals =
+                    entry.type === "INCOME" ? incomeCategories : categories
                 const name =
                         entry.parentCategory ??
                         entry.category ??
                         "Uncategorized",
                     key = JSON.stringify([entry.currency, name])
-                const category = categories.get(key) ?? {
+                const category = categoryTotals.get(key) ?? {
                     name,
                     currency: entry.currency,
                     amount: BigInt(0),
                 }
-                category.amount -= amount
-                categories.set(key, category)
+                category.amount += entry.type === "INCOME" ? amount : -amount
+                categoryTotals.set(key, category)
             }
         }
         currencies.set(entry.currency, total)
@@ -88,6 +96,15 @@ export function summarizeActivity(
             expenses: centsMoney(wallet.expenses),
         })),
         categories: [...categories.values()]
+            .sort((a, b) =>
+                a.amount > b.amount
+                    ? -1
+                    : a.amount < b.amount
+                      ? 1
+                      : a.name.localeCompare(b.name)
+            )
+            .map((item) => ({ ...item, amount: centsMoney(item.amount) })),
+        incomeCategories: [...incomeCategories.values()]
             .sort((a, b) =>
                 a.amount > b.amount
                     ? -1

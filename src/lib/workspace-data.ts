@@ -12,6 +12,7 @@ import {
 } from "@/lib/transactions"
 import { getOwnedAccountActivity } from "@/lib/account-summary-data"
 import { getOwnedSmoothedBalanceHistory } from "@/lib/smoothed-balance-data"
+import { getOwnedMonthlyTrends } from "@/lib/monthly-trends-data"
 import { getOwnedMonthlyAnalysis } from "@/lib/monthly-analysis-data"
 import { listOwnedTransferWallets } from "@/lib/transfers"
 import { resolveAccountPeriod } from "@/lib/account-period"
@@ -101,6 +102,7 @@ export type WorkspaceData = {
     transactions: Awaited<ReturnType<typeof transactions>>
     activity: Awaited<ReturnType<typeof getOwnedAccountActivity>>
     balanceHistory: Awaited<ReturnType<typeof balanceHistory>>
+    monthlyTrends: Awaited<ReturnType<typeof getOwnedMonthlyTrends>>
     suggestions: Awaited<ReturnType<typeof listOwnedTransactionSuggestions>>
     analysis: Awaited<ReturnType<typeof analysis>>
     transferWallets: Awaited<ReturnType<typeof listOwnedTransferWallets>>
@@ -135,6 +137,8 @@ export async function readWorkspaceData(
         }
         case "balanceHistory":
             return balanceHistory(id, String(query.month))
+        case "monthlyTrends":
+            return getOwnedMonthlyTrends(id, String(query.month))
         case "suggestions":
             return listOwnedTransactionSuggestions(id)
         case "analysis":

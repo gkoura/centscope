@@ -114,3 +114,46 @@ test("overview spending combines subcategories under their parent category", () 
         { name: "Food", currency: "EUR", amount: "14.00" },
     ])
 })
+
+test("income category totals group children and isolate flows, currencies and posted status", () => {
+    const summary = summarizeActivity([
+        entry({
+            type: "INCOME",
+            amount: "2000.15",
+            category: "Employment / Salary",
+            parentCategory: "Employment",
+        }),
+        entry({
+            type: "INCOME",
+            amount: "100.85",
+            category: "Employment / Bonus",
+            parentCategory: "Employment",
+        }),
+        entry({
+            type: "INCOME",
+            amount: "25.00",
+            currency: "USD",
+            category: null,
+        }),
+        entry({
+            type: "INCOME",
+            amount: "999.00",
+            status: "PENDING",
+            category: "Employment",
+        }),
+        entry({ type: "TRANSFER", amount: "500.00", category: "Employment" }),
+        entry({
+            amount: "-15.00",
+            category: "Employment",
+            parentCategory: "Employment",
+        }),
+    ])
+    assert.deepEqual(summary.incomeCategories, [
+        { name: "Employment", currency: "EUR", amount: "2101.00" },
+        { name: "Uncategorized", currency: "USD", amount: "25.00" },
+    ])
+    assert.deepEqual(summary.categories, [
+        { name: "Employment", currency: "EUR", amount: "15.00" },
+    ])
+    assert.equal(summarizeActivity([]).incomeCategories.length, 0)
+})

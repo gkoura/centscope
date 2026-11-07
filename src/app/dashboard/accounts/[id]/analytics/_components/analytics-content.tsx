@@ -2,11 +2,17 @@ import {
     CachedAnalyticsControls,
     CachedAnalyticsActivity,
     CachedAnalyticsCategories,
+    CachedAnalyticsMonthlyTrends,
 } from "@/components/workspace/cached-analytics"
 import type { TransactionQuery } from "@/lib/transaction-filters"
 type Props = {
     params: Promise<{ id: string }>
     searchParams: Promise<TransactionQuery>
+}
+export async function AnalyticsMonthlyTrends({
+    params,
+}: Pick<Props, "params">) {
+    return <CachedAnalyticsMonthlyTrends accountId={(await params).id} />
 }
 export async function AnalyticsControls({ params, searchParams }: Props) {
     return (

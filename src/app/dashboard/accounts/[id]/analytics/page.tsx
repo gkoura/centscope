@@ -6,6 +6,7 @@ import {
     AnalyticsControls,
     AnalyticsActivity,
     AnalyticsCategories,
+    AnalyticsMonthlyTrends,
 } from "./_components/analytics-content"
 
 export const metadata: Metadata = { title: "Analytics" }
@@ -52,6 +53,11 @@ export default function AnalyticsPage({
                     params={params}
                     searchParams={searchParams}
                 />
+            </Suspense>
+            <Suspense
+                fallback={<SectionLoading label="Loading monthly trends…" />}
+            >
+                <AnalyticsMonthlyTrends params={params} />
             </Suspense>
         </main>
     )

@@ -15,6 +15,7 @@ export const workspaceResources = [
     "transactions",
     "activity",
     "balanceHistory",
+    "monthlyTrends",
     "suggestions",
     "analysis",
     "transferWallets",
@@ -48,6 +49,15 @@ export function canonicalWorkspaceRequest(
             for (const key of ["before", "after"])
                 if (typeof query[key] === "string")
                     values[key] = query[key].slice(0, 512)
+    } else if (resource === "monthlyTrends") {
+        const month = resolveAccountPeriod({ month: query.month }, today).month
+        // Leave room for the 12-month window and maximum 120-month expense spread.
+        values = {
+            month:
+                month >= "1901-01" && month <= "9998-12"
+                    ? month
+                    : today.slice(0, 7),
+        }
     } else if (resource === "balanceHistory" || resource === "analysis") {
         values = {
             month: resolveAccountPeriod({ month: query.month }, today).month,
