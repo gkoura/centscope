@@ -7,6 +7,7 @@ import {
     OverviewRecurring,
     OverviewBalances,
     OverviewBalanceHistory,
+    OverviewPendingPayments,
 } from "./_components/overview-content"
 import type { TransactionQuery } from "@/lib/transaction-filters"
 export default function AccountPage({
@@ -35,16 +36,18 @@ export default function AccountPage({
                 <OverviewBalances params={params} searchParams={searchParams} />
             </Suspense>
             <Suspense
+                fallback={<SectionLoading label="Loading pending payments…" />}
+            >
+                <OverviewPendingPayments params={params} />
+            </Suspense>
+            <Suspense
                 fallback={
                     <div className="min-h-80">
                         <SectionLoading label="Loading balance history…" />
                     </div>
                 }
             >
-                <OverviewBalanceHistory
-                    params={params}
-                    searchParams={searchParams}
-                />
+                <OverviewBalanceHistory params={params} />
             </Suspense>
             <details id="wallet-settings" className="wallet-management">
                 <summary className="cursor-pointer rounded-2xl border bg-card px-5 py-4 text-sm font-medium">

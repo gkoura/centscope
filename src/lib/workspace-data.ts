@@ -1,4 +1,5 @@
 import "server-only"
+import { getOwnedPendingPayments } from "@/lib/pending-payments-data"
 import { listOwnedRecurringSummary } from "@/lib/recurring"
 import {
     workspaceAccount,
@@ -107,6 +108,7 @@ export type WorkspaceData = {
     analysis: Awaited<ReturnType<typeof analysis>>
     transferWallets: Awaited<ReturnType<typeof listOwnedTransferWallets>>
     recurring: Awaited<ReturnType<typeof listOwnedRecurringSummary>>
+    pendingPayments: Awaited<ReturnType<typeof getOwnedPendingPayments>>
 }
 
 export async function readWorkspaceData(
@@ -147,5 +149,7 @@ export async function readWorkspaceData(
             return listOwnedTransferWallets(id)
         case "recurring":
             return listOwnedRecurringSummary(id)
+        case "pendingPayments":
+            return getOwnedPendingPayments(id)
     }
 }

@@ -1,4 +1,5 @@
 import { CachedRecurringSummary } from "@/components/workspace/cached-recurring-summary"
+import { CachedPendingPayments } from "@/components/workspace/cached-pending-payments"
 import { AccountTools } from "@/components/financial-accounts/account-tools"
 import {
     CachedOverviewBalances,
@@ -9,6 +10,11 @@ type Props = {
     params: Promise<{ id: string }>
     searchParams: Promise<TransactionQuery>
 }
+export async function OverviewPendingPayments({
+    params,
+}: Pick<Props, "params">) {
+    return <CachedPendingPayments accountId={(await params).id} />
+}
 export async function OverviewBalances({ params, searchParams }: Props) {
     return (
         <CachedOverviewBalances
@@ -17,13 +23,10 @@ export async function OverviewBalances({ params, searchParams }: Props) {
         />
     )
 }
-export async function OverviewBalanceHistory({ params, searchParams }: Props) {
-    return (
-        <CachedOverviewBalanceHistory
-            accountId={(await params).id}
-            query={await searchParams}
-        />
-    )
+export async function OverviewBalanceHistory({
+    params,
+}: Pick<Props, "params">) {
+    return <CachedOverviewBalanceHistory accountId={(await params).id} />
 }
 
 export async function OverviewTools({ params }: Pick<Props, "params">) {

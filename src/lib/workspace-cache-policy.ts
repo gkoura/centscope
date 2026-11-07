@@ -21,6 +21,7 @@ export const workspaceResources = [
     "analysis",
     "transferWallets",
     "recurring",
+    "pendingPayments",
 ] as const
 export type WorkspaceResource = (typeof workspaceResources)[number]
 export type WorkspaceRequest = {
@@ -50,6 +51,8 @@ export function canonicalWorkspaceRequest(
             for (const key of ["before", "after"])
                 if (typeof query[key] === "string")
                     values[key] = query[key].slice(0, 512)
+    } else if (resource === "pendingPayments") {
+        values = { day: today }
     } else if (resource === "monthlyTrends") {
         const month = resolveAccountPeriod({ month: query.month }, today).month
         // Leave room for the 12-month window and maximum 120-month expense spread.

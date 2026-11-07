@@ -16,14 +16,16 @@ export type BalanceEntry = {
 const monthIndex = (month: string) =>
     Number(month.slice(0, 4)) * 12 + Number(month.slice(5, 7)) - 1
 
+export const BALANCE_HISTORY_MONTHS = 11
+
 /** Expense schedules replace the cash payment, while other posted movements retain their date. */
 export function smoothedBalanceHistory(
     entries: BalanceEntry[],
     endMonth: string,
     currencies: string[]
 ) {
-    const months = Array.from({ length: 12 }, (_, index) =>
-        shiftMonth(endMonth, index - 11)
+    const months = Array.from({ length: BALANCE_HISTORY_MONTHS }, (_, index) =>
+        shiftMonth(endMonth, index - BALANCE_HISTORY_MONTHS + 1)
     )
     return [...new Set(currencies)].map((currency) => ({
         currency,

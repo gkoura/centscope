@@ -19,7 +19,10 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BalanceHistoryHelp } from "./balance-history-help"
 import { formatWalletMoney } from "@/lib/wallet-input"
-import type { smoothedBalanceHistory } from "@/lib/smoothed-balance"
+import {
+    BALANCE_HISTORY_MONTHS,
+    type smoothedBalanceHistory,
+} from "@/lib/smoothed-balance"
 import {
     Card,
     CardHeader,
@@ -50,16 +53,18 @@ export function BalanceHistoryChart({
     const current =
         series.find((item) => item.currency === currency) ?? series[0]
     if (!current) return null
-    const points = current.points.map((point) => ({
-        ...point,
-        value: Number(point.balance),
-    }))
+    const points = current.points
+        .slice(-BALANCE_HISTORY_MONTHS)
+        .map((point) => ({
+            ...point,
+            value: Number(point.balance),
+        }))
     const last = points[points.length - 1]
     return (
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-1">
-                    <h2>Balance over time</h2>
+                    <h2>Balance over L12M</h2>
                     <BalanceHistoryHelp />
                 </CardTitle>
                 <CardDescription>
@@ -107,14 +112,18 @@ export function BalanceHistoryChart({
                             dataKey="month"
                             tickLine={false}
                             axisLine={false}
-                            minTickGap={28}
-                            tickMargin={10}
+                            interval={0}
+                            angle={-45}
+                            textAnchor="end"
+                            height={44}
+                            tick={{ fontSize: 10 }}
+                            tickMargin={8}
                             tickFormatter={(value) =>
                                 monthLabel(String(value), true)
                             }
                         />
                         <YAxis
-                            width={60}
+                            width={52}
                             tickLine={false}
                             axisLine={false}
                             tickFormatter={(value) =>

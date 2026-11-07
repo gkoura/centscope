@@ -25,6 +25,7 @@
     --color-border: var(--border);
     --color-income: var(--income);
     --color-expense: var(--expense);
+    --color-warning: var(--warning);
     --color-destructive: var(--destructive);
     --color-accent-foreground: var(--accent-foreground);
     --color-accent: var(--accent);
@@ -139,6 +140,7 @@
     --background: #fafbf8;
     --income: #166b3e;
     --expense: #b7353f;
+    --warning: #8a4b0f;
     --foreground: #222c27;
     --card: #ffffff;
     --card-foreground: #222c27;
@@ -160,6 +162,7 @@
 .dark {
     --income: #85dfab;
     --expense: #ff9a9a;
+    --warning: #f5c976;
     --background: #141c18;
     --foreground: #e9eee7;
     --card: #1b2620;

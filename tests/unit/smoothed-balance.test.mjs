@@ -67,7 +67,33 @@ test("opening history, transfers, status and currency retain ledger semantics", 
         "EUR",
     ])
     assert.equal(series.length, 2)
-    assert.equal(series[0].points.length, 12)
-    assert.equal(series[0].points[0].month, "2025-02")
+    assert.equal(series[0].points.length, 11)
+    assert.equal(series[0].points[0].month, "2025-03")
     assert.equal(point([], "2026-01"), "0.00")
+})
+
+test("balance history always includes eleven consecutive months and retains older opening balances", () => {
+    const series = smoothedBalanceHistory(
+        [
+            entry({
+                type: "OPENING_BALANCE",
+                amount: "1000.00",
+                date: "2020-01-01",
+            }),
+            entry({ amount: "-5.00", date: "2026-11-01" }),
+        ],
+        "2026-10",
+        ["EUR"]
+    )[0]
+    assert.equal(series.points.length, 11)
+    assert.equal(series.points[0].month, "2025-12")
+    assert.equal(series.points.at(-1).month, "2026-10")
+    assert.equal(
+        series.points.every((point) => point.balance === "1000.00"),
+        true
+    )
+    const january = smoothedBalanceHistory([], "2025-12", ["EUR"])[0]
+    assert.equal(january.points.length, 11)
+    assert.equal(january.points[0].month, "2025-02")
+    assert.equal(january.points.at(-1).month, "2025-12")
 })
