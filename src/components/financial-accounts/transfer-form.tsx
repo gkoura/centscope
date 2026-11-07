@@ -19,6 +19,7 @@ import {
 import { StatusSwitch } from "./status-switch"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { MoneyInput } from "./money-input"
 import { Textarea } from "@/components/ui/textarea"
 const selectClass =
     "h-10 w-full min-w-0 rounded-md border bg-background px-3 text-base focus-visible:outline-2 focus-visible:outline-ring sm:text-sm"
@@ -176,13 +177,12 @@ export function TransferForm({
                             {fx ? "Amount sent" : "Amount"} (
                             {currencySymbol(source?.wallet.currency ?? "")})
                         </FieldLabel>
-                        <Input
+                        <MoneyInput
                             id="transfer-amount"
                             name="amount"
-                            inputMode="decimal"
                             value={values.amount}
                             required
-                            onChange={(e) => update("amount", e.target.value)}
+                            onValueChange={(value) => update("amount", value)}
                         />
                     </Field>
                     {fx && (
@@ -194,14 +194,13 @@ export function TransferForm({
                                 )}
                                 )
                             </FieldLabel>
-                            <Input
+                            <MoneyInput
                                 id="transfer-received"
                                 name="destinationAmount"
-                                inputMode="decimal"
                                 required
                                 value={values.destinationAmount}
-                                onChange={(e) =>
-                                    update("destinationAmount", e.target.value)
+                                onValueChange={(value) =>
+                                    update("destinationAmount", value)
                                 }
                             />
                             <FieldDescription>
