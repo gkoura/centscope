@@ -1,5 +1,10 @@
 "use client"
 
+import { useLocale } from "@/components/i18n/locale-provider"
+import { intlLocale } from "@/lib/i18n/config"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { useState } from "react"
 import {
     type ExpenseSpread,
@@ -32,6 +37,10 @@ export function ExpenseSpreadFields({
     type: string
     error?: string
 }) {
+    const locale = useLocale()
+
+    const t = useTranslations()
+
     const [enabled, setEnabled] = useState(Boolean(initial))
     const [start, setStart] = useState(initial?.startMonth ?? "")
     const [count, setCount] = useState(String(initial?.monthCount ?? 6))
@@ -48,12 +57,20 @@ export function ExpenseSpreadFields({
             spread,
             shiftMonth(spread.startMonth, spread.monthCount - 1)
         )
-        preview = `${formatWalletMoney(first, currency)}${first === last ? "" : `–${formatWalletMoney(last, currency)}`} per month · ${spread.startMonth} to ${shiftMonth(spread.startMonth, spread.monthCount - 1)}`
+        preview = t("{value0}{value1} per month · {value2} to {value3}", {
+            value0: formatWalletMoney(first, currency, intlLocale(locale)),
+            value1:
+                first === last
+                    ? ""
+                    : `–${formatWalletMoney(last, currency, intlLocale(locale))}`,
+            value2: spread.startMonth,
+            value3: shiftMonth(spread.startMonth, spread.monthCount - 1),
+        })
     }
     if (type !== "EXPENSE")
         return initial || enabled ? (
             <p className="text-sm text-muted-foreground">
-                Saving as income removes expense spreading.
+                {t("Saving as income removes expense spreading.")}
             </p>
         ) : null
     return (
@@ -74,18 +91,19 @@ export function ExpenseSpreadFields({
                                 setStart(date.slice(0, 7))
                         }}
                     />
-                    Spread over time
+                    {t("Spread over time")}
                 </FieldLabel>
                 <FieldDescription>
-                    Distribute this cost in monthly analysis. Your wallet still
-                    records the full payment once.
+                    {t(
+                        "Distribute this cost in monthly analysis. Your wallet still records the full payment once."
+                    )}
                 </FieldDescription>
             </Field>
             {enabled && (
                 <>
                     <Field>
                         <FieldLabel htmlFor="spread-start">
-                            Start month
+                            {t("Start month")}
                         </FieldLabel>
                         <Input
                             id="spread-start"
@@ -99,7 +117,7 @@ export function ExpenseSpreadFields({
                     </Field>
                     <Field>
                         <FieldLabel htmlFor="spread-count">
-                            Number of months
+                            {t("Number of months")}
                         </FieldLabel>
                         <Input
                             id="spread-count"
@@ -119,12 +137,14 @@ export function ExpenseSpreadFields({
                         aria-live="polite"
                     >
                         {preview ||
-                            "Enter an amount and schedule to preview the split."}{" "}
-                        Remainder cents go to the earliest months.
+                            t(
+                                "Enter an amount and schedule to preview the split."
+                            )}{" "}
+                        {t("Remainder cents go to the earliest months.")}
                     </p>
                 </>
             )}
-            {error && <FieldError role="alert">{error}</FieldError>}
+            {error && <FieldError role="alert">{t(error || "")}</FieldError>}
         </div>
     )
 }

@@ -1,7 +1,13 @@
 "use client"
-import Link from "next/link"
+
+import { useLocale } from "@/components/i18n/locale-provider"
+import { formatPeriod } from "@/lib/i18n/format"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
+import Link from "@/components/i18n/link"
 import { useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/components/i18n/navigation"
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react"
 import {
     adjacentPeriod,
@@ -34,6 +40,10 @@ export function PeriodControls({
     query?: Record<string, string>
     monthlyOnly?: boolean
 }) {
+    const locale = useLocale()
+
+    const t = useTranslations()
+
     const router = useRouter()
     const [dialogView, setDialogView] = useState<AccountPeriod["view"]>(
         period.view
@@ -87,10 +97,10 @@ export function PeriodControls({
                             )
                     }}
                 >
-                    <TabsList aria-label="Date period" className="h-10">
-                        <TabsTrigger value="month">Month</TabsTrigger>
-                        <TabsTrigger value="year">Year</TabsTrigger>
-                        <TabsTrigger value="custom">Custom</TabsTrigger>
+                    <TabsList aria-label={t("Date period")} className="h-10">
+                        <TabsTrigger value="month">{t("Month")}</TabsTrigger>
+                        <TabsTrigger value="year">{t("Year")}</TabsTrigger>
+                        <TabsTrigger value="custom">{t("Custom")}</TabsTrigger>
                     </TabsList>
                 </Tabs>
             )}
@@ -107,8 +117,8 @@ export function PeriodControls({
                     nativeButton={!previous}
                     aria-label={
                         period.view === "year"
-                            ? "Previous year"
-                            : "Previous month"
+                            ? t("Previous year")
+                            : t("Previous month")
                     }
                 >
                     <ChevronLeft />
@@ -129,15 +139,19 @@ export function PeriodControls({
                         }
                     >
                         <CalendarDays data-icon="inline-start" />
-                        <span className="truncate">{period.label}</span>
+                        <span className="truncate">
+                            {formatPeriod(period, locale)}
+                        </span>
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Choose a period</DialogTitle>
+                            <DialogTitle>{t("Choose a period")}</DialogTitle>
                             <DialogDescription>
                                 {monthlyOnly
-                                    ? "Choose the month to review."
-                                    : "Browse a month, a year, or your own date range."}
+                                    ? t("Choose the month to review.")
+                                    : t(
+                                          "Browse a month, a year, or your own date range."
+                                      )}
                             </DialogDescription>
                         </DialogHeader>
                         <PeriodForm
@@ -162,7 +176,9 @@ export function PeriodControls({
                     }
                     nativeButton={!next}
                     aria-label={
-                        period.view === "year" ? "Next year" : "Next month"
+                        period.view === "year"
+                            ? t("Next year")
+                            : t("Next month")
                     }
                 >
                     <ChevronRight />
@@ -170,7 +186,7 @@ export function PeriodControls({
             </div>
             {period.notice && (
                 <p role="status" className="text-sm text-muted-foreground">
-                    {period.notice}
+                    {t(period.notice || "")}
                 </p>
             )}
         </div>
@@ -185,6 +201,8 @@ function PeriodForm({
     monthlyOnly: boolean
     onApply: (values: Record<string, string>) => void
 }) {
+    const t = useTranslations()
+
     const [view, setView] = useState<AccountPeriod["view"]>(period.view)
     const [month, setMonth] = useState(period.month),
         [year, setYear] = useState(period.year),
@@ -221,17 +239,19 @@ function PeriodForm({
                         setView(value as AccountPeriod["view"])
                     }
                 >
-                    <TabsList aria-label="Choose period type">
-                        <TabsTrigger value="month">Month</TabsTrigger>
-                        <TabsTrigger value="year">Year</TabsTrigger>
-                        <TabsTrigger value="custom">Custom</TabsTrigger>
+                    <TabsList aria-label={t("Choose period type")}>
+                        <TabsTrigger value="month">{t("Month")}</TabsTrigger>
+                        <TabsTrigger value="year">{t("Year")}</TabsTrigger>
+                        <TabsTrigger value="custom">{t("Custom")}</TabsTrigger>
                     </TabsList>
                 </Tabs>
             )}
             <FieldGroup>
                 {view === "month" ? (
                     <Field>
-                        <FieldLabel htmlFor="period-month">Month</FieldLabel>
+                        <FieldLabel htmlFor="period-month">
+                            {t("Month")}
+                        </FieldLabel>
                         <Input
                             id="period-month"
                             type="month"
@@ -244,7 +264,9 @@ function PeriodForm({
                     </Field>
                 ) : view === "year" ? (
                     <Field>
-                        <FieldLabel htmlFor="period-year">Year</FieldLabel>
+                        <FieldLabel htmlFor="period-year">
+                            {t("Year")}
+                        </FieldLabel>
                         <Input
                             id="period-year"
                             type="number"
@@ -258,7 +280,9 @@ function PeriodForm({
                 ) : (
                     <>
                         <Field>
-                            <FieldLabel htmlFor="period-from">From</FieldLabel>
+                            <FieldLabel htmlFor="period-from">
+                                {t("From")}
+                            </FieldLabel>
                             <DatePicker
                                 id="period-from"
                                 name="from"
@@ -267,7 +291,9 @@ function PeriodForm({
                             />
                         </Field>
                         <Field>
-                            <FieldLabel htmlFor="period-to">To</FieldLabel>
+                            <FieldLabel htmlFor="period-to">
+                                {t("To")}
+                            </FieldLabel>
                             <DatePicker
                                 id="period-to"
                                 name="to"
@@ -280,14 +306,14 @@ function PeriodForm({
             </FieldGroup>
             {error && (
                 <p role="alert" className="text-sm text-destructive">
-                    {error}
+                    {t(error || "")}
                 </p>
             )}
             <div className="flex justify-end gap-2">
                 <DialogClose render={<Button variant="outline" />}>
-                    Cancel
+                    {t("Cancel")}
                 </DialogClose>
-                <Button type="submit">Show period</Button>
+                <Button type="submit">{t("Show period")}</Button>
             </div>
         </form>
     )

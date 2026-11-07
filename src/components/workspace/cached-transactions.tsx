@@ -1,8 +1,14 @@
 "use client"
+
+import { useLocale } from "@/components/i18n/locale-provider"
+import { formatPeriod } from "@/lib/i18n/format"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { useWorkspaceQuery } from "./use-workspace-query"
 import { WorkspaceQueryState } from "./workspace-query-state"
 import { periodQuery } from "@/lib/account-period"
-import Link from "next/link"
+import Link from "@/components/i18n/link"
 import { RecurringSync } from "@/components/financial-accounts/recurring-sync"
 import { type TransactionQuery } from "@/lib/transaction-filters"
 import { categorySelectOptions } from "@/lib/category-input"
@@ -29,13 +35,17 @@ export function CachedTransactions({
     accountId: string
     query: TransactionQuery
 }) {
+    const locale = useLocale()
+
+    const t = useTranslations()
+
     const reference = useWorkspaceQuery("reference", id)
     const result = useWorkspaceQuery("transactions", id, query)
     if (!reference.data || !result.data)
         return (
             <WorkspaceQueryState
                 queries={[reference, result]}
-                label="Loading this period’s transactions…"
+                label={t("Loading this period’s transactions…")}
             />
         )
     const { wallets, categories } = reference.data
@@ -88,17 +98,23 @@ export function CachedTransactions({
                 categories={categoryOptions}
             />
             {history.transactions.length ? (
-                <section aria-label="Transaction history">
+                <section aria-label={t("Transaction history")}>
                     <div className="mb-4 flex items-center justify-between gap-4">
                         <h2 className="text-sm font-medium">
                             {period.view === "month"
-                                ? "All transactions"
-                                : "Transactions"}
+                                ? t("All transactions")
+                                : t("Transactions")}
                         </h2>
                         <span className="text-xs text-muted-foreground">
                             {period.view === "month"
-                                ? `${activity.count} in ${period.label}`
-                                : `${history.transactions.length} shown · ${activity.count} total`}
+                                ? t("{value0} in {value1}", {
+                                      value0: activity.count,
+                                      value1: formatPeriod(period, locale),
+                                  })
+                                : t("{value0} shown · {value1} total", {
+                                      value0: history.transactions.length,
+                                      value1: activity.count,
+                                  })}
                         </span>
                     </div>
                     <TransactionFeed
@@ -119,13 +135,17 @@ export function CachedTransactions({
                         </EmptyMedia>
                         <EmptyTitle>
                             {selectedFilters
-                                ? "No matching transactions"
-                                : "A fresh page for this period"}
+                                ? t("No matching transactions")
+                                : t("A fresh page for this period")}
                         </EmptyTitle>
                         <EmptyDescription>
                             {selectedFilters
-                                ? "Try another search or clear the filters. Your selected period will stay the same."
-                                : "No entries for these dates. Browse another period or add a transaction."}
+                                ? t(
+                                      "Try another search or clear the filters. Your selected period will stay the same."
+                                  )
+                                : t(
+                                      "No entries for these dates. Browse another period or add a transaction."
+                                  )}
                         </EmptyDescription>
                     </EmptyHeader>
                     <EmptyContent>
@@ -144,8 +164,8 @@ export function CachedTransactions({
                             }
                         >
                             {selectedFilters
-                                ? "Clear filters"
-                                : "Go to this month"}
+                                ? t("Clear filters")
+                                : t("Go to this month")}
                         </Button>
                     </EmptyContent>
                 </Empty>
@@ -156,7 +176,7 @@ export function CachedTransactions({
                     before ||
                     after) && (
                     <nav
-                        aria-label="Transaction pages"
+                        aria-label={t("Transaction pages")}
                         className="flex items-center justify-between gap-3 border-t pt-5"
                     >
                         <Button
@@ -174,13 +194,13 @@ export function CachedTransactions({
                             }
                         >
                             <ChevronLeft data-icon="inline-start" />
-                            Newer
+                            {t("Newer")}
                         </Button>
                         <Link
                             href={pageHref()}
                             className="text-xs text-muted-foreground"
                         >
-                            First page
+                            {t("First page")}
                         </Link>
                         <Button
                             variant="outline"
@@ -196,7 +216,7 @@ export function CachedTransactions({
                                 ) : undefined
                             }
                         >
-                            Older
+                            {t("Older")}
                             <ChevronRight data-icon="inline-end" />
                         </Button>
                     </nav>

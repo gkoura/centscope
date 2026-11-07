@@ -1,11 +1,13 @@
 "use client"
 
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { useWorkspaceQuery, useWorkspaceDay } from "./use-workspace-query"
 import { WorkspaceQueryState } from "./workspace-query-state"
 import dynamic from "next/dynamic"
 import { SectionLoading } from "@/components/site/section-loading"
 import { periodEntryDate } from "@/lib/transaction-return"
-import Link from "next/link"
+import Link from "@/components/i18n/link"
 import { resolveAccountPeriod, periodQuery } from "@/lib/account-period"
 import type { TransactionQuery } from "@/lib/transaction-filters"
 import { BalanceSummary } from "@/components/workspace/balance-summary"
@@ -30,13 +32,15 @@ export function CachedOverviewBalances({
     accountId: string
     query: TransactionQuery
 }) {
+    const t = useTranslations()
+
     const reference = useWorkspaceQuery("reference", id)
     const today = useWorkspaceDay()
     if (!reference.data || !today)
         return (
             <WorkspaceQueryState
                 queries={[reference]}
-                label="Loading balances…"
+                label={t("Loading balances…")}
             />
         )
     const { account, wallets } = reference.data
@@ -55,10 +59,14 @@ export function CachedOverviewBalances({
                 className="overview-add-button"
                 nativeButton={false}
                 title={
-                    wallets.length ? "Add transaction" : "Add your first wallet"
+                    wallets.length
+                        ? t("Add transaction")
+                        : t("Add your first wallet")
                 }
                 aria-label={
-                    wallets.length ? "Add transaction" : "Add your first wallet"
+                    wallets.length
+                        ? t("Add transaction")
+                        : t("Add your first wallet")
                 }
                 render={
                     <Link
@@ -80,6 +88,8 @@ export function CachedOverviewBalanceHistory({
 }: {
     accountId: string
 }) {
+    const t = useTranslations()
+
     const reference = useWorkspaceQuery("reference", id)
     const today = useWorkspaceDay()
     const history = useWorkspaceQuery("balanceHistory", id, {
@@ -89,7 +99,7 @@ export function CachedOverviewBalanceHistory({
         return (
             <WorkspaceQueryState
                 queries={[reference, history]}
-                label="Loading balance history…"
+                label={t("Loading balance history…")}
             />
         )
     const { account, wallets } = reference.data

@@ -11,8 +11,10 @@ import {
     Text,
 } from "react-email"
 import type { CSSProperties } from "react"
+import { createTranslator } from "../../src/lib/i18n/translate"
+import type { Locale } from "../../src/lib/i18n/config"
 
-export type AuthEmailProps = { url: string }
+export type AuthEmailProps = { url: string; locale?: Locale }
 
 type AuthEmailLayoutProps = AuthEmailProps & {
     preview: string
@@ -33,16 +35,18 @@ export function AuthEmailLayout({
     action,
     expiry,
     security,
+    locale = "en",
 }: AuthEmailLayoutProps) {
+    const t = createTranslator(locale)
     return (
-        <Html lang="en">
+        <Html lang={locale}>
             <Head>
                 <style>{`@media (max-width: 600px) {
                     .email-shell { padding: 0 !important; }
                     .email-content { padding: 40px 20px !important; }
                 }`}</style>
             </Head>
-            <Preview>{preview}</Preview>
+            <Preview>{t(preview)}</Preview>
             <Body style={styles.body}>
                 <Container className="email-shell" style={styles.shell}>
                     <Section style={styles.frame}>
@@ -52,26 +56,27 @@ export function AuthEmailLayout({
                             style={styles.content}
                         >
                             <Heading as="h1" style={styles.heading}>
-                                {heading}
+                                {t(heading)}
                             </Heading>
-                            <Text style={styles.message}>{message}</Text>
+                            <Text style={styles.message}>{t(message)}</Text>
                             <Button href={url} style={styles.button}>
-                                {action}
+                                {t(action)}
                             </Button>
-                            <Text style={styles.expiry}>{expiry}</Text>
-                            <Text style={styles.security}>{security}</Text>
+                            <Text style={styles.expiry}>{t(expiry)}</Text>
+                            <Text style={styles.security}>{t(security)}</Text>
                         </Section>
                         <Section style={styles.fallback}>
                             <Text style={styles.caption}>
-                                Button not working? Copy and paste this link
-                                into your browser:
+                                {t(
+                                    "Button not working? Copy and paste this link into your browser:"
+                                )}
                             </Text>
                             <Link href={url} style={styles.link}>
                                 {url}
                             </Link>
                         </Section>
                         <Text style={styles.footer}>
-                            CentScope · Make sense of every cent.
+                            {t("CentScope · Make sense of every cent.")}
                         </Text>
                     </Section>
                 </Container>

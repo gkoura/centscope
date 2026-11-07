@@ -1,6 +1,6 @@
 "use client"
 import { useEffect } from "react"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter } from "@/components/i18n/navigation"
 import { authClient } from "@/lib/auth-client"
 
 export function WorkspaceSessionGuard() {

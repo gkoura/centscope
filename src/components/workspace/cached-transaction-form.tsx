@@ -1,9 +1,12 @@
 "use client"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { useWorkspaceQuery, useWorkspaceDay } from "./use-workspace-query"
 import { WorkspaceQueryState } from "./workspace-query-state"
 import { validDay } from "@/lib/account-period"
 import { transactionReturnPath } from "@/lib/transaction-return"
-import Link from "next/link"
+import Link from "@/components/i18n/link"
 import { CreateTransactionForm } from "@/components/financial-accounts/create-transaction-form"
 import {
     Card,
@@ -21,6 +24,8 @@ export function CachedTransactionForm({
     query: Record<string, string | string[] | undefined>
     requestId: string
 }) {
+    const t = useTranslations()
+
     const reference = useWorkspaceQuery("reference", id)
     const suggestions = useWorkspaceQuery("suggestions", id)
     const today = useWorkspaceDay()
@@ -28,7 +33,7 @@ export function CachedTransactionForm({
         return (
             <WorkspaceQueryState
                 queries={[reference]}
-                label="Loading transaction form…"
+                label={t("Loading transaction form…")}
             />
         )
     const { account, wallets, categories } = reference.data
@@ -39,12 +44,12 @@ export function CachedTransactionForm({
                 href={returnTo}
                 className="text-sm underline underline-offset-4"
             >
-                Back to transactions
+                {t("Back to transactions")}
             </Link>
             <Card>
                 <CardHeader>
                     <CardDescription>
-                        Record money spent or received in {account.name}.
+                        {t("Record money spent or received in")} {account.name}.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -75,12 +80,12 @@ export function CachedTransactionForm({
                         />
                     ) : (
                         <p className="text-sm">
-                            Add a wallet before recording a transaction.{" "}
+                            {t("Add a wallet before recording a transaction.")}{" "}
                             <Link
                                 href={`/dashboard/accounts/${account.id}/wallets/new`}
                                 className="underline underline-offset-4"
                             >
-                                Add wallet
+                                {t("Add wallet")}
                             </Link>
                         </p>
                     )}

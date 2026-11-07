@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useSyncExternalStore } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/components/i18n/navigation"
 import type {
     WorkspaceRequest,
     WorkspaceResource,

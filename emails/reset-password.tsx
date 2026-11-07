@@ -1,9 +1,10 @@
 import { AuthEmailLayout, type AuthEmailProps } from "./_components/auth-email"
 
-export default function ResetPassword({ url }: AuthEmailProps) {
+export default function ResetPassword({ url, locale }: AuthEmailProps) {
     return (
         <AuthEmailLayout
             url={url}
+            locale={locale}
             preview="Reset your CentScope password. This link expires in 30 minutes."
             heading="Reset your password"
             message="We received a request to reset your CentScope password. Use the button below to choose a new one."

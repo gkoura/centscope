@@ -1,11 +1,14 @@
 "use client"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { useActionState, useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/components/i18n/navigation"
 import {
     recurringCommand,
     syncRecurring,
     type RecurringState,
-} from "@/app/dashboard/accounts/[id]/recurring/actions"
+} from "@/app/[locale]/dashboard/accounts/[id]/recurring/actions"
 import { Button } from "@/components/ui/button"
 import { FieldError } from "@/components/ui/field"
 export function RecurringControls({
@@ -23,6 +26,8 @@ export function RecurringControls({
     stopped: boolean
     hasNext: boolean
 }) {
+    const t = useTranslations()
+
     const [state, action, pending] = useActionState(
         recurringCommand,
         {} as RecurringState
@@ -63,7 +68,7 @@ export function RecurringControls({
                         value={paused ? "resume" : "pause"}
                         disabled={pending}
                     >
-                        {paused ? "Resume" : "Pause"}
+                        {paused ? t("Resume") : t("Pause")}
                     </Button>
                     {hasNext && !paused && (
                         <Button
@@ -73,7 +78,7 @@ export function RecurringControls({
                             value="skip"
                             disabled={pending}
                         >
-                            Skip next
+                            {t("Skip next")}
                         </Button>
                     )}
                     <Button
@@ -83,22 +88,26 @@ export function RecurringControls({
                         value="stop"
                         disabled={pending}
                     >
-                        Stop
+                        {t("Stop")}
                     </Button>
                 </div>
             )}
             {state.message &&
                 (state.error ? (
-                    <FieldError role="alert">{state.message}</FieldError>
+                    <FieldError role="alert">
+                        {t(state.message || "")}
+                    </FieldError>
                 ) : (
                     <p role="status" className="text-sm text-muted-foreground">
-                        {state.message}
+                        {t(state.message || "")}
                     </p>
                 ))}
         </form>
     )
 }
 export function SyncRecurringButton({ accountId }: { accountId: string }) {
+    const t = useTranslations()
+
     const [pending, start] = useTransition(),
         [message, setMessage] = useState(""),
         router = useRouter()
@@ -134,10 +143,10 @@ export function SyncRecurringButton({ accountId }: { accountId: string }) {
                     })
                 }
             >
-                {pending ? "Preparing…" : "Prepare pending transactions"}
+                {pending ? t("Preparing…") : t("Prepare pending transactions")}
             </Button>
             <p role="status" className="text-sm text-muted-foreground">
-                {message}
+                {t(message || "")}
             </p>
         </div>
     )

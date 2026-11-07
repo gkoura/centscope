@@ -1,5 +1,10 @@
 "use client"
 
+import { useLocale } from "@/components/i18n/locale-provider"
+import { intlLocale } from "@/lib/i18n/config"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { useId, useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
@@ -33,12 +38,7 @@ const chartConfig = {
     income: { label: "Income", color: "var(--income)" },
     expense: { label: "Expenses", color: "var(--expense)" },
 } satisfies ChartConfig
-const monthLabel = (month: string, short = false) =>
-    new Intl.DateTimeFormat("en", {
-        month: short ? "short" : "long",
-        ...(short ? {} : { year: "numeric" }),
-        timeZone: "UTC",
-    }).format(new Date(`${month}-01T00:00:00Z`))
+
 const selectClass =
     "min-h-11 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-base sm:text-sm focus-visible:outline-2 focus-visible:outline-ring"
 
@@ -49,6 +49,16 @@ export function MonthlyTrends({
     accountId: string
     today: string
 }) {
+    const locale = useLocale()
+    const monthLabel = (month: string, short = false) =>
+        new Intl.DateTimeFormat(intlLocale(locale), {
+            month: short ? "short" : "long",
+            ...(short ? {} : { year: "numeric" }),
+            timeZone: "UTC",
+        }).format(new Date(`${month}-01T00:00:00Z`))
+
+    const t = useTranslations()
+
     const headingId = useId()
     const thisYear = Number(today.slice(0, 4))
     const [range, setRange] = useState("rolling")
@@ -95,7 +105,7 @@ export function MonthlyTrends({
             ...Array.from({ length: 31 }, (_, index) => thisYear - index),
         ]),
     ].sort((a, b) => b - a)
-    const label = type === "INCOME" ? "Income" : "Expenses"
+    const label = type === "INCOME" ? t("Income") : t("Expenses")
     const flow = type === "INCOME" ? "income" : "expense"
     const rangeLabel = `${monthLabel(trendMonths(endMonth)[0])} – ${monthLabel(endMonth)}`
     const hasAmount = points.some((point) => point.amount !== "0.00")
@@ -105,11 +115,12 @@ export function MonthlyTrends({
         <Card role="region" aria-labelledby={headingId}>
             <CardHeader>
                 <CardTitle>
-                    <h2 id={headingId}>Monthly trends</h2>
+                    <h2 id={headingId}>{t("Monthly trends")}</h2>
                 </CardTitle>
                 <CardDescription>
-                    Compare income and expenses month by month. This section
-                    uses its own range, independent of the period above.
+                    {t(
+                        "Compare income and expenses month by month. This section uses its own range, independent of the period above."
+                    )}
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex min-w-0 flex-col gap-5">
@@ -119,14 +130,14 @@ export function MonthlyTrends({
                         onValueChange={(value) => setType(value as typeof type)}
                     >
                         <TabsList
-                            aria-label="Monthly trend type"
+                            aria-label={t("Monthly trend type")}
                             className="h-11"
                         >
                             <TabsTrigger value="EXPENSE" className="min-h-10">
-                                Expenses
+                                {t("Expenses")}
                             </TabsTrigger>
                             <TabsTrigger value="INCOME" className="min-h-10">
-                                Income
+                                {t("Income")}
                             </TabsTrigger>
                         </TabsList>
                     </Tabs>
@@ -135,7 +146,7 @@ export function MonthlyTrends({
                             variant="outline"
                             size="icon"
                             className="size-11"
-                            aria-label="Previous trend year"
+                            aria-label={t("Previous trend year")}
                             disabled={
                                 range !== "rolling" && Number(range) <= 1901
                             }
@@ -156,7 +167,7 @@ export function MonthlyTrends({
                                 htmlFor={`${headingId}-range`}
                                 className="sr-only"
                             >
-                                Monthly trend range
+                                {t("Monthly trend range")}
                             </FieldLabel>
                             <select
                                 id={`${headingId}-range`}
@@ -166,7 +177,9 @@ export function MonthlyTrends({
                                     setRange(event.target.value)
                                 }
                             >
-                                <option value="rolling">Last 12 months</option>
+                                <option value="rolling">
+                                    {t("Last 12 months")}
+                                </option>
                                 {years.map((year) => (
                                     <option key={year} value={String(year)}>
                                         {year}
@@ -178,7 +191,7 @@ export function MonthlyTrends({
                             variant="outline"
                             size="icon"
                             className="size-11"
-                            aria-label="Next trend year"
+                            aria-label={t("Next trend year")}
                             disabled={
                                 range === "rolling" || Number(range) >= thisYear
                             }
@@ -190,8 +203,8 @@ export function MonthlyTrends({
                 </div>
                 <p className="text-xs text-muted-foreground">
                     {rangeLabel} ·{" "}
-                    {range === "rolling" ? "12 completed months · " : ""}Posted
-                    entries only
+                    {range === "rolling" ? t("12 completed months · ") : ""}
+                    {t("Posted entries only")}
                 </p>
                 {type === "EXPENSE" && (
                     <div className="flex flex-col gap-2">
@@ -202,34 +215,38 @@ export function MonthlyTrends({
                             }
                         >
                             <TabsList
-                                aria-label="Expense calculation"
+                                aria-label={t("Expense calculation")}
                                 className="h-11"
                             >
                                 <TabsTrigger
                                     value="actual"
                                     className="min-h-10"
                                 >
-                                    Actual
+                                    {t("Actual")}
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="smoothed"
                                     className="min-h-10"
                                 >
-                                    Smoothed
+                                    {t("Smoothed")}
                                 </TabsTrigger>
                             </TabsList>
                         </Tabs>
                         <p className="text-xs leading-5 text-muted-foreground">
                             {mode === "actual"
-                                ? "Expenses count in the month the payment was made."
-                                : "Spread expenses count across their assigned months; other expenses use their payment month."}
+                                ? t(
+                                      "Expenses count in the month the payment was made."
+                                  )
+                                : t(
+                                      "Spread expenses count across their assigned months; other expenses use their payment month."
+                                  )}
                         </p>
                     </div>
                 )}
                 {!result.data || !reference.data ? (
                     <WorkspaceQueryState
                         queries={[result, reference]}
-                        label="Loading monthly trends…"
+                        label={t("Loading monthly trends…")}
                     />
                 ) : (
                     <>
@@ -250,7 +267,7 @@ export function MonthlyTrends({
                                     <FieldLabel
                                         htmlFor={`${headingId}-currency`}
                                     >
-                                        Currency
+                                        {t("Currency")}
                                     </FieldLabel>
                                     <select
                                         id={`${headingId}-currency`}
@@ -262,7 +279,7 @@ export function MonthlyTrends({
                                     >
                                         {currencies.map((item) => (
                                             <option key={item} value={item}>
-                                                {currencyLabel(item)}
+                                                {t(currencyLabel(item))}
                                             </option>
                                         ))}
                                     </select>
@@ -278,11 +295,11 @@ export function MonthlyTrends({
                                 >
                                     <div>
                                         <p className="text-xs text-muted-foreground">
-                                            {label} ·{" "}
+                                            {t(label || "")} ·{" "}
                                             {type === "INCOME" ||
                                             mode === "actual"
-                                                ? "Actual"
-                                                : "Smoothed"}
+                                                ? t("Actual")
+                                                : t("Smoothed")}
                                         </p>
                                         <p
                                             data-flow={flow}
@@ -290,18 +307,22 @@ export function MonthlyTrends({
                                         >
                                             {formatWalletMoney(
                                                 data.total,
-                                                activeCurrency
+                                                activeCurrency,
+                                                intlLocale(locale)
                                             )}
                                         </p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground">
-                                            Monthly average · all 12 months
+                                            {t(
+                                                "Monthly average · all 12 months"
+                                            )}
                                         </p>
                                         <p className="mt-1 text-xl font-semibold wrap-break-word tabular-nums">
                                             {formatWalletMoney(
                                                 data.average,
-                                                activeCurrency
+                                                activeCurrency,
+                                                intlLocale(locale)
                                             )}
                                         </p>
                                     </div>
@@ -312,14 +333,47 @@ export function MonthlyTrends({
                                         className="rounded-lg border border-dashed p-4 text-sm leading-6 text-muted-foreground"
                                     >
                                         {selectionCount === 0
-                                            ? "Select at least one category, or clear filters to include everything."
-                                            : `No posted ${type === "INCOME" ? "income" : "expenses"} match these filters in this range. Try another year or clear the category filters.`}
+                                            ? t(
+                                                  "Select at least one category, or clear filters to include everything."
+                                              )
+                                            : t(
+                                                  "No posted {value0} match these filters in this range. Try another year or clear the category filters.",
+                                                  {
+                                                      value0:
+                                                          type === "INCOME"
+                                                              ? t("income")
+                                                              : t("expenses"),
+                                                  }
+                                              )}
                                     </p>
                                 )}
                                 <ChartContainer
-                                    config={chartConfig}
+                                    config={{
+                                        income: {
+                                            ...chartConfig.income,
+                                            label: t("Income"),
+                                        },
+                                        expense: {
+                                            ...chartConfig.expense,
+                                            label: t("Expenses"),
+                                        },
+                                    }}
                                     role="group"
-                                    aria-label={`${label} by month in ${currencyLabel(activeCurrency)}, ${rangeLabel}, ${mode === "smoothed" && type === "EXPENSE" ? "smoothed" : "actual"}`}
+                                    aria-label={t(
+                                        "{value0} by month in {value1}, {value2}, {value3}",
+                                        {
+                                            value0: label,
+                                            value1: t(
+                                                currencyLabel(activeCurrency)
+                                            ),
+                                            value2: rangeLabel,
+                                            value3:
+                                                mode === "smoothed" &&
+                                                type === "EXPENSE"
+                                                    ? t("Smoothed")
+                                                    : t("Actual"),
+                                        }
+                                    )}
                                     className="aspect-auto h-64 w-full min-w-0"
                                 >
                                     <BarChart
@@ -350,7 +404,7 @@ export function MonthlyTrends({
                                             tickFormatter={(value) =>
                                                 appendCurrencySymbol(
                                                     new Intl.NumberFormat(
-                                                        "en",
+                                                        intlLocale(locale),
                                                         {
                                                             notation: "compact",
                                                             maximumFractionDigits: 1,
@@ -379,7 +433,10 @@ export function MonthlyTrends({
                                                         >
                                                             {formatWalletMoney(
                                                                 point.amount,
-                                                                activeCurrency
+                                                                activeCurrency,
+                                                                intlLocale(
+                                                                    locale
+                                                                )
                                                             )}
                                                         </strong>
                                                         {point.month >=
@@ -388,8 +445,9 @@ export function MonthlyTrends({
                                                                 7
                                                             ) && (
                                                             <span className="text-muted-foreground">
-                                                                Recorded entries
-                                                                so far
+                                                                {t(
+                                                                    "Recorded entries so far"
+                                                                )}
                                                             </span>
                                                         )}
                                                     </div>
@@ -398,7 +456,7 @@ export function MonthlyTrends({
                                         />
                                         <Bar
                                             dataKey="value"
-                                            name={label}
+                                            name={t(label || "")}
                                             fill={`var(--color-${flow})`}
                                             radius={[4, 4, 0, 0]}
                                             maxBarSize={36}
@@ -407,20 +465,18 @@ export function MonthlyTrends({
                                     </BarChart>
                                 </ChartContainer>
                                 <p className="text-xs leading-5 text-muted-foreground">
-                                    Pending entries, transfers, opening balances
-                                    and adjustments are excluded. Current and
-                                    future months contain recorded entries so
-                                    far, not a forecast. Currencies are never
-                                    combined.
+                                    {t(
+                                        "Pending entries, transfers, opening balances and adjustments are excluded. Current and future months contain recorded entries so far, not a forecast. Currencies are never combined."
+                                    )}
                                 </p>
                                 <details className="rounded-xl border">
                                     <summary className="min-h-11 cursor-pointer px-4 py-3 text-xs font-medium">
-                                        View monthly amounts
+                                        {t("View monthly amounts")}
                                     </summary>
                                     <table className="w-full border-t text-sm">
                                         <caption className="sr-only">
-                                            {label} by month ·{" "}
-                                            {currencyLabel(activeCurrency)}
+                                            {t(label || "")} {t("by month ·")}{" "}
+                                            {t(currencyLabel(activeCurrency))}
                                         </caption>
                                         <thead>
                                             <tr>
@@ -428,13 +484,13 @@ export function MonthlyTrends({
                                                     scope="col"
                                                     className="px-4 py-2 text-left"
                                                 >
-                                                    Month
+                                                    {t("Month")}
                                                 </th>
                                                 <th
                                                     scope="col"
                                                     className="px-4 py-2 text-right"
                                                 >
-                                                    {label}
+                                                    {t(label || "")}
                                                 </th>
                                             </tr>
                                         </thead>
@@ -453,13 +509,14 @@ export function MonthlyTrends({
                                                         )}
                                                         {point.month >=
                                                         today.slice(0, 7)
-                                                            ? " · so far"
+                                                            ? t(" · so far")
                                                             : ""}
                                                     </th>
                                                     <td className="px-4 py-2 text-right text-xs tabular-nums">
                                                         {formatWalletMoney(
                                                             point.amount,
-                                                            activeCurrency
+                                                            activeCurrency,
+                                                            intlLocale(locale)
                                                         )}
                                                     </td>
                                                 </tr>
@@ -470,8 +527,9 @@ export function MonthlyTrends({
                             </>
                         ) : (
                             <p className="text-sm text-muted-foreground">
-                                Add a wallet and posted transactions to see your
-                                monthly trends.
+                                {t(
+                                    "Add a wallet and posted transactions to see your monthly trends."
+                                )}
                             </p>
                         )}
                     </>

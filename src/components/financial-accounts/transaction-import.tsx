@@ -1,15 +1,17 @@
 "use client"
 
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { currencySymbol } from "@/lib/currency"
 
-import Link from "next/link"
+import Link from "@/components/i18n/link"
 import { useMemo, useRef, useState, useTransition } from "react"
 import { Download, FileUp, CheckCircle2 } from "lucide-react"
 import {
     prepareTransactionImport,
     importTransactionBatch,
     finishTransactionImport,
-} from "@/app/dashboard/accounts/[id]/transactions/actions"
+} from "@/app/[locale]/dashboard/accounts/[id]/transactions/actions"
 import {
     MAX_IMPORT_BYTES,
     previewTransactionImport,
@@ -51,6 +53,8 @@ export function TransactionImport({
     wallets: ImportWallet[]
     categories: ImportCategory[]
 }) {
+    const t = useTranslations()
+
     const [csv, setCsv] = useState("")
     const [filename, setFilename] = useState("")
     const [message, setMessage] = useState("")
@@ -68,10 +72,11 @@ export function TransactionImport({
                       csv,
                       financialAccountId,
                       wallets,
-                      categories
+                      categories,
+                      t
                   )
                 : null,
-        [csv, financialAccountId, wallets, categories]
+        [csv, financialAccountId, wallets, categories, t]
     )
     async function runImport() {
         pause.current = false
@@ -85,7 +90,7 @@ export function TransactionImport({
                 })
                 if (!prepared.plan) {
                     setMessage(
-                        prepared.message ?? "Unable to prepare this file."
+                        prepared.message ?? t("Unable to prepare this file.")
                     )
                     return
                 }
@@ -105,22 +110,30 @@ export function TransactionImport({
             )
             if (!done) {
                 setMessage(
-                    "Import paused. Completed batches are saved. Resume here, or upload this exact file later to continue safely."
+                    t(
+                        "Import paused. Completed batches are saved. Resume here, or upload this exact file later to continue safely."
+                    )
                 )
                 return
             }
             const { imported, skipped } = checkpoint.current
             setSuccess(true)
             setMessage(
-                `Import complete: ${imported} added, ${skipped} already imported and skipped.`
+                t(
+                    "Import complete: {value0} added, {value1} already imported and skipped.",
+                    { value0: imported, value1: skipped }
+                )
             )
         } catch (error) {
             const detail =
                 error instanceof Error
                     ? error.message
-                    : "The connection was interrupted."
+                    : t("The connection was interrupted.")
             setMessage(
-                `${detail} Completed batches remain saved. Resume to safely retry the unconfirmed batch.`
+                t(
+                    "{value0} Completed batches remain saved. Resume to safely retry the unconfirmed batch.",
+                    { value0: detail }
+                )
             )
         } finally {
             if (checkpoint.current) {
@@ -146,63 +159,69 @@ export function TransactionImport({
         <div className="flex flex-col gap-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>1. Prepare your CSV</CardTitle>
+                    <CardTitle>{t("1. Prepare your CSV")}</CardTitle>
                     <CardDescription>
-                        Download the sample, replace the example rows, and keep
-                        the header unchanged.
+                        {t(
+                            "Download the sample, replace the example rows, and keep the header unchanged."
+                        )}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-5">
                     <div>
                         <Button variant="outline" onClick={download}>
                             <Download data-icon="inline-start" />
-                            Download sample CSV
+                            {t("Download sample CSV")}
                         </Button>
                     </div>
                     <dl className="grid gap-4 text-sm sm:grid-cols-2">
                         <div>
-                            <dt className="font-medium">Date, type & amount</dt>
+                            <dt className="font-medium">
+                                {t("Date, type & amount")}
+                            </dt>
                             <dd className="mt-1 text-muted-foreground">
-                                Dates: YYYY-MM-DD. Type: EXPENSE or INCOME.
-                                Amount: positive, with a decimal point and up to
-                                two decimal places. No currency symbols or
-                                thousands separators.
-                            </dd>
-                        </div>
-                        <div>
-                            <dt className="font-medium">Wallet & currency</dt>
-                            <dd className="mt-1 text-muted-foreground">
-                                Use an existing wallet name. Each amount uses
-                                that wallet’s currency. No currency conversion
-                                is performed.
+                                {t(
+                                    "Dates: YYYY-MM-DD. Type: EXPENSE or INCOME. Amount: positive, with a decimal point and up to two decimal places. No currency symbols or thousands separators."
+                                )}
                             </dd>
                         </div>
                         <div>
                             <dt className="font-medium">
-                                Category & subcategory
+                                {t("Wallet & currency")}
                             </dt>
                             <dd className="mt-1 text-muted-foreground">
-                                Use existing category names of the matching
-                                type. Subcategory is optional; leave its cell
-                                empty when unused. Names are case-insensitive.
+                                {t(
+                                    "Use an existing wallet name. Each amount uses that wallet’s currency. No currency conversion is performed."
+                                )}
                             </dd>
                         </div>
                         <div>
-                            <dt className="font-medium">Status & notes</dt>
+                            <dt className="font-medium">
+                                {t("Category & subcategory")}
+                            </dt>
                             <dd className="mt-1 text-muted-foreground">
-                                Status: POSTED or PENDING. Posted transactions
-                                affect balances immediately. Notes are optional.
-                                Quote cells containing commas or line breaks.
+                                {t(
+                                    "Use existing category names of the matching type. Subcategory is optional; leave its cell empty when unused. Names are case-insensitive."
+                                )}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt className="font-medium">
+                                {t("Status & notes")}
+                            </dt>
+                            <dd className="mt-1 text-muted-foreground">
+                                {t(
+                                    "Status: POSTED or PENDING. Posted transactions affect balances immediately. Notes are optional. Quote cells containing commas or line breaks."
+                                )}
                             </dd>
                         </div>
                     </dl>
                     <details className="rounded-lg border p-4 text-sm">
                         <summary className="cursor-pointer font-medium">
-                            Your available wallet and category names
+                            {t("Your available wallet and category names")}
                         </summary>
                         <div className="mt-4 grid gap-4 sm:grid-cols-2">
                             <div>
-                                <h3 className="font-medium">Wallets</h3>
+                                <h3 className="font-medium">{t("Wallets")}</h3>
                                 <ul className="mt-2 flex flex-col gap-1 text-muted-foreground">
                                     {wallets.map((wallet) => (
                                         <li key={wallet.id}>
@@ -213,7 +232,9 @@ export function TransactionImport({
                                 </ul>
                             </div>
                             <div>
-                                <h3 className="font-medium">Categories</h3>
+                                <h3 className="font-medium">
+                                    {t("Categories")}
+                                </h3>
                                 <ul className="mt-2 flex flex-col gap-1 text-muted-foreground">
                                     {categories.map((category) => (
                                         <li key={category.id}>
@@ -231,23 +252,24 @@ export function TransactionImport({
                             className="mt-4 inline-block underline underline-offset-4"
                             href={`/dashboard/accounts/${financialAccountId}/categories`}
                         >
-                            Manage categories
+                            {t("Manage categories")}
                         </Link>
                     </details>
                 </CardContent>
             </Card>
             <Card>
                 <CardHeader>
-                    <CardTitle>2. Upload & review</CardTitle>
+                    <CardTitle>{t("2. Upload & review")}</CardTitle>
                     <CardDescription>
-                        UTF-8 CSV, up to 2,000 transactions and 2 MB. All rows
-                        are checked first, then saved in batches of 50.
+                        {t(
+                            "UTF-8 CSV, up to 2,000 transactions and 2 MB. All rows are checked first, then saved in batches of 50."
+                        )}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
                     <Field>
                         <FieldLabel htmlFor="transaction-csv">
-                            CSV file
+                            {t("CSV file")}
                         </FieldLabel>
                         <Input
                             id="transaction-csv"
@@ -288,14 +310,14 @@ export function TransactionImport({
                             }}
                         />
                         <FieldDescription>
-                            Nothing is saved until you confirm. Importing the
-                            exact same file again skips its previously saved
-                            rows; modified files are treated as new imports.
+                            {t(
+                                "Nothing is saved until you confirm. Importing the exact same file again skips its previously saved rows; modified files are treated as new imports."
+                            )}
                         </FieldDescription>
                     </Field>
                     {!wallets.length && (
                         <p role="alert" className="text-sm text-destructive">
-                            Add a wallet before importing transactions.
+                            {t("Add a wallet before importing transactions.")}
                         </p>
                     )}
                     {preview?.errors.length ? (
@@ -304,22 +326,22 @@ export function TransactionImport({
                             className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm"
                         >
                             <p className="font-medium">
-                                Fix {preview.errors.length}{" "}
+                                {t("Fix")} {preview.errors.length}{" "}
                                 {preview.errors.length === 1
-                                    ? "issue"
-                                    : "issues"}{" "}
-                                in your CSV and upload it again.
+                                    ? t("issue")
+                                    : t("issues")}{" "}
+                                {t("in your CSV and upload it again.")}
                             </p>
                             <ul className="mt-2 flex list-disc flex-col gap-1 pl-5">
                                 {preview.errors
                                     .slice(0, 20)
                                     .map((error, index) => (
-                                        <li key={index}>{error}</li>
+                                        <li key={index}>{t(error || "")}</li>
                                     ))}
                             </ul>
                             {preview.errors.length > 20 && (
                                 <p className="mt-2">
-                                    Showing the first 20 issues.
+                                    {t("Showing the first 20 issues.")}
                                 </p>
                             )}
                         </div>
@@ -327,25 +349,27 @@ export function TransactionImport({
                     {preview?.rows.length ? (
                         <>
                             <p className="text-sm font-medium">
-                                {filename} · {preview.rows.length} valid
-                                transactions
+                                {filename} · {preview.rows.length}{" "}
+                                {t("valid transactions")}
                                 {preview.errors.length
-                                    ? " (import blocked until all issues are fixed)"
+                                    ? t(
+                                          " (import blocked until all issues are fixed)"
+                                      )
                                     : success
-                                      ? " processed"
-                                      : " ready to import"}
+                                      ? t(" processed")
+                                      : t(" ready to import")}
                             </p>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Date</TableHead>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Wallet</TableHead>
-                                        <TableHead>Type</TableHead>
+                                        <TableHead>{t("Date")}</TableHead>
+                                        <TableHead>{t("Name")}</TableHead>
+                                        <TableHead>{t("Wallet")}</TableHead>
+                                        <TableHead>{t("Type")}</TableHead>
                                         <TableHead className="text-right">
-                                            Amount
+                                            {t("Amount")}
                                         </TableHead>
-                                        <TableHead>Status</TableHead>
+                                        <TableHead>{t("Status")}</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -370,8 +394,8 @@ export function TransactionImport({
                                                 </TableCell>
                                                 <TableCell>
                                                     {row.type === "EXPENSE"
-                                                        ? "Expense"
-                                                        : "Income"}
+                                                        ? t("Expense")
+                                                        : t("Income")}
                                                 </TableCell>
                                                 <TableCell className="text-right tabular-nums">
                                                     {row.type === "EXPENSE"
@@ -388,8 +412,8 @@ export function TransactionImport({
                                                 </TableCell>
                                                 <TableCell>
                                                     {row.status === "POSTED"
-                                                        ? "Posted"
-                                                        : "Pending"}
+                                                        ? t("Posted")
+                                                        : t("Pending")}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -397,8 +421,9 @@ export function TransactionImport({
                             </Table>
                             {preview.rows.length > 10 && (
                                 <p className="text-xs text-muted-foreground">
-                                    Previewing the first 10 of{" "}
-                                    {preview.rows.length.toLocaleString()} rows.
+                                    {t("Previewing the first 10 of")}{" "}
+                                    {preview.rows.length.toLocaleString()}{" "}
+                                    {t("rows.")}
                                 </p>
                             )}
                         </>
@@ -413,9 +438,9 @@ export function TransactionImport({
                                 htmlFor="import-progress"
                                 className="text-sm font-medium"
                             >
-                                {progress.completed.toLocaleString()} of{" "}
-                                {progress.total.toLocaleString()} transactions
-                                processed
+                                {progress.completed.toLocaleString()} {t("of")}{" "}
+                                {progress.total.toLocaleString()}{" "}
+                                {t("transactions processed")}
                             </label>
                             <progress
                                 id="import-progress"
@@ -424,10 +449,12 @@ export function TransactionImport({
                                 className="h-2 w-full accent-primary"
                             />
                             <p className="text-xs text-muted-foreground">
-                                {progress.imported} added · {progress.skipped}{" "}
-                                already imported.
+                                {progress.imported} {t("added ·")}{" "}
+                                {progress.skipped} {t("already imported.")}
                                 {!success &&
-                                    " Keep this page open while importing. Closing it stops the remaining batches; upload the exact same file to continue."}
+                                    t(
+                                        " Keep this page open while importing. Closing it stops the remaining batches; upload the exact same file to continue."
+                                    )}
                             </p>
                         </div>
                     )}
@@ -442,7 +469,7 @@ export function TransactionImport({
                                     className="mr-2 inline size-4"
                                 />
                             )}
-                            {message}
+                            {t(message || "")}
                         </p>
                     )}
                     <div className="flex flex-wrap gap-3">
@@ -456,8 +483,8 @@ export function TransactionImport({
                                 }}
                             >
                                 {pauseRequested
-                                    ? "Pausing after this batch…"
-                                    : "Pause import"}
+                                    ? t("Pausing after this batch…")
+                                    : t("Pause import")}
                             </Button>
                         )}
                         {success ? (
@@ -469,7 +496,7 @@ export function TransactionImport({
                                 }
                                 nativeButton={false}
                             >
-                                View transactions
+                                {t("View transactions")}
                             </Button>
                         ) : (
                             <Button
@@ -484,10 +511,12 @@ export function TransactionImport({
                             >
                                 <FileUp data-icon="inline-start" />
                                 {pending
-                                    ? "Importing…"
+                                    ? t("Importing…")
                                     : progress
-                                      ? "Resume import"
-                                      : `Import ${preview?.rows.length ?? ""} transactions`}
+                                      ? t("Resume import")
+                                      : t("Import {value0} transactions", {
+                                            value0: preview?.rows.length ?? "",
+                                        })}
                             </Button>
                         )}
                     </div>

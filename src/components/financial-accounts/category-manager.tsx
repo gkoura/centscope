@@ -1,5 +1,7 @@
 "use client"
 
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { flushSync } from "react-dom"
 import { toast } from "sonner"
 import { useCallback, useState, useRef } from "react"
@@ -41,7 +43,7 @@ import {
     EmptyMedia,
     EmptyContent,
 } from "@/components/ui/empty"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/components/i18n/navigation"
 import { DragDropProvider } from "@dnd-kit/react"
 import { isSortable } from "@dnd-kit/react/sortable"
 import {
@@ -53,7 +55,7 @@ import {
     type DragStartEvent,
     type DragOverEvent,
 } from "@dnd-kit/dom"
-import { reorderCategories } from "@/app/dashboard/accounts/[id]/categories/actions"
+import { reorderCategories } from "@/app/[locale]/dashboard/accounts/[id]/categories/actions"
 import { categoryOrderChanges } from "@/lib/category-input"
 import { SortableCategory, CategoryDragHandle } from "./sortable-category"
 
@@ -67,6 +69,8 @@ export function CategoryManager({
     financialAccountId: string
     categories: Category[]
 }) {
+    const t = useTranslations()
+
     const router = useRouter()
     const baseline = JSON.stringify(serverCategories)
     const [draft, setDraft] = useState<{
@@ -135,7 +139,7 @@ export function CategoryManager({
         setDraft(null)
         // Reset the drag library's optimistic DOM as well as the React draft.
         setListRevision((revision) => revision + 1)
-        setOrderStatus("Changes canceled")
+        setOrderStatus(t("Changes canceled"))
         requestAnimationFrame(() =>
             document
                 .querySelector<HTMLElement>("[data-sortable-handle]")
@@ -146,21 +150,22 @@ export function CategoryManager({
         if (!dirty || savingRef.current) return
         savingRef.current = true
         setSaving(true)
-        setOrderStatus("Saving…")
-        let failureMessage =
+        setOrderStatus(t("Saving…"))
+        let failureMessage = t(
             "Couldn’t save the order. Your changes are kept; try again."
+        )
         try {
             const result = await reorderCategories({
                 financialAccountId,
                 groups: changes,
             })
             if (!result.success) {
-                failureMessage = result.message
+                failureMessage = t(result.message)
                 throw new Error(failureMessage)
             }
             setConfirmed({ baseline, categories: result.categories })
             setDraft(null)
-            setOrderStatus("Order saved")
+            setOrderStatus(t("Order saved"))
         } catch {
             setOrderStatus(failureMessage)
             toast.error(failureMessage)
@@ -177,12 +182,15 @@ export function CategoryManager({
         type: CategoryType
         parentId?: string
     } | null>(null)
-    const closeCreation = useCallback((createdType: CategoryType) => {
-        setType(createdType)
-        toast.success("Category created")
-        setCreating(null)
-        setQuery("")
-    }, [])
+    const closeCreation = useCallback(
+        (createdType: CategoryType) => {
+            setType(createdType)
+            toast.success(t("Category created"))
+            setCreating(null)
+            setQuery("")
+        },
+        [t]
+    )
     const search = query.trim().toLocaleLowerCase()
     const roots = categories.filter((c) => !c.parentId)
     const children = new Map<string, Category[]>()
@@ -235,20 +243,32 @@ export function CategoryManager({
                 ...defaults.filter((plugin) => plugin !== Accessibility),
                 Accessibility.configure({
                     screenReaderInstructions: {
-                        draggable:
-                            "Press Space or Enter to pick up. Use arrow keys to reorder within this group. Press Space or Enter to drop, or Escape to cancel.",
+                        draggable: t(
+                            "Press Space or Enter to pick up. Use arrow keys to reorder within this group. Press Space or Enter to drop, or Escape to cancel."
+                        ),
                     },
                     announcements: {
                         dragstart: ({ operation }: DragStartEvent) =>
-                            `Picked up ${operation.source?.data.name}.`,
+                            t("Picked up {name}.", {
+                                name: String(operation.source?.data.name ?? ""),
+                            }),
                         dragover: ({ operation }: DragOverEvent) =>
                             isSortable(operation.source)
-                                ? `${operation.source.data.name}, position ${operation.source.index + 1}.`
+                                ? t("{name}, position {position}.", {
+                                      name: String(
+                                          operation.source.data.name ?? ""
+                                      ),
+                                      position: operation.source.index + 1,
+                                  })
                                 : undefined,
                         dragend: ({ operation, canceled }: DragEndEvent) =>
                             canceled
-                                ? "Reordering canceled."
-                                : `Dropped ${operation.source?.data.name}.`,
+                                ? t("Reordering canceled.")
+                                : t("Dropped {name}.", {
+                                      name: String(
+                                          operation.source?.data.name ?? ""
+                                      ),
+                                  }),
                     },
                 }),
             ]}
@@ -266,11 +286,12 @@ export function CategoryManager({
                         </span>
                         <div>
                             <p className="font-medium">
-                                Your categories, your way
+                                {t("Your categories, your way")}
                             </p>
                             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                                {roots.length} categories ·{" "}
-                                {categories.length - roots.length} subcategories
+                                {roots.length} {t("categories ·")}{" "}
+                                {categories.length - roots.length}{" "}
+                                {t("subcategories")}
                             </p>
                         </div>
                     </div>
@@ -280,14 +301,16 @@ export function CategoryManager({
                         onClick={() => setCreating({ type })}
                     >
                         <Plus data-icon="inline-start" />
-                        New category
+                        {t("New category")}
                     </Button>
                 </div>
                 <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
                     <p id="category-reorder-help">
                         {search
-                            ? "Clear search to reorder categories."
-                            : "Drag to reorder, then save your changes. Use Space and arrow keys with a keyboard."}
+                            ? t("Clear search to reorder categories.")
+                            : t(
+                                  "Drag to reorder, then save your changes. Use Space and arrow keys with a keyboard."
+                              )}
                     </p>
                     <p role="status" aria-live="polite">
                         {orderStatus}
@@ -295,16 +318,17 @@ export function CategoryManager({
                 </div>
                 {dirty && (
                     <section
-                        aria-label="Unsaved category order"
+                        aria-label={t("Unsaved category order")}
                         className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-muted p-4"
                     >
                         <div>
                             <p className="text-sm font-medium">
-                                Unsaved category order
+                                {t("Unsaved category order")}
                             </p>
                             <p className="mt-1 text-xs text-muted-foreground">
-                                Save or cancel your order before adding or
-                                editing categories.
+                                {t(
+                                    "Save or cancel your order before adding or editing categories."
+                                )}
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -313,13 +337,13 @@ export function CategoryManager({
                                 disabled={saving}
                                 onClick={cancelOrder}
                             >
-                                Cancel
+                                {t("Cancel")}
                             </Button>
                             <Button
                                 disabled={saving}
                                 onClick={() => void saveOrder()}
                             >
-                                {saving ? "Saving…" : "Save order"}
+                                {saving ? t("Saving…") : t("Save order")}
                             </Button>
                         </div>
                     </section>
@@ -330,10 +354,10 @@ export function CategoryManager({
                     className="gap-5"
                 >
                     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                        <TabsList aria-label="Category type">
+                        <TabsList aria-label={t("Category type")}>
                             <TabsTrigger value="EXPENSE">
                                 <ArrowUpRight data-icon="inline-start" />
-                                Expenses{" "}
+                                {t("Expenses")}{" "}
                                 <Badge variant="secondary">
                                     {
                                         categories.filter(
@@ -344,7 +368,7 @@ export function CategoryManager({
                             </TabsTrigger>
                             <TabsTrigger value="INCOME">
                                 <ArrowDownLeft data-icon="inline-start" />
-                                Income{" "}
+                                {t("Income")}{" "}
                                 <Badge variant="secondary">
                                     {
                                         categories.filter(
@@ -360,8 +384,8 @@ export function CategoryManager({
                                     <Search aria-hidden="true" />
                                 </InputGroupAddon>
                                 <InputGroupInput
-                                    aria-label="Search categories"
-                                    placeholder="Search categories…"
+                                    aria-label={t("Search categories")}
+                                    placeholder={t("Search categories…")}
                                     value={query}
                                     onChange={(event) =>
                                         setQuery(event.target.value)
@@ -370,7 +394,7 @@ export function CategoryManager({
                                 {query && (
                                     <InputGroupAddon align="inline-end">
                                         <InputGroupButton
-                                            aria-label="Clear search"
+                                            aria-label={t("Clear search")}
                                             size="icon-xs"
                                             onClick={() => setQuery("")}
                                         >
@@ -390,11 +414,16 @@ export function CategoryManager({
                                 >
                                     {visible.length}{" "}
                                     {visible.length === 1
-                                        ? "category"
-                                        : "categories"}
+                                        ? t("category")
+                                        : t("categories")}
                                     {search
-                                        ? " matching your search"
-                                        : ` for ${type === "EXPENSE" ? "money out" : "money in"}`}
+                                        ? t(" matching your search")
+                                        : t(" for {value0}", {
+                                              value0:
+                                                  type === "EXPENSE"
+                                                      ? t("money out")
+                                                      : t("money in"),
+                                          })}
                                 </p>
                                 {!search && expandableRoots.length > 0 && (
                                     <Button
@@ -417,8 +446,8 @@ export function CategoryManager({
                                             aria-hidden="true"
                                         />
                                         {allCollapsed
-                                            ? "Expand all"
-                                            : "Collapse all"}
+                                            ? t("Expand all")
+                                            : t("Collapse all")}
                                     </Button>
                                 )}
                             </div>
@@ -459,7 +488,7 @@ export function CategoryManager({
                                                         <button
                                                             type="button"
                                                             className="absolute inset-0 rounded-xl outline-none hover:bg-accent/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset disabled:cursor-default disabled:hover:bg-transparent"
-                                                            aria-label={`${expanded ? "Collapse" : "Expand"} ${root.name}`}
+                                                            aria-label={`${expanded ? t("Collapse") : t("Expand")} ${root.name}`}
                                                             aria-expanded={
                                                                 expanded
                                                             }
@@ -488,8 +517,10 @@ export function CategoryManager({
                                                             </h3>
                                                             <p className="mt-1 text-xs text-muted-foreground">
                                                                 {allChildren.length
-                                                                    ? `${allChildren.length} ${allChildren.length === 1 ? "subcategory" : "subcategories"}`
-                                                                    : "Top-level category"}
+                                                                    ? `${allChildren.length} ${allChildren.length === 1 ? t("subcategory") : t("subcategories")}`
+                                                                    : t(
+                                                                          "Top-level category"
+                                                                      )}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -507,11 +538,18 @@ export function CategoryManager({
                                                             disabled={
                                                                 dirty || saving
                                                             }
-                                                            aria-label={`Add subcategory to ${root.name}`}
+                                                            aria-label={t(
+                                                                "Add subcategory to {value0}",
+                                                                {
+                                                                    value0: root.name,
+                                                                }
+                                                            )}
                                                         >
                                                             <Plus data-icon="inline-start" />
                                                             <span className="hidden sm:inline">
-                                                                Subcategory
+                                                                {t(
+                                                                    "Subcategory"
+                                                                )}
                                                             </span>
                                                         </Button>
                                                         <CategoryEditor
@@ -614,13 +652,27 @@ export function CategoryManager({
                                         </EmptyMedia>
                                         <EmptyTitle>
                                             {search
-                                                ? "No categories found"
-                                                : `Make room for your ${type === "EXPENSE" ? "expenses" : "income"}`}
+                                                ? t("No categories found")
+                                                : t(
+                                                      "Make room for your {value0}",
+                                                      {
+                                                          value0:
+                                                              type === "EXPENSE"
+                                                                  ? t(
+                                                                        "expenses"
+                                                                    )
+                                                                  : t("income"),
+                                                      }
+                                                  )}
                                         </EmptyTitle>
                                         <EmptyDescription>
                                             {search
-                                                ? "Try a different name, or clear your search to see all categories in this tab."
-                                                : "Create your first category. You can add subcategories whenever you need more detail."}
+                                                ? t(
+                                                      "Try a different name, or clear your search to see all categories in this tab."
+                                                  )
+                                                : t(
+                                                      "Create your first category. You can add subcategories whenever you need more detail."
+                                                  )}
                                         </EmptyDescription>
                                     </EmptyHeader>
                                     <EmptyContent>
@@ -638,8 +690,8 @@ export function CategoryManager({
                                             }
                                         >
                                             {search
-                                                ? "Clear search"
-                                                : "Create a category"}
+                                                ? t("Clear search")
+                                                : t("Create a category")}
                                         </Button>
                                     </EmptyContent>
                                 </Empty>
@@ -648,9 +700,9 @@ export function CategoryManager({
                     ))}
                 </Tabs>
                 <p className="text-xs leading-6 text-muted-foreground">
-                    Categories keep your transactions organized. Use
-                    subcategories for the finer details. Archive categories you
-                    no longer need to keep their transaction history.
+                    {t(
+                        "Categories keep your transactions organized. Use subcategories for the finer details. Archive categories you no longer need to keep their transaction history."
+                    )}
                 </p>
                 <Dialog
                     open={Boolean(creating)}
@@ -662,13 +714,21 @@ export function CategoryManager({
                         <DialogHeader>
                             <DialogTitle>
                                 {creating?.parentId
-                                    ? "New subcategories"
-                                    : "New categories"}
+                                    ? t("New subcategories")
+                                    : t("New categories")}
                             </DialogTitle>
                             <DialogDescription>
                                 {creating?.parentId
-                                    ? `Add more detail under ${categories.find((c) => c.id === creating.parentId)?.name}.`
-                                    : "Add one category or paste a list to create several at once."}
+                                    ? t("Add more detail under {value0}.", {
+                                          value0:
+                                              categories.find(
+                                                  (c) =>
+                                                      c.id === creating.parentId
+                                              )?.name ?? "",
+                                      })
+                                    : t(
+                                          "Add one category or paste a list to create several at once."
+                                      )}
                             </DialogDescription>
                         </DialogHeader>
                         {creating && (

@@ -1,10 +1,12 @@
 "use client"
 
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { currencySymbol, currencyLabel } from "@/lib/currency"
 
 import { useActionState, useState } from "react"
 import { Pencil } from "lucide-react"
-import { updateWallet } from "@/app/dashboard/accounts/[id]/wallets/actions"
+import { updateWallet } from "@/app/[locale]/dashboard/accounts/[id]/wallets/actions"
 import { StatusSwitch } from "./status-switch"
 import { DatePicker } from "@/components/ui/date-picker"
 import { walletTypes, type WalletDetailsState } from "@/lib/wallet-input"
@@ -65,6 +67,8 @@ function WalletEditForm({
     onSaved: () => void
     onPending: (pending: boolean) => void
 }) {
+    const t = useTranslations()
+
     const [baseline] = useState(() => ({
         updatedAt: wallet.updatedAt,
         openingId: wallet.opening?.id ?? "",
@@ -90,8 +94,9 @@ function WalletEditForm({
                 return result
             } catch {
                 return {
-                    message:
-                        "We couldn’t confirm your changes. Refresh the page to check the wallet before trying again.",
+                    message: t(
+                        "We couldn’t confirm your changes. Refresh the page to check the wallet before trying again."
+                    ),
                 }
             } finally {
                 onPending(false)
@@ -126,7 +131,7 @@ function WalletEditForm({
                 <FieldGroup>
                     <Field>
                         <FieldLabel htmlFor={`wallet-name-${wallet.id}`}>
-                            Wallet name
+                            {t("Wallet name")}
                         </FieldLabel>
                         <Input
                             id={`wallet-name-${wallet.id}`}
@@ -140,12 +145,15 @@ function WalletEditForm({
                     </Field>
                     <Field>
                         <FieldLabel htmlFor={`wallet-type-${wallet.id}`}>
-                            Wallet type
+                            {t("Wallet type")}
                         </FieldLabel>
                         <Select
                             name="type"
                             value={type}
-                            items={walletTypes}
+                            items={walletTypes.map((option) => ({
+                                ...option,
+                                label: t(option.label),
+                            }))}
                             onValueChange={(value) => {
                                 if (value) setType(value)
                             }}
@@ -163,7 +171,7 @@ function WalletEditForm({
                                             key={option.value}
                                             value={option.value}
                                         >
-                                            {option.label}
+                                            {t(option.label || "")}
                                         </SelectItem>
                                     ))}
                                 </SelectGroup>
@@ -172,25 +180,26 @@ function WalletEditForm({
                     </Field>
                     <Field>
                         <FieldLabel htmlFor={`wallet-currency-${wallet.id}`}>
-                            Currency
+                            {t("Currency")}
                         </FieldLabel>
                         <Input
                             id={`wallet-currency-${wallet.id}`}
-                            value={currencyLabel(wallet.currency)}
+                            value={t(currencyLabel(wallet.currency))}
                             readOnly
                             aria-describedby={`wallet-currency-help-${wallet.id}`}
                         />
                         <FieldDescription
                             id={`wallet-currency-help-${wallet.id}`}
                         >
-                            Currency is fixed here to preserve financial
-                            history. Name and type changes apply wherever this
-                            wallet is used.
+                            {t(
+                                "Currency is fixed here to preserve financial history. Name and type changes apply wherever this wallet is used."
+                            )}
                         </FieldDescription>
                     </Field>
                     <Field>
                         <FieldLabel htmlFor={`wallet-opening-${wallet.id}`}>
-                            Opening balance ({currencySymbol(wallet.currency)})
+                            {t("Opening balance (")}
+                            {currencySymbol(wallet.currency)})
                         </FieldLabel>
                         <Input
                             id={`wallet-opening-${wallet.id}`}
@@ -208,17 +217,16 @@ function WalletEditForm({
                         <FieldDescription
                             id={`wallet-opening-help-${wallet.id}`}
                         >
-                            The starting amount for this account, not today’s
-                            balance. Negative amounts are allowed. Set to zero
-                            to clear the opening balance; your other
-                            transactions stay separate.
+                            {t(
+                                "The starting amount for this account, not today’s balance. Negative amounts are allowed. Set to zero to clear the opening balance; your other transactions stay separate."
+                            )}
                         </FieldDescription>
                     </Field>
                     <Field>
                         <FieldLabel
                             htmlFor={`wallet-opening-date-${wallet.id}`}
                         >
-                            Opening balance date
+                            {t("Opening balance date")}
                         </FieldLabel>
                         <DatePicker
                             id={`wallet-opening-date-${wallet.id}`}
@@ -229,15 +237,17 @@ function WalletEditForm({
                     </Field>
                     <StatusSwitch
                         name="openingStatus"
-                        label="Opening balance status"
+                        label={t("Opening balance status")}
                         value={openingStatus}
                         onValueChange={setOpeningStatus}
-                        description="Posted counts toward your balance. Pending does not. The date never changes the status automatically."
+                        description={t(
+                            "Posted counts toward your balance. Pending does not. The date never changes the status automatically."
+                        )}
                     />
                 </FieldGroup>
             </fieldset>
             {state.message && (
-                <FieldError role="alert">{state.message}</FieldError>
+                <FieldError role="alert">{t(state.message || "")}</FieldError>
             )}
             <DialogFooter>
                 <DialogClose
@@ -249,10 +259,10 @@ function WalletEditForm({
                         />
                     }
                 >
-                    Cancel
+                    {t("Cancel")}
                 </DialogClose>
                 <Button type="submit" disabled={pending}>
-                    {pending ? "Saving…" : "Save changes"}
+                    {pending ? t("Saving…") : t("Save changes")}
                 </Button>
             </DialogFooter>
         </form>
@@ -270,6 +280,8 @@ export function WalletEditDialog({
     today: string
     disabled?: boolean
 }) {
+    const t = useTranslations()
+
     const [open, setOpen] = useState(false),
         [pending, setPending] = useState(false)
     return (
@@ -283,19 +295,19 @@ export function WalletEditDialog({
             <DialogTrigger
                 render={<Button variant="outline" size="sm" />}
                 disabled={disabled}
-                aria-label={`Edit ${wallet.name}`}
+                aria-label={t("Edit {value0}", { value0: wallet.name })}
             >
                 <Pencil data-icon="inline-start" />
-                Edit
+                {t("Edit")}
             </DialogTrigger>
             <DialogContent
                 showCloseButton={!pending}
                 className="max-h-[calc(100svh-2rem)] overflow-y-auto sm:max-w-lg"
             >
                 <DialogHeader>
-                    <DialogTitle>Edit wallet</DialogTitle>
+                    <DialogTitle>{t("Edit wallet")}</DialogTitle>
                     <DialogDescription className="wrap-break-word">
-                        Update the details for {wallet.name}.
+                        {t("Update the details for")} {wallet.name}.
                     </DialogDescription>
                 </DialogHeader>
                 <WalletEditForm

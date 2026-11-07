@@ -1,4 +1,5 @@
-import Link from "next/link"
+import { getTranslations } from "@/lib/i18n/server"
+import Link from "@/components/i18n/link"
 import { Suspense } from "react"
 import { WorkspaceBrand } from "@/components/workspace/workspace-brand"
 import { WorkspaceCacheStatus } from "@/components/workspace/workspace-cache-status"
@@ -11,7 +12,9 @@ import {
     SidebarSettingsLink,
     SidebarSettingsNavigation,
 } from "./workspace-navigation"
-export function AppShell({ children }: { children: React.ReactNode }) {
+export async function AppShell({ children }: { children: React.ReactNode }) {
+    const t = await getTranslations()
+
     return (
         <div className="app-shell">
             <Suspense fallback={null}>
@@ -20,10 +23,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <aside className="app-sidebar">
                 <WorkspaceBrand />
                 <p className="mt-10 mb-3 text-[10px] font-semibold tracking-[.15em] text-muted-foreground">
-                    YOUR WORKSPACE
+                    {t("YOUR WORKSPACE")}
                 </p>
                 <nav
-                    aria-label="Workspace navigation"
+                    aria-label={t("Workspace navigation")}
                     className="flex flex-col gap-2"
                 >
                     <Suspense fallback={<WorkspaceNavigationFallback />}>
@@ -31,13 +34,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </Suspense>
                 </nav>
                 <div className="mt-auto flex flex-col gap-4 pt-10">
-                    <nav aria-label="Account settings">
+                    <nav aria-label={t("Account settings")}>
                         <Suspense fallback={<SidebarSettingsLink />}>
                             <SidebarSettingsNavigation />
                         </Suspense>
                     </nav>
                     <p className="text-xs leading-6 text-muted-foreground">
-                        Make sense of every cent.
+                        {t("Make sense of every cent.")}
                     </p>
                 </div>
             </aside>
@@ -50,8 +53,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     {children}
                 </div>
                 <footer className="app-footer">
-                    <span>CentScope · Make sense of every cent.</span>
-                    <Link href="/dashboard/accounts">Manage accounts</Link>
+                    <span>{t("CentScope · Make sense of every cent.")}</span>
+                    <Link href="/dashboard/accounts">
+                        {t("Manage accounts")}
+                    </Link>
                 </footer>
             </div>
             <Suspense fallback={null}>

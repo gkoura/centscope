@@ -1,5 +1,10 @@
 "use client"
 
+import { useLocale } from "@/components/i18n/locale-provider"
+import { formatPeriod } from "@/lib/i18n/format"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { useWorkspaceDay, useWorkspaceQuery } from "./use-workspace-query"
 import { WorkspaceQueryState } from "./workspace-query-state"
 import { PeriodControls } from "./period-controls"
@@ -21,16 +26,22 @@ export function CachedAnalyticsMonthlyTrends({
 }: {
     accountId: string
 }) {
+    const t = useTranslations()
+
     const today = useWorkspaceDay()
-    if (!today) return <SectionLoading label="Loading monthly trends…" />
+    if (!today) return <SectionLoading label={t("Loading monthly trends…")} />
     return <MonthlyTrends key={accountId} accountId={accountId} today={today} />
 }
 
 type Props = { accountId: string; query: TransactionQuery }
 
 export function CachedAnalyticsControls({ accountId, query }: Props) {
+    const locale = useLocale()
+
+    const t = useTranslations()
+
     const today = useWorkspaceDay()
-    if (!today) return <SectionLoading label="Loading period controls…" />
+    if (!today) return <SectionLoading label={t("Loading period controls…")} />
     const period = resolveAccountPeriod(analyticsPeriodInput(query), today)
     return (
         <div className="flex flex-col gap-3">
@@ -39,13 +50,16 @@ export function CachedAnalyticsControls({ accountId, query }: Props) {
                 basePath={`/dashboard/accounts/${accountId}/analytics`}
             />
             <p className="text-xs leading-6 text-muted-foreground">
-                All wallets · posted activity for {period.label}. Currencies are
-                shown separately.
+                {t("All wallets · posted activity for")}{" "}
+                {formatPeriod(period, locale)}
+                {t(". Currencies are shown separately.")}
             </p>
         </div>
     )
 }
 export function CachedAnalyticsActivity({ accountId, query }: Props) {
+    const t = useTranslations()
+
     const result = useWorkspaceQuery(
         "activity",
         accountId,
@@ -55,12 +69,14 @@ export function CachedAnalyticsActivity({ accountId, query }: Props) {
         return (
             <WorkspaceQueryState
                 queries={[result]}
-                label="Loading posted totals and wallet activity…"
+                label={t("Loading posted totals and wallet activity…")}
             />
         )
     return <ActivitySummary activity={result.data} walletActivityExpanded />
 }
 export function CachedAnalyticsCategories({ accountId, query }: Props) {
+    const t = useTranslations()
+
     const result = useWorkspaceQuery(
         "activity",
         accountId,
@@ -70,7 +86,7 @@ export function CachedAnalyticsCategories({ accountId, query }: Props) {
         return (
             <WorkspaceQueryState
                 queries={[result]}
-                label="Loading category spending…"
+                label={t("Loading category spending…")}
             />
         )
     return (

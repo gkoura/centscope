@@ -1,6 +1,12 @@
 "use client"
+
+import { useLocale } from "@/components/i18n/locale-provider"
+import { intlLocale } from "@/lib/i18n/config"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { useState } from "react"
-import Link from "next/link"
+import Link from "@/components/i18n/link"
 import {
     ArrowDownLeft,
     ArrowUpRight,
@@ -36,6 +42,14 @@ export function TransactionFeed({
     transactions: Transaction[]
     returnTo: string
 }) {
+    const locale = useLocale()
+
+    const t = useTranslations()
+    const displayName = (transaction: Transaction) =>
+        transaction.type === "OPENING_BALANCE"
+            ? t("Opening balance")
+            : transaction.name
+
     const [selectedId, setSelectedId] = useState<string | null>(null)
     const selected = transactions.find(
         (transaction) => transaction.id === selectedId
@@ -47,7 +61,7 @@ export function TransactionFeed({
         days.set(transaction.date, rows)
     }
     const dayLabel = (date: string) =>
-        new Intl.DateTimeFormat("en", {
+        new Intl.DateTimeFormat(intlLocale(locale), {
             weekday: "long",
             day: "numeric",
             month: "short",
@@ -68,7 +82,7 @@ export function TransactionFeed({
                             </h3>
                             <span className="text-[10px] text-muted-foreground">
                                 {rows.length}{" "}
-                                {rows.length === 1 ? "entry" : "entries"}
+                                {rows.length === 1 ? t("entry") : t("entries")}
                             </span>
                         </div>
                         <ul className="overflow-hidden rounded-2xl border bg-card">
@@ -92,7 +106,25 @@ export function TransactionFeed({
                                             onClick={() =>
                                                 setSelectedId(transaction.id)
                                             }
-                                            aria-label={`View ${transaction.name}, ${transaction.status.toLowerCase()}, ${formatWalletMoney(transaction.amount, transaction.currency)}`}
+                                            aria-label={t(
+                                                "View {value0}, {value1}, {value2}",
+                                                {
+                                                    value0: displayName(
+                                                        transaction
+                                                    ),
+                                                    value1: t(
+                                                        transaction.status ===
+                                                            "POSTED"
+                                                            ? "Posted"
+                                                            : "Pending"
+                                                    ),
+                                                    value2: formatWalletMoney(
+                                                        transaction.amount,
+                                                        transaction.currency,
+                                                        intlLocale(locale)
+                                                    ),
+                                                }
+                                            )}
                                             aria-describedby={
                                                 [
                                                     transaction.occurrence
@@ -126,15 +158,17 @@ export function TransactionFeed({
                                             </span>
                                             <span className="min-w-0 flex-1 text-left">
                                                 <span className="block truncate text-sm font-medium">
-                                                    {transaction.name}
+                                                    {displayName(transaction)}
                                                 </span>
                                                 <span className="mt-1 block truncate text-[11px] text-muted-foreground">
                                                     {transaction.walletName}
                                                     {transaction.category
                                                         ? ` · ${transaction.category}`
                                                         : transaction.transfer
-                                                          ? " · Transfer"
-                                                          : " · Opening balance"}
+                                                          ? t(" · Transfer")
+                                                          : t(
+                                                                " · Opening balance"
+                                                            )}
                                                 </span>
                                             </span>
                                             <span className="max-w-[45%] min-w-0 shrink-0 text-right">
@@ -153,8 +187,8 @@ export function TransactionFeed({
                                                     {transaction.transfer
                                                         ?.direction ===
                                                     "INTERNAL"
-                                                        ? "Between wallets"
-                                                        : `${transaction.type === "INCOME" ? "+" : ""}${formatWalletMoney(transaction.amount, transaction.currency)}`}
+                                                        ? t("Between wallets")
+                                                        : `${transaction.type === "INCOME" ? "+" : ""}${formatWalletMoney(transaction.amount, transaction.currency, intlLocale(locale))}`}
                                                 </span>
                                             </span>
                                             <ChevronRight
@@ -168,32 +202,41 @@ export function TransactionFeed({
                                                     <Badge
                                                         id={`recurring-${transaction.id}`}
                                                         variant="secondary"
-                                                        title="Part of a repeating transaction"
+                                                        title={t(
+                                                            "Part of a repeating transaction"
+                                                        )}
                                                     >
                                                         <Repeat2
                                                             data-icon="inline-start"
                                                             aria-hidden="true"
                                                         />
-                                                        Recurring
+                                                        {t("Recurring")}
                                                     </Badge>
                                                 )}
                                                 {transaction.expenseSpread && (
                                                     <Badge
                                                         id={`spread-${transaction.id}`}
                                                         variant="secondary"
-                                                        title={`Expense allocated across ${transaction.expenseSpread.monthCount} months`}
+                                                        title={t(
+                                                            "Expense allocated across {value0} months",
+                                                            {
+                                                                value0: transaction
+                                                                    .expenseSpread
+                                                                    .monthCount,
+                                                            }
+                                                        )}
                                                     >
                                                         <CalendarRange
                                                             data-icon="inline-start"
                                                             aria-hidden="true"
                                                         />
-                                                        Spread ·{" "}
+                                                        {t("Spread ·")}{" "}
                                                         {
                                                             transaction
                                                                 .expenseSpread
                                                                 .monthCount
                                                         }{" "}
-                                                        mo
+                                                        {t("mo")}
                                                     </Badge>
                                                 )}
                                             </div>
@@ -220,9 +263,9 @@ export function TransactionFeed({
                                                             transactionId={
                                                                 transaction.id
                                                             }
-                                                            name={
-                                                                transaction.name
-                                                            }
+                                                            name={displayName(
+                                                                transaction
+                                                            )}
                                                             status={
                                                                 transaction.status
                                                             }
@@ -234,13 +277,15 @@ export function TransactionFeed({
                                                 ) : (
                                                     <span
                                                         className="inline-flex min-h-11 items-center text-xs text-muted-foreground"
-                                                        title="This entry is read-only"
+                                                        title={t(
+                                                            "This entry is read-only"
+                                                        )}
                                                     >
                                                         {transaction.status ===
                                                         "POSTED"
-                                                            ? "Posted"
-                                                            : "Pending"}{" "}
-                                                        · Read-only
+                                                            ? t("Posted")
+                                                            : t("Pending")}{" "}
+                                                        {t("· Read-only")}
                                                     </span>
                                                 )}
                                             </div>
@@ -263,7 +308,7 @@ export function TransactionFeed({
                         <>
                             <DialogHeader>
                                 <DialogTitle className="pr-6 leading-6 wrap-break-word">
-                                    {selected.name}
+                                    {displayName(selected)}
                                 </DialogTitle>
                                 <DialogDescription>
                                     {dayLabel(selected.date)} ·{" "}
@@ -283,7 +328,8 @@ export function TransactionFeed({
                                 {selected.type === "INCOME" ? "+" : ""}
                                 {formatWalletMoney(
                                     selected.amount,
-                                    selected.currency
+                                    selected.currency,
+                                    intlLocale(locale)
                                 )}
                             </p>
                             <div className="flex flex-wrap gap-2">
@@ -298,8 +344,8 @@ export function TransactionFeed({
                                         }
                                     >
                                         {selected.type === "INCOME"
-                                            ? "Income"
-                                            : "Expense"}
+                                            ? t("Income")
+                                            : t("Expense")}
                                     </Badge>
                                 )}
                                 {!selected.canChangeStatus && (
@@ -311,18 +357,20 @@ export function TransactionFeed({
                                         }
                                     >
                                         {selected.status === "POSTED"
-                                            ? "Posted"
-                                            : "Pending"}
+                                            ? t("Posted")
+                                            : t("Pending")}
                                     </Badge>
                                 )}
                                 {selected.occurrence && (
-                                    <Badge variant="outline">Recurring</Badge>
+                                    <Badge variant="outline">
+                                        {t("Recurring")}
+                                    </Badge>
                                 )}
                                 {selected.expenseSpread && (
                                     <Badge variant="outline">
-                                        Spread over{" "}
+                                        {t("Spread over")}{" "}
                                         {selected.expenseSpread.monthCount}{" "}
-                                        months
+                                        {t("months")}
                                     </Badge>
                                 )}
                             </div>
@@ -334,12 +382,12 @@ export function TransactionFeed({
                             {selected.transfer && (
                                 <div className="rounded-xl bg-muted p-4 text-sm leading-7">
                                     <p>
-                                        From{" "}
+                                        {t("From")}{" "}
                                         {selected.transfer.source.accountName} ·{" "}
                                         {selected.transfer.source.walletName}
                                     </p>
                                     <p>
-                                        To{" "}
+                                        {t("To")}{" "}
                                         {
                                             selected.transfer.destination
                                                 .accountName
@@ -356,18 +404,20 @@ export function TransactionFeed({
                                                   selected.transfer.source
                                                       .amount,
                                                   selected.transfer.source
-                                                      .currency
+                                                      .currency,
+                                                  intlLocale(locale)
                                               )
-                                            : "Other account"}{" "}
+                                            : t("Other account")}{" "}
                                         →{" "}
                                         {selected.transfer.destination.available
                                             ? formatWalletMoney(
                                                   selected.transfer.destination
                                                       .amount,
                                                   selected.transfer.destination
-                                                      .currency
+                                                      .currency,
+                                                  intlLocale(locale)
                                               )
-                                            : "Other account"}
+                                            : t("Other account")}
                                     </p>
                                 </div>
                             )}
@@ -393,7 +443,7 @@ export function TransactionFeed({
                                                 key={`${selected.id}:${selected.version}`}
                                                 financialAccountId={accountId}
                                                 transactionId={selected.id}
-                                                name={selected.name}
+                                                name={displayName(selected)}
                                                 status={selected.status}
                                                 version={selected.version}
                                             />
@@ -419,15 +469,15 @@ export function TransactionFeed({
                                                 href={`/dashboard/accounts/${accountId}#wallet-settings`}
                                                 className="text-sm text-primary"
                                             >
-                                                Edit in wallet settings →
+                                                {t("Edit in wallet settings →")}
                                             </Link>
                                         )}
                                     </>
                                 ) : (
                                     <p className="text-xs text-muted-foreground">
-                                        This entry is read-only because one of
-                                        its wallets or accounts is no longer
-                                        available.
+                                        {t(
+                                            "This entry is read-only because one of its wallets or accounts is no longer available."
+                                        )}
                                     </p>
                                 )}
                             </div>

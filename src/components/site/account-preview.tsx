@@ -1,3 +1,4 @@
+import { getLocale, getTranslations } from "@/lib/i18n/server"
 import {
     ArrowDownLeft,
     ArrowUpRight,
@@ -26,17 +27,21 @@ const wallets = [
     { name: "Cash", amount: "300 €" },
 ]
 
-function PreviewToolbar({ phone = false }: { phone?: boolean }) {
+async function PreviewToolbar({ phone = false }: { phone?: boolean }) {
+    const t = await getTranslations()
+
     return (
         <div className={styles.toolbar}>
             <div>
-                <span className={styles.label}>Account</span>
+                <span className={styles.label}>{t("Account")}</span>
                 <span className="mt-1 flex items-center gap-3 font-semibold">
-                    Personal{" "}
+                    {t("Personal")}{" "}
                     <ChevronDown className="size-3" aria-hidden="true" />
                 </span>
             </div>
-            {!phone && <span className={styles.activeTab}>Overview</span>}
+            {!phone && (
+                <span className={styles.activeTab}>{t("Overview")}</span>
+            )}
             <div
                 className="ml-auto flex items-center gap-3 text-muted-foreground"
                 aria-hidden="true"
@@ -48,13 +53,18 @@ function PreviewToolbar({ phone = false }: { phone?: boolean }) {
     )
 }
 
-function PreviewBalances() {
+async function PreviewBalances() {
+    const locale = await getLocale()
+    const t = await getTranslations()
+
     return (
         <>
             <div className={styles.balance}>
-                <p>Total balance</p>
-                <strong>12,840.00 €</strong>
-                <span>Current posted balance</span>
+                <p>{t("Total balance")}</p>
+                <strong>
+                    {locale === "el" ? "12.840,00 €" : "12,840.00 €"}
+                </strong>
+                <span>{t("Current posted balance")}</span>
             </div>
             <div className={styles.wallets}>
                 {wallets.map(({ name, amount }) => (
@@ -63,8 +73,12 @@ function PreviewBalances() {
                             className="size-3.5 text-primary"
                             aria-hidden="true"
                         />
-                        <span>{name}</span>
-                        <strong>{amount}</strong>
+                        <span>{t(name)}</span>
+                        <strong>
+                            {locale === "el"
+                                ? amount.replace(/,/g, ".")
+                                : amount}
+                        </strong>
                     </div>
                 ))}
             </div>
@@ -72,21 +86,27 @@ function PreviewBalances() {
     )
 }
 
-function PreviewMonth() {
+async function PreviewMonth() {
+    const t = await getTranslations()
+
     return (
         <div className={styles.month}>
             <ChevronLeft className="size-3.5" aria-hidden="true" />
-            <span>November 2026</span>
+            <span>{t("November 2026")}</span>
             <ChevronRight className="size-3.5" aria-hidden="true" />
         </div>
     )
 }
 
-export function AccountPreview() {
+export async function AccountPreview() {
+    const t = await getTranslations()
+
     return (
         <figure
             className={styles.browser}
-            aria-label="Sample CentScope account overview on a desktop browser"
+            aria-label={t(
+                "Sample CentScope account overview on a desktop browser"
+            )}
         >
             <div className={styles.browserBar}>
                 <span className={styles.browserDots} aria-hidden="true">
@@ -94,52 +114,54 @@ export function AccountPreview() {
                     <i />
                     <i />
                 </span>
-                <span>CentScope / Personal</span>
-                <span className="ml-auto">Sample data</span>
+                <span>{t("CentScope / Personal")}</span>
+                <span className="ml-auto">{t("Sample data")}</span>
             </div>
             <PreviewToolbar />
             <div className={styles.screen}>
                 <PreviewBalances />
                 <div className={styles.actions} aria-hidden="true">
                     <span>
-                        <Plus className="size-3" /> Add transaction
+                        <Plus className="size-3" /> {t("Add transaction")}
                     </span>
                     <span>
-                        Transactions <ArrowUpRight className="size-3" />
+                        {t("Transactions")} <ArrowUpRight className="size-3" />
                     </span>
                 </div>
                 <div className="mt-5 mb-3 flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold">Monthly overview</p>
+                    <p className="text-xs font-semibold">
+                        {t("Monthly overview")}
+                    </p>
                     <span className="text-[10px] text-primary">
-                        Detailed analysis →
+                        {t("Detailed analysis →")}
                     </span>
                 </div>
                 <PreviewMonth />
                 <div className={styles.stats}>
                     {[
                         {
-                            label: "Income",
+                            label: t("Income"),
                             amount: "3,250 €",
                             flow: "income",
                             icon: ArrowDownLeft,
                         },
                         {
-                            label: "Expenses",
+                            label: t("Expenses"),
                             amount: "2,480 €",
                             flow: "expense",
                             icon: ArrowUpRight,
                         },
                         {
-                            label: "Net",
+                            label: t("Net"),
                             amount: "+770 €",
                             flow: "income",
                             icon: ArrowLeftRight,
                         },
                     ].map(({ label, amount, flow, icon: Icon }) => (
-                        <div key={label}>
+                        <div key={t(label || "")}>
                             <span>
                                 <Icon className="size-3" aria-hidden="true" />
-                                {label}
+                                {t(label || "")}
                             </span>
                             <strong data-flow={flow}>{amount}</strong>
                         </div>
@@ -147,7 +169,7 @@ export function AccountPreview() {
                 </div>
                 <div className={styles.categories}>
                     <p className="mb-3 text-xs font-semibold">
-                        Categories Overview
+                        {t("Categories Overview")}
                     </p>
                     {[
                         { name: "Housing", amount: "850 €", width: "34.3%" },
@@ -164,7 +186,7 @@ export function AccountPreview() {
                     ].map(({ name, amount, width }) => (
                         <div key={name}>
                             <p>
-                                <span>{name}</span>
+                                <span>{t(name)}</span>
                                 <span data-flow="expense">{amount}</span>
                             </p>
                             <div className={styles.track}>
@@ -178,11 +200,13 @@ export function AccountPreview() {
     )
 }
 
-export function PhonePreview() {
+export async function PhonePreview() {
+    const t = await getTranslations()
+
     return (
         <figure
             className={styles.phone}
-            aria-label="Sample CentScope transactions in a mobile browser"
+            aria-label={t("Sample CentScope transactions in a mobile browser")}
         >
             <div className={styles.phoneStatus} aria-hidden="true">
                 <span>9:41</span>
@@ -193,23 +217,23 @@ export function PhonePreview() {
             <div className={styles.phoneScreen}>
                 <PreviewBalances />
                 <div className="mt-4 mb-3 flex items-center justify-between">
-                    <p className="text-sm font-semibold">Transactions</p>
+                    <p className="text-sm font-semibold">{t("Transactions")}</p>
                     <span className="text-[10px] text-muted-foreground">
-                        Sample data
+                        {t("Sample data")}
                     </span>
                 </div>
                 <PreviewMonth />
                 <div className="my-3 flex gap-1.5 text-[10px]">
-                    <span className={styles.activeTab}>Month</span>
+                    <span className={styles.activeTab}>{t("Month")}</span>
                     <span className="px-3 py-1.5 text-muted-foreground">
-                        Year
+                        {t("Year")}
                     </span>
                     <span className="px-3 py-1.5 text-muted-foreground">
-                        Period
+                        {t("Period")}
                     </span>
                 </div>
                 <p className="mb-1 text-[10px] text-muted-foreground">
-                    4 November
+                    {t("4 November")}
                 </p>
                 {[
                     {
@@ -251,7 +275,7 @@ export function PhonePreview() {
                                 </span>
                                 <div className="min-w-0 flex-1">
                                     <p className="text-[11px] font-medium">
-                                        {name}
+                                        {t(name)}
                                     </p>
                                     <p className="mt-1 text-[9px] text-muted-foreground">
                                         {detail}
@@ -271,7 +295,7 @@ export function PhonePreview() {
                                         className="text-[9px]"
                                     >
                                         <Repeat2 data-icon="inline-start" />
-                                        Recurring
+                                        {t("Recurring")}
                                     </Badge>
                                 ) : spread ? (
                                     <Badge
@@ -279,7 +303,7 @@ export function PhonePreview() {
                                         className="text-[9px]"
                                     >
                                         <CalendarRange data-icon="inline-start" />
-                                        Spread · 12 mo
+                                        {t("Spread · 12 mo")}
                                     </Badge>
                                 ) : (
                                     <span />
@@ -287,7 +311,7 @@ export function PhonePreview() {
                                 <span
                                     className={styles.statusSwitch}
                                     role="img"
-                                    aria-label="Posted"
+                                    aria-label={t("Posted")}
                                 >
                                     <span />
                                 </span>
@@ -296,21 +320,21 @@ export function PhonePreview() {
                     )
                 )}
                 <div className={styles.phoneAdd} aria-hidden="true">
-                    <Plus className="size-3.5" /> Add transaction
+                    <Plus className="size-3.5" /> {t("Add transaction")}
                 </div>
             </div>
             <div className={styles.bottomNav} aria-hidden="true">
                 <span>
                     <LayoutDashboard />
-                    Overview
+                    {t("Overview")}
                 </span>
                 <span className="text-primary">
                     <ArrowLeftRight />
-                    Transactions
+                    {t("Transactions")}
                 </span>
                 <span>
                     <Layers />
-                    Accounts
+                    {t("Accounts")}
                 </span>
             </div>
             <div className={styles.homeIndicator} aria-hidden="true" />
@@ -318,19 +342,22 @@ export function PhonePreview() {
     )
 }
 
-export function WalletStructure() {
+export async function WalletStructure() {
+    const locale = await getLocale()
+    const t = await getTranslations()
+
     return (
         <div className={styles.structure}>
             <div className="flex items-center justify-between gap-3 border-b pb-4">
                 <div>
                     <p className="text-xs text-muted-foreground">
-                        One financial account
+                        {t("One financial account")}
                     </p>
-                    <p className="mt-1 font-semibold">Personal</p>
+                    <p className="mt-1 font-semibold">{t("Personal")}</p>
                 </div>
                 <div className="text-right">
                     <p className="text-xs text-muted-foreground">
-                        Combined balance
+                        {t("Combined balance")}
                     </p>
                     <p className="mt-1 font-semibold tabular-nums">12,840 €</p>
                 </div>
@@ -342,35 +369,43 @@ export function WalletStructure() {
                             className="size-4 text-primary"
                             aria-hidden="true"
                         />
-                        <span>{name}</span>
-                        <strong>{amount}</strong>
+                        <span>{t(name)}</span>
+                        <strong>
+                            {locale === "el"
+                                ? amount.replace(/,/g, ".")
+                                : amount}
+                        </strong>
                     </div>
                 ))}
             </div>
             <p className="mt-4 text-xs leading-6 text-muted-foreground">
-                Separate wallet balances. One overview of your money.
+                {t("Separate wallet balances. One overview of your money.")}
             </p>
         </div>
     )
 }
 
-export function SpreadExample() {
+export async function SpreadExample() {
+    const t = await getTranslations()
+
     return (
         <div className={styles.spread}>
             <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-4">
                 <div>
                     <p className="text-xs text-muted-foreground">
-                        Annual insurance
+                        {t("Annual insurance")}
                     </p>
-                    <p className="mt-1 font-semibold">1,200 € paid once</p>
+                    <p className="mt-1 font-semibold">
+                        {t("1,200 € paid once")}
+                    </p>
                 </div>
                 <Badge variant="secondary">
                     <CalendarRange data-icon="inline-start" />
-                    Spread · 12 mo
+                    {t("Spread · 12 mo")}
                 </Badge>
             </div>
             <div className={styles.spreadMonths}>
-                {["Nov", "Dec", "Jan"].map((month) => (
+                {[t("Nov"), t("Dec"), t("Jan")].map((month) => (
                     <div key={month}>
                         <span>{month}</span>
                         <div />
@@ -379,12 +414,13 @@ export function SpreadExample() {
                 ))}
                 <div className={styles.remainingMonths}>
                     <span>+9</span>
-                    <p>more months</p>
+                    <p>{t("more months")}</p>
                 </div>
             </div>
             <p className="mt-4 text-xs leading-6 text-muted-foreground">
-                100 € per month in smoothed analysis. The original 1,200 €
-                payment stays recorded once.
+                {t(
+                    "100 € per month in smoothed analysis. The original 1,200 € payment stays recorded once."
+                )}
             </p>
         </div>
     )

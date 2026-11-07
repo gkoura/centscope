@@ -1,10 +1,12 @@
 "use client"
 
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { currencySymbol } from "@/lib/currency"
 import { periodEntryDate } from "@/lib/transaction-return"
-import Link from "next/link"
+import Link from "@/components/i18n/link"
 import { useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/components/i18n/navigation"
 import {
     Search,
     SlidersHorizontal,
@@ -62,6 +64,8 @@ export function TransactionControls({
     wallets: { id: string; name: string; currency: string }[]
     categories: { id: string; name: string }[]
 }) {
+    const t = useTranslations()
+
     const [open, setOpen] = useState(false),
         [pending, startTransition] = useTransition(),
         router = useRouter()
@@ -125,16 +129,16 @@ export function TransactionControls({
                             <Search aria-hidden="true" />
                         </InputGroupAddon>
                         <InputGroupInput
-                            aria-label="Search transactions"
+                            aria-label={t("Search transactions")}
                             name="q"
                             defaultValue={filters.q}
                             maxLength={120}
-                            placeholder="Search transactions…"
+                            placeholder={t("Search transactions…")}
                         />
                         <InputGroupAddon align="inline-end">
                             <InputGroupButton
                                 type="submit"
-                                aria-label="Run search"
+                                aria-label={t("Run search")}
                             >
                                 <Search />
                             </InputGroupButton>
@@ -144,18 +148,25 @@ export function TransactionControls({
                 <Dialog open={open} onOpenChange={setOpen}>
                     <DialogTrigger
                         render={<Button variant="outline" className="h-11" />}
-                        aria-label={`Filter transactions${active ? `, ${active} active` : ""}`}
+                        aria-label={t("Filter transactions{value0}", {
+                            value0: active
+                                ? t(", {value0} active", { value0: active })
+                                : "",
+                        })}
                     >
                         <SlidersHorizontal />
-                        <span className="hidden sm:inline">Filters</span>
+                        <span className="hidden sm:inline">{t("Filters")}</span>
                         {active > 0 && <span>{active}</span>}
                     </DialogTrigger>
                     <DialogContent className="max-h-[85dvh] overflow-y-auto">
                         <DialogHeader>
-                            <DialogTitle>Filter transactions</DialogTitle>
+                            <DialogTitle>
+                                {t("Filter transactions")}
+                            </DialogTitle>
                             <DialogDescription>
-                                Refine the selected period by wallet, category,
-                                type, or status.
+                                {t(
+                                    "Refine the selected period by wallet, category, type, or status."
+                                )}
                             </DialogDescription>
                         </DialogHeader>
                         <form
@@ -175,7 +186,7 @@ export function TransactionControls({
                                 {[
                                     {
                                         name: "type",
-                                        label: "Type",
+                                        label: t("Type"),
                                         options: [
                                             { id: "EXPENSE", name: "Expenses" },
                                             { id: "INCOME", name: "Income" },
@@ -191,7 +202,7 @@ export function TransactionControls({
                                     },
                                     {
                                         name: "status",
-                                        label: "Status",
+                                        label: t("Status"),
                                         options: [
                                             { id: "POSTED", name: "Posted" },
                                             { id: "PENDING", name: "Pending" },
@@ -199,7 +210,7 @@ export function TransactionControls({
                                     },
                                     {
                                         name: "category",
-                                        label: "Category",
+                                        label: t("Category"),
                                         options: categories,
                                     },
                                 ].map((field) => (
@@ -219,7 +230,7 @@ export function TransactionControls({
                                             }
                                             className="h-11 w-full rounded-lg border bg-background px-3 text-base sm:text-sm"
                                         >
-                                            <option value="">All</option>
+                                            <option value="">{t("All")}</option>
                                             {field.options.map((option) => (
                                                 <option
                                                     key={option.id}
@@ -232,10 +243,11 @@ export function TransactionControls({
                                     </Field>
                                 ))}
                                 <FieldSet>
-                                    <FieldLegend>Wallets</FieldLegend>
+                                    <FieldLegend>{t("Wallets")}</FieldLegend>
                                     <FieldDescription>
-                                        Select any combination. No selection
-                                        includes all wallets.
+                                        {t(
+                                            "Select any combination. No selection includes all wallets."
+                                        )}
                                     </FieldDescription>
                                     <FieldGroup className="gap-3">
                                         {wallets.map((wallet) => (
@@ -268,9 +280,11 @@ export function TransactionControls({
                                 <DialogClose
                                     render={<Button variant="outline" />}
                                 >
-                                    Cancel
+                                    {t("Cancel")}
                                 </DialogClose>
-                                <Button type="submit">Apply filters</Button>
+                                <Button type="submit">
+                                    {t("Apply filters")}
+                                </Button>
                             </div>
                         </form>
                     </DialogContent>
@@ -284,7 +298,7 @@ export function TransactionControls({
                                 className="size-11"
                             />
                         }
-                        aria-label="Transaction tools"
+                        aria-label={t("Transaction tools")}
                     >
                         <MoreHorizontal />
                     </DropdownMenuTrigger>
@@ -317,9 +331,9 @@ export function TransactionControls({
             {(active > 0 || filters.q) && (
                 <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
                     <span>
-                        Filtered results
+                        {t("Filtered results")}
                         {filters.wallet
-                            ? ` · ${selectedWallets.length === 1 ? (wallets.find((wallet) => wallet.id === singleWallet)?.name ?? "Selected wallet") : `${selectedWallets.length} wallets`}`
+                            ? ` · ${selectedWallets.length === 1 ? (wallets.find((wallet) => wallet.id === singleWallet)?.name ?? t("Selected wallet")) : t("{value0} wallets", { value0: selectedWallets.length })}`
                             : ""}
                     </span>
                     <Link
@@ -327,7 +341,7 @@ export function TransactionControls({
                         scroll={false}
                         className="font-medium text-primary"
                     >
-                        Clear filters
+                        {t("Clear filters")}
                     </Link>
                 </div>
             )}
@@ -345,7 +359,9 @@ export function TransactionControls({
                 className="transaction-add-button h-11"
             >
                 <Plus data-icon="inline-start" />
-                {wallets.length ? "Add transaction" : "Add your first wallet"}
+                {wallets.length
+                    ? t("Add transaction")
+                    : t("Add your first wallet")}
             </Button>
         </div>
     )

@@ -1,12 +1,17 @@
 "use client"
 
-import Link from "next/link"
+import { useLocale } from "@/components/i18n/locale-provider"
+import { intlLocale } from "@/lib/i18n/config"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
+import Link from "@/components/i18n/link"
 import { useActionState, useEffect, useState } from "react"
 import { Pencil, Trash2 } from "lucide-react"
 import {
     deleteTransaction,
     prepareRecurringDeletion,
-} from "@/app/dashboard/accounts/[id]/transactions/actions"
+} from "@/app/[locale]/dashboard/accounts/[id]/transactions/actions"
 import type {
     DeleteScope,
     RecurringDeletionPreview,
@@ -49,6 +54,10 @@ export function TransactionActions({
         walletName: string
     }
 }) {
+    const locale = useLocale()
+
+    const t = useTranslations()
+
     const [state, action, pending] = useActionState(
         deleteTransaction,
         initialState
@@ -77,8 +86,9 @@ export function TransactionActions({
             .catch(() => {
                 if (!cancelled)
                     setConfirmation({
-                        message:
-                            "Couldn’t load the preview. Close and reopen to retry.",
+                        message: t(
+                            "Couldn’t load the preview. Close and reopen to retry."
+                        ),
                         loading: false,
                     })
             })
@@ -89,6 +99,7 @@ export function TransactionActions({
         open,
         linked,
         scope,
+        t,
         financialAccountId,
         transaction.id,
         transaction.version,
@@ -99,7 +110,8 @@ export function TransactionActions({
     }
     const amount = formatWalletMoney(
         transaction.amount.replace(/^-/, ""),
-        transaction.currency
+        transaction.currency,
+        intlLocale(locale)
     )
     return (
         <div className="flex flex-wrap items-center gap-2">
@@ -114,10 +126,10 @@ export function TransactionActions({
                 }
                 nativeButton={false}
                 disabled={pending}
-                aria-label={`Edit ${transaction.name}`}
+                aria-label={t("Edit {value0}", { value0: transaction.name })}
             >
                 <Pencil data-icon="inline-start" />
-                Edit
+                {t("Edit")}
             </Button>
             <AlertDialog
                 open={open}
@@ -135,11 +147,13 @@ export function TransactionActions({
             >
                 <AlertDialogTrigger
                     render={<Button variant="outline" size="sm" />}
-                    aria-label={`Delete ${transaction.name}`}
+                    aria-label={t("Delete {value0}", {
+                        value0: transaction.name,
+                    })}
                     disabled={pending}
                 >
                     <Trash2 data-icon="inline-start" />
-                    Delete
+                    {t("Delete")}
                 </AlertDialogTrigger>
                 <AlertDialogContent className="max-h-[85svh] overflow-y-auto">
                     <form action={action} className="flex flex-col gap-4">
@@ -168,18 +182,33 @@ export function TransactionActions({
                         )}
                         <AlertDialogHeader>
                             <AlertDialogTitle className="break-words">
-                                Delete {transaction.name}?
+                                {t("Delete")} {transaction.name}?
                             </AlertDialogTitle>
                             <AlertDialogDescription className="break-words">
                                 {recurring
-                                    ? "Choose which occurrences to delete. Deleted copies stay excluded and will not be recreated."
+                                    ? t(
+                                          "Choose which occurrences to delete. Deleted copies stay excluded and will not be recreated."
+                                      )
                                     : transaction.type === "TRANSFER"
-                                      ? "Deleting this transfer removes both wallet movements together."
+                                      ? t(
+                                            "Deleting this transfer removes both wallet movements together."
+                                        )
                                       : transaction.status === "PENDING"
-                                        ? "This pending transaction has no effect on your balance."
-                                        : `Deleting this ${transaction.type === "EXPENSE" ? "expense adds" : "income removes"} ${amount} ${transaction.type === "EXPENSE" ? "back to" : "from"} ${transaction.walletName}.`}{" "}
-                                This cannot be undone. A record of each deletion
-                                is kept in your audit history.
+                                        ? t(
+                                              "This pending transaction has no effect on your balance."
+                                          )
+                                        : t(
+                                              transaction.type === "EXPENSE"
+                                                  ? "Deleting this expense adds {amount} back to {wallet}."
+                                                  : "Deleting this income removes {amount} from {wallet}.",
+                                              {
+                                                  amount,
+                                                  wallet: transaction.walletName,
+                                              }
+                                          )}{" "}
+                                {t(
+                                    "This cannot be undone. A record of each deletion is kept in your audit history."
+                                )}
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         {linked && (
@@ -189,7 +218,7 @@ export function TransactionActions({
                                         <FieldLabel
                                             htmlFor={`delete-scope-${transaction.id}`}
                                         >
-                                            Delete occurrences
+                                            {t("Delete occurrences")}
                                         </FieldLabel>
                                         <select
                                             id={`delete-scope-${transaction.id}`}
@@ -204,13 +233,17 @@ export function TransactionActions({
                                             className="h-9 w-full min-w-0 rounded-md border bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-ring"
                                         >
                                             <option value="ONLY">
-                                                Only this occurrence
+                                                {t("Only this occurrence")}
                                             </option>
                                             <option value="FUTURE">
-                                                This and future occurrences
+                                                {t(
+                                                    "This and future occurrences"
+                                                )}
                                             </option>
                                             <option value="ALL">
-                                                All occurrences, including past
+                                                {t(
+                                                    "All occurrences, including past"
+                                                )}
                                             </option>
                                         </select>
                                     </Field>
@@ -220,35 +253,48 @@ export function TransactionActions({
                                         role="status"
                                         className="text-sm text-muted-foreground"
                                     >
-                                        Loading affected transactions…
+                                        {t("Loading affected transactions…")}
                                     </p>
                                 )}
                                 {confirmation.message && (
                                     <FieldError role="alert">
-                                        {confirmation.message}
+                                        {t(confirmation.message)}
                                     </FieldError>
                                 )}
                                 {confirmation.preview && (
                                     <div className="flex flex-col gap-2 text-sm">
                                         <p>
                                             {confirmation.preview.count}{" "}
-                                            transaction
+                                            {t("transaction")}
                                             {confirmation.preview.count === 1
                                                 ? ""
                                                 : "s"}
                                             : {confirmation.preview.postedCount}{" "}
-                                            Posted ·{" "}
+                                            {t("Posted ·")}{" "}
                                             {confirmation.preview.pendingCount}{" "}
-                                            Pending.
+                                            {t("Pending.")}
                                         </p>
                                         <p className="text-muted-foreground">
                                             {!recurring
-                                                ? "Both wallet movements will be removed together."
+                                                ? t(
+                                                      "Both wallet movements will be removed together."
+                                                  )
                                                 : scope === "ONLY"
-                                                  ? "Other occurrences remain, and the series keeps its current settings."
+                                                  ? t(
+                                                        "Other occurrences remain, and the series keeps its current settings."
+                                                    )
                                                   : scope === "FUTURE"
-                                                    ? `Deletes occurrences scheduled from ${confirmation.preview.scheduledFor} onward and stops further creation. Earlier occurrences remain.`
-                                                    : "Deletes past and future occurrences and stops the series. Historical balances and reports may change."}
+                                                    ? t(
+                                                          "Deletes occurrences scheduled from {value0} onward and stops further creation. Earlier occurrences remain.",
+                                                          {
+                                                              value0: confirmation
+                                                                  .preview
+                                                                  .scheduledFor,
+                                                          }
+                                                      )
+                                                    : t(
+                                                          "Deletes past and future occurrences and stops the series. Historical balances and reports may change."
+                                                      )}
                                         </p>
                                         {confirmation.preview.balanceChanges
                                             .length ? (
@@ -262,9 +308,10 @@ export function TransactionActions({
                                                             {change.account
                                                                 ? `${change.account} · `
                                                                 : ""}
-                                                            {change.wallet}:
-                                                            posted balance
-                                                            changes by{" "}
+                                                            {change.wallet}
+                                                            {t(
+                                                                ": posted balance changes by"
+                                                            )}{" "}
                                                             {change.amount.startsWith(
                                                                 "-"
                                                             )
@@ -272,7 +319,10 @@ export function TransactionActions({
                                                                 : "+"}
                                                             {formatWalletMoney(
                                                                 change.amount,
-                                                                change.currency
+                                                                change.currency,
+                                                                intlLocale(
+                                                                    locale
+                                                                )
                                                             )}
                                                             .
                                                         </li>
@@ -280,7 +330,11 @@ export function TransactionActions({
                                                 )}
                                             </ul>
                                         ) : (
-                                            <p>No posted balance changes.</p>
+                                            <p>
+                                                {t(
+                                                    "No posted balance changes."
+                                                )}
+                                            </p>
                                         )}
                                     </div>
                                 )}
@@ -288,12 +342,12 @@ export function TransactionActions({
                         )}
                         {state.message && (
                             <FieldError role="alert">
-                                {state.message}
+                                {t(state.message || "")}
                             </FieldError>
                         )}
                         <AlertDialogFooter>
                             <AlertDialogCancel type="button" disabled={pending}>
-                                Cancel
+                                {t("Cancel")}
                             </AlertDialogCancel>
                             <AlertDialogAction
                                 type="submit"
@@ -306,10 +360,10 @@ export function TransactionActions({
                                 }
                             >
                                 {pending
-                                    ? "Deleting…"
+                                    ? t("Deleting…")
                                     : recurring && scope !== "ONLY"
-                                      ? "Delete selected occurrences"
-                                      : "Delete transaction"}
+                                      ? t("Delete selected occurrences")
+                                      : t("Delete transaction")}
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </form>

@@ -854,8 +854,7 @@ a {
 .balance-summary-compact .balance-hero > p:last-child {
     display: none;
 }
-.balance-summary-compact .balance-hero > p:first-child::after {
-    content: " · posted, all dates";
+.balance-scope {
     text-transform: none;
     letter-spacing: normal;
 }

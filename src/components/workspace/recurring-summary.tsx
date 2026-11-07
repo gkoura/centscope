@@ -1,3 +1,10 @@
+"use client"
+
+import { useLocale } from "@/components/i18n/locale-provider"
+import { intlLocale } from "@/lib/i18n/config"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { SyncRecurringButton } from "@/components/financial-accounts/recurring-controls"
 import {
     Card,
@@ -25,6 +32,10 @@ export function RecurringSummary({
     accountId: string
     rules: RecurringSummaryItem[]
 }) {
+    const locale = useLocale()
+
+    const t = useTranslations()
+
     return (
         <Card
             role="region"
@@ -39,7 +50,7 @@ export function RecurringSummary({
                                 className="size-4 shrink-0 text-primary"
                                 aria-hidden="true"
                             />
-                            Recurring transactions
+                            {t("Recurring transactions")}
                         </span>
                     </h2>
                 </CardTitle>
@@ -79,7 +90,10 @@ export function RecurringSummary({
                                             {rule.name}
                                         </p>
                                         <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                                            {recurringSummaryDescription(rule)}
+                                            {recurringSummaryDescription(
+                                                rule,
+                                                t
+                                            )}
                                         </p>
                                     </div>
                                     <p
@@ -93,7 +107,8 @@ export function RecurringSummary({
                                               : ""}
                                         {formatWalletMoney(
                                             rule.amount,
-                                            rule.currency
+                                            rule.currency,
+                                            intlLocale(locale)
                                         )}
                                     </p>
                                 </li>
@@ -102,8 +117,9 @@ export function RecurringSummary({
                     </ul>
                 ) : (
                     <p className="px-5 py-4 text-sm leading-6 text-muted-foreground">
-                        No recurring transactions to show. Enable Repeat when
-                        adding a transaction.
+                        {t(
+                            "No recurring transactions to show. Enable Repeat when adding a transaction."
+                        )}
                     </p>
                 )}
             </CardContent>

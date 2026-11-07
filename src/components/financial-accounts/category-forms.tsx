@@ -1,12 +1,14 @@
 "use client"
 
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { useActionState, useState, useEffect } from "react"
 import {
     archiveCategory,
     createCategory,
     deleteCategory,
     renameCategory,
-} from "@/app/dashboard/accounts/[id]/categories/actions"
+} from "@/app/[locale]/dashboard/accounts/[id]/categories/actions"
 import { categoryTypes, type CategoryFormState } from "@/lib/category-input"
 import { Button } from "@/components/ui/button"
 import {
@@ -71,6 +73,8 @@ export function CreateCategoryForm({
     defaultParentId?: string
     onSuccess?: (type: CategoryChoice["type"]) => void
 }) {
+    const t = useTranslations()
+
     const [state, action, pending] = useActionState(
         createCategory,
         initialState
@@ -88,7 +92,7 @@ export function CreateCategoryForm({
         ? parentId
         : "root"
     const parents = [
-        { value: "root", label: "No parent — top-level category" },
+        { value: "root", label: t("No parent — top-level category") },
         ...roots.map(({ id, name }) => ({ value: id, label: name })),
     ]
     return (
@@ -107,8 +111,8 @@ export function CreateCategoryForm({
                 <Field data-invalid={Boolean(state.errors?.name)}>
                     <FieldLabel htmlFor="new-category-name">
                         {selectedParentId === "root"
-                            ? "Category names"
-                            : "Subcategory names"}
+                            ? t("Category names")
+                            : t("Subcategory names")}
                     </FieldLabel>
                     <Textarea
                         id="new-category-name"
@@ -121,32 +125,37 @@ export function CreateCategoryForm({
                         placeholder={
                             selectedParentId === "root"
                                 ? type === "INCOME"
-                                    ? "Salary\nFreelance\nInvestments"
-                                    : "Travel\nEducation\nSubscriptions"
-                                : "Restaurants\nCoffee shops\nTakeaway"
+                                    ? t("Salary\nFreelance\nInvestments")
+                                    : t("Travel\nEducation\nSubscriptions")
+                                : t("Restaurants\nCoffee shops\nTakeaway")
                         }
                         aria-invalid={Boolean(state.errors?.name)}
                         aria-describedby={`new-category-names-description${state.errors?.name ? " new-category-name-error" : ""}`}
                     />
                     <FieldDescription id="new-category-names-description">
-                        Enter or paste one name per line. Create up to 30{" "}
+                        {t("Enter or paste one name per line. Create up to 30")}{" "}
                         {selectedParentId === "root"
-                            ? "categories"
-                            : "subcategories"}{" "}
-                        at once, with up to 80 characters per name.
+                            ? t("categories")
+                            : t("subcategories")}{" "}
+                        {t("at once, with up to 80 characters per name.")}
                     </FieldDescription>
                     {state.errors?.name ? (
                         <FieldError id="new-category-name-error">
-                            {state.errors.name}
+                            {t(state.errors.name || "")}
                         </FieldError>
                     ) : null}
                 </Field>
                 <Field data-invalid={Boolean(state.errors?.type)}>
-                    <FieldLabel htmlFor="new-category-type">Type</FieldLabel>
+                    <FieldLabel htmlFor="new-category-type">
+                        {t("Type")}
+                    </FieldLabel>
                     <Select
                         name="type"
                         value={type}
-                        items={categoryTypes}
+                        items={categoryTypes.map((option) => ({
+                            ...option,
+                            label: t(option.label),
+                        }))}
                         onValueChange={(value) => {
                             if (value) {
                                 setType(value)
@@ -168,19 +177,19 @@ export function CreateCategoryForm({
                                         key={option.value}
                                         value={option.value}
                                     >
-                                        {option.label}
+                                        {t(option.label || "")}
                                     </SelectItem>
                                 ))}
                             </SelectGroup>
                         </SelectContent>
                     </Select>
                     {state.errors?.type ? (
-                        <FieldError>{state.errors.type}</FieldError>
+                        <FieldError>{t(state.errors.type || "")}</FieldError>
                     ) : null}
                 </Field>
                 <Field data-invalid={Boolean(state.errors?.parentId)}>
                     <FieldLabel htmlFor="new-category-parent">
-                        Parent category
+                        {t("Parent category")}
                     </FieldLabel>
                     <Select
                         value={selectedParentId}
@@ -211,21 +220,26 @@ export function CreateCategoryForm({
                         </SelectContent>
                     </Select>
                     <FieldDescription id="new-category-parent-description">
-                        Choose a parent to create a subcategory. Subcategories
-                        have the same type as their parent.
+                        {t(
+                            "Choose a parent to create a subcategory. Subcategories have the same type as their parent."
+                        )}
                     </FieldDescription>
                     {state.errors?.parentId ? (
-                        <FieldError>{state.errors.parentId}</FieldError>
+                        <FieldError>
+                            {t(state.errors.parentId || "")}
+                        </FieldError>
                     ) : null}
                 </Field>
             </FieldGroup>
             {state.message ? (
                 <p role="status" className="text-sm">
-                    {state.message}
+                    {t(state.message || "")}
                 </p>
             ) : null}
             {state.errors?.financialAccountId ? (
-                <FieldError>{state.errors.financialAccountId}</FieldError>
+                <FieldError>
+                    {t(state.errors.financialAccountId || "")}
+                </FieldError>
             ) : null}
             <div className="flex justify-end gap-2">
                 <DialogClose
@@ -237,7 +251,7 @@ export function CreateCategoryForm({
                         />
                     }
                 >
-                    Cancel
+                    {t("Cancel")}
                 </DialogClose>
                 <Button type="submit" disabled={pending}>
                     {pending ? (
@@ -246,10 +260,10 @@ export function CreateCategoryForm({
                         <PlusIcon data-icon="inline-start" />
                     )}
                     {pending
-                        ? "Creating…"
+                        ? t("Creating…")
                         : selectedParentId === "root"
-                          ? "Create categories"
-                          : "Create subcategories"}
+                          ? t("Create categories")
+                          : t("Create subcategories")}
                 </Button>
             </div>
         </form>
@@ -270,6 +284,8 @@ export function CategoryEditor({
         updatedAt: string
     }
 }) {
+    const t = useTranslations()
+
     const [renameState, rename, renaming] = useActionState(
         renameCategory,
         initialState
@@ -302,19 +318,19 @@ export function CategoryEditor({
             <DialogTrigger
                 render={<Button variant="ghost" size="sm" />}
                 disabled={disabled}
-                aria-label={`Edit ${category.name}`}
+                aria-label={t("Edit {value0}", { value0: category.name })}
             >
                 <PencilIcon data-icon="inline-start" />
-                Edit
+                {t("Edit")}
             </DialogTrigger>
             <DialogContent className="max-h-[90svh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="pr-6 break-words">
-                        Edit {category.name}
+                        {t("Edit")} {category.name}
                     </DialogTitle>
                     <DialogDescription>
-                        Update the name or manage this{" "}
-                        {category.parentId ? "subcategory" : "category"}.
+                        {t("Update the name or manage this")}{" "}
+                        {category.parentId ? t("subcategory") : t("category")}.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col gap-5">
@@ -322,7 +338,7 @@ export function CategoryEditor({
                         {fields}
                         <Field data-invalid={Boolean(renameState.errors?.name)}>
                             <FieldLabel htmlFor={`rename-${category.id}`}>
-                                Category name
+                                {t("Category name")}
                             </FieldLabel>
                             <Input
                                 id={`rename-${category.id}`}
@@ -347,12 +363,12 @@ export function CategoryEditor({
                             type="submit"
                             disabled={renaming || archiving || deleting}
                         >
-                            {renaming ? "Saving…" : "Save name"}
+                            {renaming ? t("Saving…") : t("Save name")}
                         </Button>
                     </form>
                     <div className="flex flex-col gap-3 border-t pt-5">
                         <p className="text-xs font-medium text-muted-foreground">
-                            REMOVE FROM YOUR CATEGORIES
+                            {t("REMOVE FROM YOUR CATEGORIES")}
                         </p>
                         <AlertDialog>
                             <AlertDialogTrigger
@@ -360,8 +376,10 @@ export function CategoryEditor({
                                 disabled={archiving || renaming || deleting}
                             >
                                 <ArchiveIcon data-icon="inline-start" />
-                                Archive{" "}
-                                {category.parentId ? "subcategory" : "category"}
+                                {t("Archive")}{" "}
+                                {category.parentId
+                                    ? t("subcategory")
+                                    : t("category")}
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                                 <form
@@ -370,17 +388,19 @@ export function CategoryEditor({
                                 >
                                     <AlertDialogHeader>
                                         <AlertDialogTitle className="break-words">
-                                            Archive {category.name}?
+                                            {t("Archive")} {category.name}?
                                         </AlertDialogTitle>
                                         <AlertDialogDescription>
                                             {fields}
-                                            Archiving hides this{" "}
+                                            {t("Archiving hides this")}{" "}
                                             {category.parentId
-                                                ? "subcategory"
-                                                : "category and its subcategories"}{" "}
-                                            from new transactions. Existing
-                                            history is kept. It will no longer
-                                            appear in this list.
+                                                ? t("subcategory")
+                                                : t(
+                                                      "category and its subcategories"
+                                                  )}{" "}
+                                            {t(
+                                                "from new transactions. Existing history is kept. It will no longer appear in this list."
+                                            )}
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     {archiveState.message ? (
@@ -390,7 +410,7 @@ export function CategoryEditor({
                                     ) : null}
                                     <AlertDialogFooter>
                                         <AlertDialogCancel disabled={archiving}>
-                                            Cancel
+                                            {t("Cancel")}
                                         </AlertDialogCancel>
                                         <AlertDialogAction
                                             type="submit"
@@ -401,8 +421,8 @@ export function CategoryEditor({
                                             }
                                         >
                                             {archiving
-                                                ? "Archiving…"
-                                                : "Archive"}
+                                                ? t("Archiving…")
+                                                : t("Archive")}
                                         </AlertDialogAction>
                                     </AlertDialogFooter>
                                 </form>
@@ -413,9 +433,11 @@ export function CategoryEditor({
                                 type="button"
                                 render={<Button variant="destructive" />}
                                 disabled={renaming || archiving || deleting}
-                                aria-label={`Delete ${category.name} permanently`}
+                                aria-label={t("Delete {value0} permanently", {
+                                    value0: category.name,
+                                })}
                             >
-                                Delete permanently
+                                {t("Delete permanently")}
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                                 <form
@@ -425,18 +447,23 @@ export function CategoryEditor({
                                     {fields}
                                     <AlertDialogHeader>
                                         <AlertDialogTitle className="break-words">
-                                            Delete {category.name}?
+                                            {t("Delete")} {category.name}?
                                         </AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            This permanently deletes this{" "}
+                                            {t("This permanently deletes this")}{" "}
                                             {category.parentId
-                                                ? "subcategory"
-                                                : "category and all its subcategories"}
-                                            . This cannot be undone. Deletion is
-                                            blocked if any transaction uses it
+                                                ? t("subcategory")
+                                                : t(
+                                                      "category and all its subcategories"
+                                                  )}
+                                            {t(
+                                                ". This cannot be undone. Deletion is blocked if any transaction uses it"
+                                            )}
                                             {category.parentId
                                                 ? "."
-                                                : " or any of its subcategories."}
+                                                : t(
+                                                      " or any of its subcategories."
+                                                  )}
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     {deleteState.message ? (
@@ -449,7 +476,7 @@ export function CategoryEditor({
                                             type="button"
                                             disabled={deleting}
                                         >
-                                            Cancel
+                                            {t("Cancel")}
                                         </AlertDialogCancel>
                                         <AlertDialogAction
                                             type="submit"
@@ -457,10 +484,10 @@ export function CategoryEditor({
                                             disabled={deleting}
                                         >
                                             {deleting
-                                                ? "Deleting…"
+                                                ? t("Deleting…")
                                                 : category.parentId
-                                                  ? "Delete subcategory"
-                                                  : "Delete category"}
+                                                  ? t("Delete subcategory")
+                                                  : t("Delete category")}
                                         </AlertDialogAction>
                                     </AlertDialogFooter>
                                 </form>
@@ -468,7 +495,7 @@ export function CategoryEditor({
                         </AlertDialog>
                     </div>
                     <DialogClose render={<Button variant="ghost" />}>
-                        Done
+                        {t("Done")}
                     </DialogClose>
                 </div>
             </DialogContent>

@@ -2,6 +2,7 @@ import {
     validateTransactionInput,
     type TransactionInput,
 } from "./transaction-input.ts"
+import { createTranslator } from "./i18n/translate.ts"
 
 export const MAX_IMPORT_ROWS = 2_000
 export const MAX_IMPORT_BYTES = 2_000_000
@@ -81,7 +82,8 @@ export function previewTransactionImport(
     text: string,
     financialAccountId: string,
     wallets: ImportWallet[],
-    categories: ImportCategory[]
+    categories: ImportCategory[],
+    t = createTranslator("en")
 ): ImportPreview {
     let records: string[][]
     try {
@@ -90,7 +92,11 @@ export function previewTransactionImport(
         return {
             rows: [],
             errors: [
-                error instanceof Error ? error.message : "Unable to read CSV.",
+                t(
+                    error instanceof Error
+                        ? error.message
+                        : "Unable to read CSV."
+                ),
             ],
         }
     }
@@ -99,22 +105,29 @@ export function previewTransactionImport(
         return {
             rows: [],
             errors: [
-                `Use the template header exactly: ${importColumns.join(",")}`,
+                t("Use the template header exactly: {columns}", {
+                    columns: importColumns.join(","),
+                }),
             ],
         }
     if (!records.length)
         return {
             rows: [],
-            errors: ["Add at least one transaction below the header."],
+            errors: [t("Add at least one transaction below the header.")],
         }
     const rows: TransactionInput[] = [],
         errors: string[] = []
     const match = (a: string, b: string) =>
         a.trim().toLocaleLowerCase() === b.trim().toLocaleLowerCase()
     records.forEach((cells, index) => {
-        const label = `Row ${index + 2}`
+        const label = t("Row {row}", { row: index + 2 })
         if (cells.length !== importColumns.length) {
-            errors.push(`${label}: expected ${importColumns.length} columns.`)
+            errors.push(
+                t("{row}: expected {count} columns.", {
+                    row: label,
+                    count: importColumns.length,
+                })
+            )
             return
         }
         const [
@@ -131,7 +144,10 @@ export function previewTransactionImport(
         const walletMatches = wallets.filter((item) => match(item.name, wallet))
         if (walletMatches.length !== 1) {
             errors.push(
-                `${label}: wallet “${wallet}” must match exactly one available wallet.`
+                t(
+                    "{row}: wallet “{wallet}” must match exactly one available wallet.",
+                    { row: label, wallet }
+                )
             )
             return
         }
@@ -152,7 +168,10 @@ export function previewTransactionImport(
             : parents
         if (matches.length !== 1) {
             errors.push(
-                `${label}: category/subcategory must match an existing ${type || "transaction"} category.`
+                t(
+                    "{row}: category/subcategory must match an existing {type} category.",
+                    { row: label, type: type || t("transaction") }
+                )
             )
             return
         }
@@ -171,7 +190,11 @@ export function previewTransactionImport(
         }).forEach(([key, value]) => form.set(key, value))
         const result = validateTransactionInput(form)
         if (!result.data)
-            errors.push(`${label}: ${Object.values(result.errors).join(" ")}`)
+            errors.push(
+                `${label}: ${Object.values(result.errors)
+                    .map((message) => t(message))
+                    .join(" ")}`
+            )
         else rows.push(result.data)
     })
     return { rows, errors }

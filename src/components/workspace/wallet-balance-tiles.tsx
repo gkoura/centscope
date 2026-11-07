@@ -1,8 +1,14 @@
 "use client"
 
-import Link from "next/link"
+import { useLocale } from "@/components/i18n/locale-provider"
+import { intlLocale } from "@/lib/i18n/config"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
+import Link from "@/components/i18n/link"
 import { useOptimistic, useTransition } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
+import { useRouter } from "@/components/i18n/navigation"
 import { Wallet, ArrowUpRight, Check } from "lucide-react"
 import { formatWalletMoney } from "@/lib/wallet-input"
 import { toggleWalletFilter, walletFilterIds } from "@/lib/transaction-filters"
@@ -27,6 +33,10 @@ export function WalletBalanceTiles({
     filterable?: boolean
     selectedWallets?: string
 }) {
+    const locale = useLocale()
+
+    const t = useTranslations()
+
     const router = useRouter(),
         query = useSearchParams()
     const [optimistic, setOptimistic] = useOptimistic(
@@ -55,9 +65,14 @@ export function WalletBalanceTiles({
                 <div className="mb-2 flex min-h-8 items-center justify-between gap-3 text-xs text-muted-foreground">
                     <span aria-live="polite">
                         {selected.length
-                            ? `${selected.length} wallet${selected.length === 1 ? "" : "s"} selected`
-                            : "All wallets · tap to filter"}
-                        {pending ? " · Updating…" : ""}
+                            ? t(
+                                  selected.length === 1
+                                      ? "{count} wallet selected"
+                                      : "{count} wallets selected",
+                                  { count: selected.length }
+                              )
+                            : t("All wallets · tap to filter")}
+                        {pending ? t(" · Updating…") : ""}
                     </span>
                     {selected.length > 0 && (
                         <Button
@@ -65,7 +80,7 @@ export function WalletBalanceTiles({
                             size="sm"
                             onClick={() => apply("")}
                         >
-                            All wallets
+                            {t("All wallets")}
                         </Button>
                     )}
                 </div>
@@ -73,7 +88,7 @@ export function WalletBalanceTiles({
             <ul
                 className="wallet-balance-strip"
                 aria-label={
-                    filterable ? "Filter by wallets" : "Wallet balances"
+                    filterable ? t("Filter by wallets") : t("Wallet balances")
                 }
             >
                 {wallets.map((wallet) => {
@@ -103,7 +118,8 @@ export function WalletBalanceTiles({
                             <strong className="mt-1 block text-base font-medium tabular-nums">
                                 {formatWalletMoney(
                                     wallet.balance,
-                                    wallet.currency
+                                    wallet.currency,
+                                    intlLocale(locale)
                                 )}
                             </strong>
                         </>
@@ -115,7 +131,9 @@ export function WalletBalanceTiles({
                                     type="button"
                                     className="wallet-balance-tile text-left"
                                     aria-pressed={active}
-                                    aria-label={`Filter ${wallet.name}`}
+                                    aria-label={t("Filter {value0}", {
+                                        value0: wallet.name,
+                                    })}
                                     onClick={() =>
                                         apply(
                                             toggleWalletFilter(

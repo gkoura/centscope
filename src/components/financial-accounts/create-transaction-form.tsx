@@ -1,8 +1,10 @@
 "use client"
 
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { currencySymbol } from "@/lib/currency"
 
-import Link from "next/link"
+import Link from "@/components/i18n/link"
 import { RecurrenceFields, type RecurrenceEditing } from "./recurrence-fields"
 import type { EditScope } from "@/lib/recurrence-input"
 import { ExpenseSpreadFields } from "./expense-spread-fields"
@@ -11,7 +13,7 @@ import { useActionState, useState } from "react"
 import {
     createTransaction,
     updateTransaction,
-} from "@/app/dashboard/accounts/[id]/transactions/actions"
+} from "@/app/[locale]/dashboard/accounts/[id]/transactions/actions"
 import {
     transactionTypes,
     type TransactionFormState,
@@ -64,14 +66,19 @@ function TransactionSelect({
     error?: string
     description?: string
 }) {
+    const t = useTranslations()
+
     const id = `transaction-${name}`
     return (
         <Field data-invalid={Boolean(error)}>
-            <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            <FieldLabel htmlFor={id}>{t(label || "")}</FieldLabel>
             <Select
                 name={name}
                 value={value || null}
-                items={options}
+                items={options.map((option) => ({
+                    ...option,
+                    label: name === "type" ? t(option.label) : option.label,
+                }))}
                 onValueChange={(next) => {
                     if (next) onChange(next)
                 }}
@@ -96,7 +103,7 @@ function TransactionSelect({
                             .join(" ") || undefined
                     }
                 >
-                    <SelectValue placeholder="Choose an option" />
+                    <SelectValue placeholder={t("Choose an option")} />
                 </SelectTrigger>
                 <SelectContent>
                     <SelectGroup>
@@ -112,7 +119,9 @@ function TransactionSelect({
                                         : undefined
                                 }
                             >
-                                {option.label}
+                                {name === "type"
+                                    ? t(option.label)
+                                    : option.label}
                             </SelectItem>
                         ))}
                     </SelectGroup>
@@ -123,7 +132,9 @@ function TransactionSelect({
                     {description}
                 </FieldDescription>
             ) : null}
-            {error ? <FieldError id={`${id}-error`}>{error}</FieldError> : null}
+            {error ? (
+                <FieldError id={`${id}-error`}>{t(error || "")}</FieldError>
+            ) : null}
         </Field>
     )
 }
@@ -170,6 +181,8 @@ export function CreateTransactionForm({
     }
     suggestions: TransactionSuggestion[]
 }) {
+    const t = useTranslations()
+
     const [editScope, setEditScope] = useState<EditScope>("ONLY")
     const [state, action, pending] = useActionState(
         editing ? updateTransaction : createTransaction,
@@ -180,7 +193,9 @@ export function CreateTransactionForm({
             (category) =>
                 category.type === type &&
                 category.name ===
-                    (type === "EXPENSE" ? "Other expenses" : "Other income") &&
+                    (type === "EXPENSE"
+                        ? t("Other expenses")
+                        : t("Other income")) &&
                 !category.parentId
         )?.id ??
         categories.find(
@@ -212,7 +227,7 @@ export function CreateTransactionForm({
         )
         .map((category) => ({ value: category.id, label: category.name }))
     const subcategoryOptions = [
-        { value: "none", label: "No specific subcategory" },
+        { value: "none", label: t("No specific subcategory") },
         ...categories
             .filter(
                 (category) =>
@@ -270,7 +285,7 @@ export function CreateTransactionForm({
                 <FieldGroup className="sm:grid sm:grid-cols-2">
                     <TransactionSelect
                         name="type"
-                        label="Type"
+                        label={t("Type")}
                         value={values.type}
                         options={transactionTypes}
                         onChange={(type) =>
@@ -281,10 +296,12 @@ export function CreateTransactionForm({
                                 subcategoryId: "none",
                             }))
                         }
-                        error={state.errors?.type}
+                        error={t(state.errors?.type || "")}
                     />
                     <Field data-invalid={Boolean(state.errors?.name)}>
-                        <FieldLabel htmlFor="transaction-name">Name</FieldLabel>
+                        <FieldLabel htmlFor="transaction-name">
+                            {t("Name")}
+                        </FieldLabel>
                         <input type="hidden" name="name" value={values.name} />
                         <Combobox<TransactionSuggestion>
                             key={values.type}
@@ -320,8 +337,8 @@ export function CreateTransactionForm({
                                 autoComplete="off"
                                 placeholder={
                                     values.type === "EXPENSE"
-                                        ? "e.g. Your favourite restaurant"
-                                        : "e.g. Monthly salary"
+                                        ? t("e.g. Your favourite restaurant")
+                                        : t("e.g. Monthly salary")
                                 }
                                 aria-invalid={Boolean(state.errors?.name)}
                                 aria-describedby="transaction-name-description transaction-name-error"
@@ -331,7 +348,7 @@ export function CreateTransactionForm({
                                     <ComboboxList>
                                         <ComboboxGroup>
                                             <ComboboxLabel>
-                                                Use previous details
+                                                {t("Use previous details")}
                                             </ComboboxLabel>
                                             {matches.map((suggestion) => (
                                                 <ComboboxItem
@@ -356,18 +373,20 @@ export function CreateTransactionForm({
                             ) : null}
                         </Combobox>
                         <FieldDescription id="transaction-name-description">
-                            Type a name to reuse a previous transaction’s
-                            category details, or enter a new name.
+                            {t(
+                                "Type a name to reuse a previous transaction’s category details, or enter a new name."
+                            )}
                         </FieldDescription>
                         {state.errors?.name ? (
                             <FieldError id="transaction-name-error">
-                                {state.errors.name}
+                                {t(state.errors.name || "")}
                             </FieldError>
                         ) : null}
                     </Field>
                     <Field data-invalid={Boolean(state.errors?.amount)}>
                         <FieldLabel htmlFor="transaction-amount">
-                            Amount ({currencySymbol(currency)})
+                            {t("Amount (")}
+                            {currencySymbol(currency)})
                         </FieldLabel>
                         <MoneyInput
                             id="transaction-amount"
@@ -383,21 +402,24 @@ export function CreateTransactionForm({
                             }
                         />
                         <FieldDescription id="transaction-amount-description">
-                            Enter a positive amount.{" "}
+                            {t("Enter a positive amount.")}{" "}
                             {values.type === "EXPENSE"
-                                ? "Expenses subtract from"
-                                : "Incomes add to"}{" "}
-                            this wallet when posted. Numbers are formatted for
-                            your locale.
+                                ? t("Expenses subtract from")
+                                : t("Incomes add to")}{" "}
+                            {t(
+                                "this wallet when posted. Numbers are formatted for your locale."
+                            )}
                         </FieldDescription>
                         {state.errors?.amount ? (
                             <FieldError id="transaction-amount-error">
-                                {state.errors.amount}
+                                {t(state.errors.amount || "")}
                             </FieldError>
                         ) : null}
                     </Field>
                     <Field data-invalid={Boolean(state.errors?.date)}>
-                        <FieldLabel htmlFor="transaction-date">Date</FieldLabel>
+                        <FieldLabel htmlFor="transaction-date">
+                            {t("Date")}
+                        </FieldLabel>
                         <fieldset disabled={editScope !== "ONLY"}>
                             <DatePicker
                                 id="transaction-date"
@@ -421,24 +443,24 @@ export function CreateTransactionForm({
                         )}
                         {state.errors?.date ? (
                             <FieldError id="transaction-date-error">
-                                {state.errors.date}
+                                {t(state.errors.date || "")}
                             </FieldError>
                         ) : null}
                     </Field>
                     <TransactionSelect
                         name="accountWalletId"
-                        label="Wallet"
+                        label={t("Wallet")}
                         value={accountWalletId}
                         options={wallets.map((wallet) => ({
                             value: wallet.id,
                             label: `${wallet.name} (${currencySymbol(wallet.currency)})`,
                         }))}
                         onChange={(value) => update("accountWalletId", value)}
-                        error={state.errors?.accountWalletId}
+                        error={t(state.errors?.accountWalletId || "")}
                     />
                     <TransactionSelect
                         name="parentCategoryId"
-                        label="Category"
+                        label={t("Category")}
                         value={values.categoryId}
                         options={options}
                         onChange={(categoryId) =>
@@ -448,16 +470,18 @@ export function CreateTransactionForm({
                                 subcategoryId: "none",
                             }))
                         }
-                        error={state.errors?.categoryId}
+                        error={t(state.errors?.categoryId || "")}
                         description={
                             options.length
-                                ? "Choose a category for this transaction."
-                                : "No active categories for this type. Add one using Manage categories below."
+                                ? t("Choose a category for this transaction.")
+                                : t(
+                                      "No active categories for this type. Add one using Manage categories below."
+                                  )
                         }
                     />
                     <TransactionSelect
                         name="subcategoryId"
-                        label="Subcategory (optional)"
+                        label={t("Subcategory (optional)")}
                         value={values.subcategoryId}
                         options={subcategoryOptions}
                         onChange={(value) => update("subcategoryId", value)}
@@ -466,13 +490,13 @@ export function CreateTransactionForm({
                         href={`/dashboard/accounts/${financialAccountId}/categories`}
                         className="text-sm underline underline-offset-4"
                     >
-                        Manage categories
+                        {t("Manage categories")}
                     </Link>
                     <RecurrenceFields
                         initial={editing?.recurrence}
                         date={values.date}
-                        error={state.errors?.repeat}
-                        scopeError={state.errors?.editScope}
+                        error={t(state.errors?.repeat || "")}
+                        scopeError={t(state.errors?.editScope || "")}
                         onScopeChange={(scope) => {
                             setEditScope(scope)
                             if (scope !== "ONLY" && editing)
@@ -484,16 +508,19 @@ export function CreateTransactionForm({
                     />
                     {editScope !== "ONLY" && (
                         <p className="text-sm text-muted-foreground">
-                            Dates stay unchanged for series edits. Choose Only
-                            this occurrence to change its date.
+                            {t(
+                                "Dates stay unchanged for series edits. Choose Only this occurrence to change its date."
+                            )}
                         </p>
                     )}
                     <StatusSwitch
                         name="status"
                         value={values.status}
                         onValueChange={(value) => update("status", value)}
-                        error={state.errors?.status}
-                        description="Posted affects your balance now. Pending does not. The date never changes the status automatically."
+                        error={t(state.errors?.status || "")}
+                        description={t(
+                            "Posted affects your balance now. Pending does not. The date never changes the status automatically."
+                        )}
                     />
                     <ExpenseSpreadFields
                         initial={editing?.spread}
@@ -501,11 +528,11 @@ export function CreateTransactionForm({
                         amount={values.amount}
                         currency={currency}
                         type={values.type}
-                        error={state.errors?.spread}
+                        error={t(state.errors?.spread || "")}
                     />
                     <Field data-invalid={Boolean(state.errors?.notes)}>
                         <FieldLabel htmlFor="transaction-notes">
-                            Notes (optional)
+                            {t("Notes (optional)")}
                         </FieldLabel>
                         <Textarea
                             id="transaction-notes"
@@ -524,7 +551,7 @@ export function CreateTransactionForm({
                         />
                         {state.errors?.notes ? (
                             <FieldError id="transaction-notes-error">
-                                {state.errors.notes}
+                                {t(state.errors.notes || "")}
                             </FieldError>
                         ) : null}
                     </Field>
@@ -541,12 +568,12 @@ export function CreateTransactionForm({
             ) : null}
             <Button type="submit" disabled={pending || !values.categoryId}>
                 {pending
-                    ? "Saving…"
+                    ? t("Saving…")
                     : editing
-                      ? "Save changes"
+                      ? t("Save changes")
                       : values.type === "EXPENSE"
-                        ? "Add expense"
-                        : "Add income"}
+                        ? t("Add expense")
+                        : t("Add income")}
             </Button>
         </form>
     )

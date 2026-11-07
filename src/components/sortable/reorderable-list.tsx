@@ -2,7 +2,7 @@
 
 import { useId, useRef, useState, type ReactNode } from "react"
 import { flushSync } from "react-dom"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/components/i18n/navigation"
 import { toast } from "sonner"
 import { DragDropProvider } from "@dnd-kit/react"
 import { isSortable } from "@dnd-kit/react/sortable"
@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { SortableItem } from "./sortable-item"
+import { useTranslations } from "@/components/i18n/locale-provider"
 
 export function ReorderableList<T extends { id: string; name: string }>({
     items: serverItems,
@@ -35,6 +36,7 @@ export function ReorderableList<T extends { id: string; name: string }>({
     onSave: (input: ListOrderInput) => Promise<OrderSaveResult<T>>
     renderItem: (item: T, state: { disabled: boolean }) => ReactNode
 }) {
+    const t = useTranslations()
     const router = useRouter()
     const listRef = useRef<HTMLDivElement>(null)
     function focusHandle() {
@@ -99,28 +101,29 @@ export function ReorderableList<T extends { id: string; name: string }>({
         if (savingRef.current) return
         setDraft(null)
         setRevision((value) => value + 1)
-        setStatus("Changes canceled")
+        setStatus(t("Changes canceled"))
         focusHandle()
     }
     async function save() {
         if (!draft || savingRef.current) return
         savingRef.current = true
         setSaving(true)
-        setStatus("Saving…")
-        let message =
+        setStatus(t("Saving…"))
+        let message = t(
             "Couldn’t save the order. Your changes are kept; try again."
+        )
         try {
             const result = await onSave({
                 previousIds: draft.original.map((item) => item.id),
                 orderedIds: draft.items.map((item) => item.id),
             })
             if (!result.success) {
-                message = result.message
+                message = t(result.message)
                 throw new Error(message)
             }
             setConfirmed({ baseline, items: result.items })
             setDraft(null)
-            setStatus("Order saved")
+            setStatus(t("Order saved"))
             focusHandle()
         } catch {
             setStatus(message)
@@ -157,20 +160,32 @@ export function ReorderableList<T extends { id: string; name: string }>({
                 ...defaults.filter((plugin) => plugin !== Accessibility),
                 Accessibility.configure({
                     screenReaderInstructions: {
-                        draggable:
-                            "Press Space or Enter to pick up. Use arrow keys to reorder. Press Space or Enter to drop, or Escape to cancel. Save order to keep your changes.",
+                        draggable: t(
+                            "Press Space or Enter to pick up. Use arrow keys to reorder. Press Space or Enter to drop, or Escape to cancel. Save order to keep your changes."
+                        ),
                     },
                     announcements: {
                         dragstart: ({ operation }: DragStartEvent) =>
-                            `Picked up ${operation.source?.data.name}.`,
+                            t("Picked up {name}.", {
+                                name: String(operation.source?.data.name ?? ""),
+                            }),
                         dragover: ({ operation }: DragOverEvent) =>
                             isSortable(operation.source)
-                                ? `${operation.source.data.name}, position ${operation.source.index + 1}.`
+                                ? t("{name}, position {position}.", {
+                                      name: String(
+                                          operation.source.data.name ?? ""
+                                      ),
+                                      position: operation.source.index + 1,
+                                  })
                                 : undefined,
                         dragend: ({ operation, canceled }: DragEndEvent) =>
                             canceled
-                                ? "Reordering canceled."
-                                : `Dropped ${operation.source?.data.name}.`,
+                                ? t("Reordering canceled.")
+                                : t("Dropped {name}.", {
+                                      name: String(
+                                          operation.source?.data.name ?? ""
+                                      ),
+                                  }),
                     },
                 }),
             ]}
@@ -183,17 +198,21 @@ export function ReorderableList<T extends { id: string; name: string }>({
             >
                 {items.length > 1 && (
                     <p id={helpId} className="text-xs text-muted-foreground">
-                        Drag the grip to reorder your {label}, then save your
-                        changes.
+                        {t(
+                            "Drag to reorder your {items}, then save your changes.",
+                            { items: label }
+                        )}
                     </p>
                 )}
                 {dirty && (
                     <section
-                        aria-label={`Unsaved ${label} order`}
+                        aria-label={t("Unsaved {items} order", {
+                            items: label,
+                        })}
                         className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted p-4"
                     >
                         <p className="text-sm font-medium">
-                            Unsaved {label} order
+                            {t("Unsaved {items} order", { items: label })}
                         </p>
                         <div className="flex gap-2">
                             <Button
@@ -201,14 +220,14 @@ export function ReorderableList<T extends { id: string; name: string }>({
                                 disabled={saving}
                                 onClick={cancel}
                             >
-                                Cancel
+                                {t("Cancel")}
                             </Button>
                             <Button
                                 disabled={saving}
                                 onClick={() => void save()}
                             >
                                 {saving && <Spinner data-icon="inline-start" />}
-                                {saving ? "Saving…" : "Save order"}
+                                {saving ? t("Saving…") : t("Save order")}
                             </Button>
                         </div>
                     </section>

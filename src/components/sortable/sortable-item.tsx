@@ -10,6 +10,7 @@ import { Feedback } from "@dnd-kit/dom"
 import { useSortable } from "@dnd-kit/react/sortable"
 import { GripVertical } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "@/components/i18n/locale-provider"
 
 const HandleRefContext = createContext<
     ((element: Element | null) => void) | null
@@ -102,6 +103,7 @@ export function SortableItem({
 }
 
 export function SortableHandle() {
+    const t = useTranslations()
     const handleRef = useContext(HandleRefContext)
     const handle = useContext(HandleContext)
     if (!handle) return null
@@ -111,9 +113,9 @@ export function SortableHandle() {
             type="button"
             data-sortable-handle={handle.id}
             disabled={handle.disabled}
-            aria-label={`Reorder ${handle.name}`}
+            aria-label={t("Reorder {name}", { name: handle.name })}
             aria-describedby={handle.helpId}
-            title="Drag to reorder"
+            title={t("Drag to reorder")}
             className="pointer-events-auto relative flex size-9 shrink-0 touch-none items-center justify-center rounded-lg text-muted-foreground outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring enabled:cursor-grab enabled:active:cursor-grabbing disabled:cursor-default disabled:opacity-35"
         >
             <GripVertical className="size-4" aria-hidden="true" />

@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import { format, parseISO } from "date-fns"
+import { el, enGB } from "react-day-picker/locale"
+import { useLocale, useTranslations } from "@/components/i18n/locale-provider"
 import { CalendarDaysIcon, ChevronDownIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -28,6 +30,8 @@ export function DatePicker({
     onChange,
     ...ariaProps
 }: DatePickerProps) {
+    const t = useTranslations()
+    const locale = useLocale() === "el" ? el : enGB
     const [open, setOpen] = useState(false)
     // Parse as a local calendar date: UTC conversion can shift the selected day.
     const selected = value ? parseISO(value) : undefined
@@ -52,7 +56,9 @@ export function DatePicker({
                         aria-hidden="true"
                     />
                     <span className="flex-1 text-left">
-                        {selected ? format(selected, "PPP") : "Pick a date"}
+                        {selected
+                            ? format(selected, "PPP", { locale })
+                            : t("Pick a date")}
                     </span>
                     <ChevronDownIcon
                         data-icon="inline-end"
@@ -60,8 +66,11 @@ export function DatePicker({
                     />
                 </PopoverTrigger>
                 <PopoverContent align="start" className="w-auto p-0">
-                    <PopoverTitle className="sr-only">Choose date</PopoverTitle>
+                    <PopoverTitle className="sr-only">
+                        {t("Choose date")}
+                    </PopoverTitle>
                     <Calendar
+                        locale={locale}
                         mode="single"
                         required
                         selected={selected}

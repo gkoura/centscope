@@ -1,5 +1,7 @@
 "use client"
 
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { useId, useState } from "react"
 import { ChevronDown, ChevronRight, ListFilter, Search, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -31,6 +33,8 @@ type Props = {
     onChange: (ids: string[] | null) => void
 }
 export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
+    const t = useTranslations()
+
     const pickerId = useId()
     const [open, setOpen] = useState(false)
     const [draft, setDraft] = useState<string[] | null>(null)
@@ -47,7 +51,7 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
                 (child) => child.parentId === root.id && matches(child.name)
             )
     )
-    const showUncategorized = matches("Uncategorized")
+    const showUncategorized = matches(t("Uncategorized"))
     const selectedCount =
         draft === null
             ? allIds.length
@@ -111,13 +115,13 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
             .map((item) => ({
                 label:
                     item.id === root.id
-                        ? `${root.name} (direct)`
+                        ? t("{value0} (direct)", { value0: root.name })
                         : `${root.name} / ${item.name}`,
                 ids: [item.id],
             }))
     })
     if (selectedSet?.has(UNCATEGORIZED))
-        chips.push({ label: "Uncategorized", ids: [UNCATEGORIZED] })
+        chips.push({ label: t("Uncategorized"), ids: [UNCATEGORIZED] })
 
     return (
         <div className="flex min-w-0 flex-col gap-3">
@@ -141,9 +145,10 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
                             />
                         }
                     >
-                        <ListFilter data-icon="inline-start" /> Categories
+                        <ListFilter data-icon="inline-start" />{" "}
+                        {t("Categories")}
                         <span className="rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                            {selected === null ? "All" : chips.length}
+                            {selected === null ? t("All") : chips.length}
                         </span>
                         <ChevronDown data-icon="inline-end" />
                     </DialogTrigger>
@@ -153,10 +158,13 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
                     >
                         <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-4">
                             <div className="flex min-w-0 flex-col gap-2">
-                                <DialogTitle>Choose categories</DialogTitle>
+                                <DialogTitle>
+                                    {t("Choose categories")}
+                                </DialogTitle>
                                 <DialogDescription>
-                                    Select a whole category or pick individual
-                                    subcategories.
+                                    {t(
+                                        "Select a whole category or pick individual subcategories."
+                                    )}
                                 </DialogDescription>
                             </div>
                             <DialogClose
@@ -167,7 +175,7 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
                                         className="-mt-2 -mr-2 size-11"
                                     />
                                 }
-                                aria-label="Close category filters"
+                                aria-label={t("Close category filters")}
                             >
                                 <X />
                             </DialogClose>
@@ -178,7 +186,7 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
                                     htmlFor={`${pickerId}-search`}
                                     className="sr-only"
                                 >
-                                    Search categories
+                                    {t("Search categories")}
                                 </FieldLabel>
                                 <InputGroup className="h-11">
                                     <InputGroupAddon>
@@ -186,7 +194,7 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
                                     </InputGroupAddon>
                                     <InputGroupInput
                                         id={`${pickerId}-search`}
-                                        placeholder="Search categories…"
+                                        placeholder={t("Search categories…")}
                                         value={search}
                                         onChange={(event) =>
                                             setSearch(event.target.value)
@@ -202,8 +210,11 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
                                     className="text-xs text-muted-foreground"
                                 >
                                     {selectedCount === allIds.length
-                                        ? "All categories selected"
-                                        : `${selectedCount} of ${allIds.length} selected`}
+                                        ? t("All categories selected")
+                                        : t("{value0} of {value1} selected", {
+                                              value0: selectedCount,
+                                              value1: allIds.length,
+                                          })}
                                 </p>
                                 <div className="flex items-center gap-1">
                                     <Button
@@ -212,7 +223,7 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
                                         className="min-h-11"
                                         onClick={() => setDraft(null)}
                                     >
-                                        Select all
+                                        {t("Select all")}
                                     </Button>
                                     <Button
                                         variant="ghost"
@@ -220,7 +231,7 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
                                         className="min-h-11"
                                         onClick={() => setDraft([])}
                                     >
-                                        Clear
+                                        {t("Clear")}
                                     </Button>
                                 </div>
                             </div>
@@ -255,7 +266,12 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
                                                     categories
                                                 ),
                                                 children.length
-                                                    ? `${children.length} subcategories`
+                                                    ? t(
+                                                          "{value0} subcategories",
+                                                          {
+                                                              value0: children.length,
+                                                          }
+                                                      )
                                                     : undefined
                                             )}
                                             {children.length > 0 && (
@@ -263,7 +279,15 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
                                                     variant="ghost"
                                                     size="icon"
                                                     className="size-11"
-                                                    aria-label={`${isExpanded ? "Hide" : "Show"} ${root.name} subcategories`}
+                                                    aria-label={t(
+                                                        "{value0} {value1} subcategories",
+                                                        {
+                                                            value0: isExpanded
+                                                                ? t("Hide")
+                                                                : t("Show"),
+                                                            value1: root.name,
+                                                        }
+                                                    )}
                                                     aria-expanded={isExpanded}
                                                     aria-controls={`${pickerId}-${root.id}`}
                                                     disabled={!!term}
@@ -306,9 +330,16 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
                                                         ])}
                                                     >
                                                         {choice(
-                                                            `Directly in ${root.name}`,
+                                                            t(
+                                                                "Directly in {value0}",
+                                                                {
+                                                                    value0: root.name,
+                                                                }
+                                                            ),
                                                             [root.id],
-                                                            "Entries without a subcategory"
+                                                            t(
+                                                                "Entries without a subcategory"
+                                                            )
                                                         )}
                                                     </div>
                                                 )}
@@ -336,9 +367,9 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
                                 <div className="mt-2 border-t pt-2">
                                     <div className={rowClass([UNCATEGORIZED])}>
                                         {choice(
-                                            "Uncategorized",
+                                            t("Uncategorized"),
                                             [UNCATEGORIZED],
-                                            "Entries with no category"
+                                            t("Entries with no category")
                                         )}
                                     </div>
                                 </div>
@@ -349,17 +380,19 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
                                     className="flex flex-col gap-2 px-3 py-10 text-center"
                                 >
                                     <p className="font-medium">
-                                        No categories found
+                                        {t("No categories found")}
                                     </p>
                                     <p className="text-sm text-muted-foreground">
-                                        Try a category or subcategory name.
+                                        {t(
+                                            "Try a category or subcategory name."
+                                        )}
                                     </p>
                                     <Button
                                         variant="ghost"
                                         className="mx-auto mt-2 min-h-11"
                                         onClick={() => setSearch("")}
                                     >
-                                        Clear search
+                                        {t("Clear search")}
                                     </Button>
                                 </div>
                             )}
@@ -373,7 +406,7 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
                                     />
                                 }
                             >
-                                Cancel
+                                {t("Cancel")}
                             </DialogClose>
                             <Button
                                 className="min-h-11 flex-1"
@@ -389,7 +422,7 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
                                     setOpen(false)
                                 }}
                             >
-                                Apply filters
+                                {t("Apply filters")}
                             </Button>
                         </div>
                     </DialogContent>
@@ -400,13 +433,13 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
                         className="min-h-11"
                         onClick={() => onChange(null)}
                     >
-                        Clear filters
+                        {t("Clear filters")}
                     </Button>
                 )}
             </div>
             {selected !== null && (
                 <div
-                    aria-label="Selected categories"
+                    aria-label={t("Selected categories")}
                     className="flex flex-wrap gap-2"
                 >
                     {chips.map((chip) => (
@@ -421,7 +454,9 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
                                     )
                                 )
                             }
-                            aria-label={`Remove ${chip.label} filter`}
+                            aria-label={t("Remove {value0} filter", {
+                                value0: chip.label,
+                            })}
                         >
                             <span className="min-w-0 wrap-break-word">
                                 {chip.label}
@@ -431,8 +466,9 @@ export function MonthlyTrendFilters({ categories, selected, onChange }: Props) {
                     ))}
                     {selected.length === 0 && (
                         <p className="text-sm text-muted-foreground">
-                            No categories selected. Choose categories or clear
-                            filters to see all.
+                            {t(
+                                "No categories selected. Choose categories or clear filters to see all."
+                            )}
                         </p>
                     )}
                 </div>

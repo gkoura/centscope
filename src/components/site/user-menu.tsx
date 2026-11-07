@@ -1,6 +1,8 @@
 "use client"
 
-import Link from "next/link"
+import { useTranslations } from "@/components/i18n/locale-provider"
+
+import Link from "@/components/i18n/link"
 import { LogOut, Settings2, UserRound, LoaderCircle } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import { useSignOut } from "@/lib/auth/use-sign-out"
@@ -17,6 +19,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 export function UserMenu() {
+    const t = useTranslations()
+
     // Subscribe to the same Better Auth session store as the workspace shell.
     const { data: session } = authClient.useSession()
     const { signOut, pending } = useSignOut()
@@ -40,8 +44,8 @@ export function UserMenu() {
                         className="size-11 rounded-full"
                     />
                 }
-                aria-label="Account menu"
-                title="Account menu"
+                aria-label={t("Account menu")}
+                title={t("Account menu")}
                 disabled={pending}
                 aria-busy={pending}
             >
@@ -56,7 +60,7 @@ export function UserMenu() {
                 <DropdownMenuGroup>
                     <DropdownMenuLabel className="flex min-w-0 flex-col gap-1 py-2">
                         <span className="truncate">
-                            {name || "Your account"}
+                            {name || t("Your account")}
                         </span>
                         {user?.email && (
                             <span className="truncate text-xs font-normal text-muted-foreground">
@@ -72,7 +76,7 @@ export function UserMenu() {
                         disabled={pending}
                         className="min-h-11"
                     >
-                        <Settings2 /> Settings
+                        <Settings2 /> {t("Settings")}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                         onClick={() => void signOut()}
@@ -85,7 +89,7 @@ export function UserMenu() {
                         ) : (
                             <LogOut />
                         )}
-                        {pending ? "Signing out…" : "Sign out"}
+                        {pending ? t("Signing out…") : t("Sign out")}
                     </DropdownMenuItem>
                 </DropdownMenuGroup>
             </DropdownMenuContent>

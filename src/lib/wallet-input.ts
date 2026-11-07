@@ -101,12 +101,16 @@ export function validateWalletInput(formData: FormData):
 }
 
 // Format exact decimal strings, including values above Number.MAX_SAFE_INTEGER.
-export function formatWalletMoney(amount: string, currency: string): string {
+export function formatWalletMoney(
+    amount: string,
+    currency: string,
+    locale = "en-GB"
+): string {
     const negative = amount.startsWith("-")
     const [whole, fraction = ""] = amount.replace(/^-/, "").split(".")
     const integer = BigInt(whole)
     const signed = negative ? (integer === BigInt(0) ? -0 : -integer) : integer
-    const formatted = new Intl.NumberFormat("en-GB", {
+    const formatted = new Intl.NumberFormat(locale, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     })

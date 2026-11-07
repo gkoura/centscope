@@ -1,3 +1,10 @@
+"use client"
+
+import { useLocale } from "@/components/i18n/locale-provider"
+import { intlLocale } from "@/lib/i18n/config"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { WalletBalanceTiles } from "./wallet-balance-tiles"
 import { balanceTotals } from "@/lib/account-summary"
 import { formatWalletMoney } from "@/lib/wallet-input"
@@ -16,10 +23,14 @@ export function BalanceSummary({
     selectedWalletId?: string
     compact?: boolean
 }) {
+    const locale = useLocale()
+
+    const t = useTranslations()
+
     const totals = balanceTotals(wallets)
     return (
         <section
-            aria-label="Account and wallet balances"
+            aria-label={t("Account and wallet balances")}
             className={
                 compact
                     ? "balance-summary-compact flex min-w-0 flex-col gap-3"
@@ -28,25 +39,36 @@ export function BalanceSummary({
         >
             <div className="balance-hero">
                 <p className="text-xs font-medium tracking-wider uppercase">
-                    Total balance
+                    {t("Total balance")}
+                    {compact && (
+                        <span className="balance-scope">
+                            {t(" · posted, all dates")}
+                        </span>
+                    )}
                 </p>
                 {totals.length ? (
                     totals.map((total) => (
                         <p key={total.currency} className="balance-value">
-                            {formatWalletMoney(total.amount, total.currency)}
+                            {formatWalletMoney(
+                                total.amount,
+                                total.currency,
+                                intlLocale(locale)
+                            )}
                         </p>
                     ))
                 ) : (
-                    <p className="balance-value">No wallets yet</p>
+                    <p className="balance-value">{t("No wallets yet")}</p>
                 )}
                 <p className="mt-3 text-xs opacity-75">
-                    Current posted balance
-                    {totals.length > 1 ? " · currencies shown separately" : ""}
+                    {t("Current posted balance")}
+                    {totals.length > 1
+                        ? t(" · currencies shown separately")
+                        : ""}
                 </p>
                 {!compact && wallets.length > 0 && (
                     <dl
                         className="balance-wallet-split"
-                        aria-label="Balance by wallet"
+                        aria-label={t("Balance by wallet")}
                     >
                         {wallets.map((wallet) => (
                             <div key={wallet.id} className="min-w-0">
@@ -56,7 +78,8 @@ export function BalanceSummary({
                                 <dd className="mt-1 text-base font-medium [overflow-wrap:anywhere] tabular-nums">
                                     {formatWalletMoney(
                                         wallet.balance,
-                                        wallet.currency
+                                        wallet.currency,
+                                        intlLocale(locale)
                                     )}
                                 </dd>
                             </div>

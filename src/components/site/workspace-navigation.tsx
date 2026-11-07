@@ -1,6 +1,10 @@
 "use client"
-import Link from "next/link"
-import { usePathname, useSearchParams } from "next/navigation"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
+import Link from "@/components/i18n/link"
+import { useSearchParams } from "next/navigation"
+import { usePathname } from "@/components/i18n/navigation"
 import {
     LayoutDashboard,
     Layers,
@@ -56,12 +60,14 @@ function useDestinations() {
     }
 }
 export function WorkspaceNavigation() {
+    const t = useTranslations()
+
     const { items } = useDestinations()
     return (
         <>
             {items.map(({ href, label, icon: Icon, active }) => (
                 <Link
-                    key={label}
+                    key={t(label || "")}
                     href={href}
                     aria-current={active ? "page" : undefined}
                     className={cn(
@@ -70,27 +76,31 @@ export function WorkspaceNavigation() {
                     )}
                 >
                     <Icon className="size-4" />
-                    {label}
+                    {t(label || "")}
                 </Link>
             ))}
         </>
     )
 }
 export function WorkspaceNavigationFallback() {
+    const t = useTranslations()
+
     return (
         <Link href="/dashboard" className="flex items-center gap-3 p-3 text-sm">
             <LayoutDashboard className="size-4" />
-            Overview
+            {t("Overview")}
         </Link>
     )
 }
 export function MobileWorkspaceNavigation() {
+    const t = useTranslations()
+
     const { items } = useDestinations()
     return (
-        <nav aria-label="Main navigation" className="mobile-bottom-nav">
+        <nav aria-label={t("Main navigation")} className="mobile-bottom-nav">
             {items.map(({ href, label, icon: Icon, active }) => (
                 <Link
-                    key={label}
+                    key={t(label || "")}
                     href={href}
                     aria-current={active ? "page" : undefined}
                     className={cn("mobile-nav-item", active && "text-primary")}
@@ -100,7 +110,7 @@ export function MobileWorkspaceNavigation() {
                         strokeWidth={active ? 2.25 : 1.7}
                         aria-hidden="true"
                     />
-                    <span>{label}</span>
+                    <span>{t(label || "")}</span>
                 </Link>
             ))}
         </nav>
@@ -108,6 +118,8 @@ export function MobileWorkspaceNavigation() {
 }
 
 export function SidebarSettingsLink({ active = false }: { active?: boolean }) {
+    const t = useTranslations()
+
     return (
         <Link
             href="/settings/security"
@@ -118,7 +130,7 @@ export function SidebarSettingsLink({ active = false }: { active?: boolean }) {
             )}
         >
             <Settings2 className="size-4" aria-hidden="true" />
-            Settings
+            {t("Settings")}
         </Link>
     )
 }

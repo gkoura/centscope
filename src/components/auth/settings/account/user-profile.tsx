@@ -9,7 +9,7 @@ import {
 import type { UsernameAuthClient } from "@better-auth-ui/core/plugins/username"
 import { useAuth, useSession, useUpdateUser } from "@better-auth-ui/react"
 import { useEffect, useMemo } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/components/i18n/navigation"
 import { toast } from "sonner"
 
 import { Card, CardContent, CardFooter } from "@/components/ui/card"

@@ -4,30 +4,44 @@ import { render, toPlainText } from "react-email"
 import VerifyEmail from "../../../emails/verify-email"
 import ResetPassword from "../../../emails/reset-password"
 import DeleteAccount from "../../../emails/delete-account"
+import { createTranslator } from "@/lib/i18n/translate"
+import type { Locale } from "@/lib/i18n/config"
 
-type AuthEmail = { to: string; url: string }
+type AuthEmail = { to: string; url: string; locale?: Locale }
 
-export async function sendDeleteAccountEmail({ to, url }: AuthEmail) {
+export async function sendDeleteAccountEmail({
+    to,
+    url,
+    locale = "en",
+}: AuthEmail) {
     await sendAuthEmail(
         to,
-        "Confirm deletion of your CentScope account",
-        createElement(DeleteAccount, { url })
+        createTranslator(locale)("Confirm deletion of your CentScope account"),
+        createElement(DeleteAccount, { url, locale })
     )
 }
 
-export async function sendVerificationEmail({ to, url }: AuthEmail) {
+export async function sendVerificationEmail({
+    to,
+    url,
+    locale = "en",
+}: AuthEmail) {
     await sendAuthEmail(
         to,
-        "Verify your CentScope email",
-        createElement(VerifyEmail, { url })
+        createTranslator(locale)("Verify your CentScope email"),
+        createElement(VerifyEmail, { url, locale })
     )
 }
 
-export async function sendPasswordResetEmail({ to, url }: AuthEmail) {
+export async function sendPasswordResetEmail({
+    to,
+    url,
+    locale = "en",
+}: AuthEmail) {
     await sendAuthEmail(
         to,
-        "Reset your CentScope password",
-        createElement(ResetPassword, { url })
+        createTranslator(locale)("Reset your CentScope password"),
+        createElement(ResetPassword, { url, locale })
     )
 }
 

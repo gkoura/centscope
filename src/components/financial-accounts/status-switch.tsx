@@ -1,5 +1,7 @@
 "use client"
 
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { useId, type Ref } from "react"
 import { Switch } from "@/components/ui/switch"
 import {
@@ -34,6 +36,8 @@ export function StatusSwitch({
     controlRef?: Ref<HTMLButtonElement>
     accessibleLabel?: string
 }) {
+    const t = useTranslations()
+
     const id = useId(),
         posted = value === "POSTED"
     const describedBy =
@@ -53,7 +57,7 @@ export function StatusSwitch({
                 htmlFor={id}
                 className={compact ? "sr-only" : undefined}
             >
-                {label}
+                {t(label || "")}
             </FieldLabel>
             {name && <input type="hidden" name={name} value={value} />}
             <div className="flex min-h-11 items-center gap-3">
@@ -66,7 +70,7 @@ export function StatusSwitch({
                                 : "text-sm font-medium"
                         }
                     >
-                        Pending
+                        {t("Pending")}
                     </span>
                 )}
                 <Switch
@@ -75,7 +79,10 @@ export function StatusSwitch({
                     size="lg"
                     title={
                         compact
-                            ? `${posted ? "Posted" : "Pending"} · switch to ${posted ? "pending" : "posted"}`
+                            ? t("{value0} · switch to {value1}", {
+                                  value0: posted ? t("Posted") : t("Pending"),
+                                  value1: posted ? t("Pending") : t("Posted"),
+                              })
                             : undefined
                     }
                     checked={posted}
@@ -83,7 +90,7 @@ export function StatusSwitch({
                         onValueChange(checked ? "POSTED" : "PENDING")
                     }
                     disabled={disabled || saving}
-                    aria-label={accessibleLabel ?? label}
+                    aria-label={t(accessibleLabel ?? label)}
                     aria-describedby={describedBy}
                     aria-invalid={Boolean(error)}
                 />
@@ -96,7 +103,7 @@ export function StatusSwitch({
                                 : "text-sm text-muted-foreground"
                         }
                     >
-                        Posted
+                        {t("Posted")}
                     </span>
                 )}
             </div>
@@ -106,12 +113,12 @@ export function StatusSwitch({
                     aria-live="polite"
                     className={compact ? "sr-only" : undefined}
                 >
-                    {saving ? "Saving status…" : description}
+                    {saving ? t("Saving status…") : description}
                 </FieldDescription>
             )}
             {error && (
                 <FieldError id={`${id}-error`} role="alert">
-                    {error}
+                    {t(error || "")}
                 </FieldError>
             )}
         </Field>

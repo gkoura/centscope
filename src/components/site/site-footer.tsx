@@ -1,8 +1,10 @@
-import Link from "next/link"
+import { getTranslations } from "@/lib/i18n/server"
+import Link from "@/components/i18n/link"
 import { cacheLife } from "next/cache"
 import { Brand } from "./brand"
 export async function SiteFooter() {
     "use cache"
+    const t = await getTranslations()
     cacheLife("days")
     return (
         <footer className="border-t">
@@ -10,19 +12,19 @@ export async function SiteFooter() {
                 <div className="flex flex-col gap-3">
                     <Brand />
                     <p className="text-sm text-muted-foreground">
-                        Make sense of every cent.
+                        {t("Make sense of every cent.")}
                     </p>
                 </div>
                 <nav
-                    aria-label="Footer"
+                    aria-label={t("Footer")}
                     className="flex flex-wrap gap-6 text-sm text-muted-foreground"
                 >
-                    <Link href="/#features">Features</Link>
-                    <Link href="/auth/sign-in">Log in</Link>
-                    <Link href="/auth/sign-up">Create an account</Link>
+                    <Link href="/#features">{t("Features")}</Link>
+                    <Link href="/auth/sign-in">{t("Log in")}</Link>
+                    <Link href="/auth/sign-up">{t("Create an account")}</Link>
                 </nav>
                 <p className="text-xs text-muted-foreground">
-                    © {new Date().getFullYear()} CentScope
+                    © {new Date().getFullYear()} {t("CentScope")}
                 </p>
             </div>
         </footer>

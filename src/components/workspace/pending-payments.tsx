@@ -1,4 +1,11 @@
-import Link from "next/link"
+"use client"
+
+import { useLocale } from "@/components/i18n/locale-provider"
+import { intlLocale } from "@/lib/i18n/config"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
+import Link from "@/components/i18n/link"
 import {
     ArrowRight,
     CalendarClock,
@@ -25,14 +32,6 @@ import {
 } from "@/lib/pending-payments"
 import { cn } from "@/lib/utils"
 
-const dateLabel = (date: string) =>
-    new Intl.DateTimeFormat("en", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        timeZone: "UTC",
-    }).format(new Date(`${date}T00:00:00Z`))
-
 export function PendingPayments({
     accountId,
     summary,
@@ -40,6 +39,17 @@ export function PendingPayments({
     accountId: string
     summary: ReturnType<typeof summarizePendingPayments>
 }) {
+    const locale = useLocale()
+    const dateLabel = (date: string) =>
+        new Intl.DateTimeFormat(intlLocale(locale), {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            timeZone: "UTC",
+        }).format(new Date(`${date}T00:00:00Z`))
+
+    const t = useTranslations()
+
     const href = pendingPaymentsHref(accountId, summary)
     return (
         <Card
@@ -61,7 +71,7 @@ export function PendingPayments({
                         </span>
                         <CardTitle>
                             <h2 id="pending-payments-heading">
-                                Pending payments
+                                {t("Pending payments")}
                             </h2>
                         </CardTitle>
                         {summary.count > 0 && (
@@ -73,33 +83,35 @@ export function PendingPayments({
                             {summary.overdue > 0 && (
                                 <Badge variant="overdue">
                                     <CircleAlert data-icon="inline-start" />
-                                    {summary.overdue} overdue
+                                    {summary.overdue} {t("overdue")}
                                 </Badge>
                             )}
                             {summary.dueToday > 0 && (
                                 <Badge variant="warning">
                                     <TriangleAlert data-icon="inline-start" />
-                                    {summary.dueToday} due today
+                                    {summary.dueToday} {t("due today")}
                                 </Badge>
                             )}
                         </div>
                     )}
                 </div>
                 <CardDescription>
-                    Pending expenses, ordered by due date. Their scheduled
-                    transaction date is treated as the due date.
+                    {t(
+                        "Pending expenses, ordered by due date. Their scheduled transaction date is treated as the due date."
+                    )}
                 </CardDescription>
                 {summary.count > 0 && (
                     <div className="flex flex-wrap gap-x-6 gap-y-3 rounded-xl bg-muted/40 px-4 py-3">
                         {summary.totals.map((total) => (
                             <div key={total.currency} className="min-w-0">
                                 <p className="text-xs text-muted-foreground">
-                                    Pending total
+                                    {t("Pending total")}
                                 </p>
                                 <p className="mt-1 text-lg font-semibold [overflow-wrap:anywhere] tabular-nums">
                                     {formatWalletMoney(
                                         total.amount,
-                                        total.currency
+                                        total.currency,
+                                        intlLocale(locale)
                                     )}
                                 </p>
                             </div>
@@ -135,7 +147,7 @@ export function PendingPayments({
                                                 {payment.recurring && (
                                                     <Badge variant="outline">
                                                         <Repeat2 data-icon="inline-start" />
-                                                        Repeats
+                                                        {t("Repeats")}
                                                     </Badge>
                                                 )}
                                             </div>
@@ -168,7 +180,8 @@ export function PendingPayments({
                                             >
                                                 {formatWalletMoney(
                                                     payment.amount,
-                                                    payment.currency
+                                                    payment.currency,
+                                                    intlLocale(locale)
                                                 )}
                                             </span>
                                             <ArrowRight
@@ -189,11 +202,12 @@ export function PendingPayments({
                         />
                         <div>
                             <p className="text-sm font-medium">
-                                No pending payments
+                                {t("No pending payments")}
                             </p>
                             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                                You’re all caught up. Expenses marked as pending
-                                will appear here.
+                                {t(
+                                    "You’re all caught up. Expenses marked as pending will appear here."
+                                )}
                             </p>
                         </div>
                     </div>
@@ -203,8 +217,14 @@ export function PendingPayments({
                 <CardFooter className="flex-wrap justify-between gap-2 px-5 py-3">
                     <p className="text-xs text-muted-foreground">
                         {summary.count > summary.items.length
-                            ? `Showing the next ${summary.items.length} of ${summary.count} payments`
-                            : "Pending payments don’t affect your balance."}
+                            ? t(
+                                  "Showing the next {value0} of {value1} payments",
+                                  {
+                                      value0: summary.items.length,
+                                      value1: summary.count,
+                                  }
+                              )
+                            : t("Pending payments don’t affect your balance.")}
                     </p>
                     <Button
                         variant="ghost"
@@ -212,7 +232,7 @@ export function PendingPayments({
                         nativeButton={false}
                         render={<Link href={href} />}
                     >
-                        View all pending
+                        {t("View all pending")}
                         <ArrowRight data-icon="inline-end" />
                     </Button>
                 </CardFooter>

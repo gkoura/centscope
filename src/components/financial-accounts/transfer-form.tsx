@@ -1,8 +1,10 @@
 "use client"
 
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { currencySymbol } from "@/lib/currency"
 import { useActionState, useState } from "react"
-import { saveTransfer } from "@/app/dashboard/accounts/[id]/transactions/transfer-actions"
+import { saveTransfer } from "@/app/[locale]/dashboard/accounts/[id]/transactions/transfer-actions"
 import { type TransferFormState, transferRate } from "@/lib/transfer-input"
 import type {
     getOwnedEditableTransfer,
@@ -41,6 +43,8 @@ export function TransferForm({
     sourceId?: string
     editing?: Editing
 }) {
+    const t = useTranslations()
+
     const first =
         wallets.find(
             (w) =>
@@ -61,7 +65,7 @@ export function TransferForm({
             "",
         amount: editing?.amount ?? "",
         destinationAmount: editing?.destinationAmount ?? "",
-        name: editing?.name ?? "Transfer",
+        name: editing?.name ?? t("Transfer"),
         notes: editing?.notes ?? "",
         date: editing?.date ?? today,
         status: editing?.status ?? "POSTED",
@@ -94,11 +98,11 @@ export function TransferForm({
     const walletPicker = (side: "source" | "destination") => {
         const idKey = side === "source" ? "sourceId" : "destinationId",
             options = eligible(side),
-            label = side === "source" ? "From" : "To"
+            label = side === "source" ? t("From") : t("To")
         return (
             <Field>
                 <FieldLabel htmlFor={`${side}-wallet`}>
-                    {label} wallet
+                    {t(label || "")} {t("wallet")}
                 </FieldLabel>
                 <select
                     id={`${side}-wallet`}
@@ -147,7 +151,7 @@ export function TransferForm({
                     {walletPicker("destination")}
                     {source && destination && source.id === destination.id && (
                         <FieldError role="alert">
-                            Choose a different destination wallet.
+                            {t("Choose a different destination wallet.")}
                         </FieldError>
                     )}
                     <Button
@@ -170,11 +174,11 @@ export function TransferForm({
                             }))
                         }
                     >
-                        Swap wallets
+                        {t("Swap wallets")}
                     </Button>
                     <Field>
                         <FieldLabel htmlFor="transfer-amount">
-                            {fx ? "Amount sent" : "Amount"} (
+                            {fx ? t("Amount sent") : t("Amount")} (
                             {currencySymbol(source?.wallet.currency ?? "")})
                         </FieldLabel>
                         <MoneyInput
@@ -188,7 +192,7 @@ export function TransferForm({
                     {fx && (
                         <Field>
                             <FieldLabel htmlFor="transfer-received">
-                                Amount received (
+                                {t("Amount received (")}
                                 {currencySymbol(
                                     destination?.wallet.currency ?? ""
                                 )}
@@ -207,18 +211,21 @@ export function TransferForm({
                                 {rate
                                     ? `1 ${currencySymbol(source?.wallet.currency ?? "")} = ${rate} ${currencySymbol(destination?.wallet.currency ?? "")}. `
                                     : ""}
-                                Pending amounts are estimates; confirm the
-                                actual amounts when posting.
+                                {t(
+                                    "Pending amounts are estimates; confirm the actual amounts when posting."
+                                )}
                             </FieldDescription>
                         </Field>
                     )}
                     <p className="text-sm text-muted-foreground">
-                        Transfers move money between wallets in this account
-                        without counting as income or spending. Record bank fees
-                        as a separate expense.
+                        {t(
+                            "Transfers move money between wallets in this account without counting as income or spending. Record bank fees as a separate expense."
+                        )}
                     </p>
                     <Field>
-                        <FieldLabel htmlFor="transfer-name">Name</FieldLabel>
+                        <FieldLabel htmlFor="transfer-name">
+                            {t("Name")}
+                        </FieldLabel>
                         <Input
                             id="transfer-name"
                             name="name"
@@ -230,8 +237,8 @@ export function TransferForm({
                     <RecurrenceFields
                         initial={editing?.recurrence}
                         date={values.date}
-                        error={state.errors?.repeat}
-                        scopeError={state.errors?.editScope}
+                        error={t(state.errors?.repeat || "")}
+                        scopeError={t(state.errors?.editScope || "")}
                         onScopeChange={(value) => {
                             setScope(value)
                             if (value !== "ONLY" && editing)
@@ -239,7 +246,9 @@ export function TransferForm({
                         }}
                     />
                     <Field>
-                        <FieldLabel htmlFor="transfer-date">Date</FieldLabel>
+                        <FieldLabel htmlFor="transfer-date">
+                            {t("Date")}
+                        </FieldLabel>
                         <Input
                             id="transfer-date"
                             type="date"
@@ -261,12 +270,14 @@ export function TransferForm({
                         name="status"
                         value={values.status}
                         onValueChange={(value) => update("status", value)}
-                        error={state.errors?.status}
-                        description="Posted affects both wallets now. Pending affects neither balance. Dates never change status automatically."
+                        error={t(state.errors?.status || "")}
+                        description={t(
+                            "Posted affects both wallets now. Pending affects neither balance. Dates never change status automatically."
+                        )}
                     />
                     <Field>
                         <FieldLabel htmlFor="transfer-notes">
-                            Notes (optional)
+                            {t("Notes (optional)")}
                         </FieldLabel>
                         <Textarea
                             id="transfer-notes"
@@ -284,7 +295,7 @@ export function TransferForm({
                 </FieldError>
             )}
             {state.message && (
-                <FieldError role="alert">{state.message}</FieldError>
+                <FieldError role="alert">{t(state.message || "")}</FieldError>
             )}
             <Button
                 type="submit"
@@ -296,10 +307,10 @@ export function TransferForm({
                 }
             >
                 {pending
-                    ? "Saving…"
+                    ? t("Saving…")
                     : editing
-                      ? "Save transfer"
-                      : "Create transfer"}
+                      ? t("Save transfer")
+                      : t("Create transfer")}
             </Button>
         </form>
     )

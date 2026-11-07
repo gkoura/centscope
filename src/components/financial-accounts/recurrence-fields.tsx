@@ -1,4 +1,7 @@
 "use client"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { useState } from "react"
 import type { RepeatInput, EditScope } from "@/lib/recurrence-input"
 import { nextSlot } from "@/lib/recurrence-input"
@@ -31,6 +34,8 @@ export function RecurrenceFields({
     scopeError?: string
     onScopeChange: (scope: EditScope) => void
 }) {
+    const t = useTranslations()
+
     const [enabled, setEnabled] = useState(Boolean(initial)),
         [scope, setScope] = useState<EditScope>("ONLY")
     const [frequency, setFrequency] = useState<RepeatInput["frequency"]>(
@@ -74,7 +79,7 @@ export function RecurrenceFields({
                     />
                     <Field>
                         <FieldLabel htmlFor="edit-scope">
-                            Apply changes to
+                            {t("Apply changes to")}
                         </FieldLabel>
                         <select
                             id="edit-scope"
@@ -87,20 +92,24 @@ export function RecurrenceFields({
                                 onScopeChange(value)
                             }}
                         >
-                            <option value="ONLY">Only this occurrence</option>
+                            <option value="ONLY">
+                                {t("Only this occurrence")}
+                            </option>
                             <option value="FUTURE">
-                                This and future occurrences
+                                {t("This and future occurrences")}
                             </option>
                             <option value="ALL">
-                                All occurrences, including past
+                                {t("All occurrences, including past")}
                             </option>
                         </select>
                         <FieldDescription>
-                            This and future uses the original scheduled date{" "}
-                            {initial.scheduledFor}. Series edits preserve each
-                            occurrence’s date. Shared details overwrite previous
-                            individual edits. Deleted and skipped occurrences
-                            stay excluded.
+                            {t(
+                                "This and future uses the original scheduled date"
+                            )}{" "}
+                            {initial.scheduledFor}
+                            {t(
+                                ". Series edits preserve each occurrence’s date. Shared details overwrite previous individual edits. Deleted and skipped occurrences stay excluded."
+                            )}
                         </FieldDescription>
                     </Field>
                     {scope !== "ONLY" && (
@@ -114,16 +123,34 @@ export function RecurrenceFields({
                                     required
                                     className="mr-2"
                                 />
-                                I understand this updates{" "}
+                                {t("I understand this updates")}{" "}
                                 {scope === "ALL"
-                                    ? `${initial.totalCount ?? "all"} existing occurrences, including past payments`
-                                    : `${initial.futureCount ?? "the matching"} existing occurrences from this date onward`}
-                                , plus future payments.
+                                    ? t(
+                                          "{value0} existing occurrences, including past payments",
+                                          {
+                                              value0:
+                                                  initial.totalCount ??
+                                                  t("all"),
+                                          }
+                                      )
+                                    : t(
+                                          "{value0} existing occurrences from this date onward",
+                                          {
+                                              value0:
+                                                  initial.futureCount ??
+                                                  t("the matching"),
+                                          }
+                                      )}
+                                {t(", plus future payments.")}
                             </FieldLabel>
                             <FieldDescription>
                                 {scope === "ALL"
-                                    ? "Changing amounts, wallets, or Posted/Pending status can change historical balances and reports."
-                                    : "Changing Posted/Pending status or amounts can change your balance."}
+                                    ? t(
+                                          "Changing amounts, wallets, or Posted/Pending status can change historical balances and reports."
+                                      )
+                                    : t(
+                                          "Changing Posted/Pending status or amounts can change your balance."
+                                      )}
                             </FieldDescription>
                         </Field>
                     )}
@@ -150,12 +177,16 @@ export function RecurrenceFields({
                         }}
                         className="mr-2"
                     />
-                    Repeat
+                    {t("Repeat")}
                 </FieldLabel>
                 <FieldDescription>
                     {initial
-                        ? "Manage pause, skip, or stop from Recurring transactions. Select a series scope above to edit its schedule."
-                        : "Create future payments now as Pending. The original transaction uses the date and status you select."}
+                        ? t(
+                              "Manage pause, skip, or stop from Recurring transactions. Select a series scope above to edit its schedule."
+                          )
+                        : t(
+                              "Create future payments now as Pending. The original transaction uses the date and status you select."
+                          )}
                 </FieldDescription>
             </Field>
             {enabled && (
@@ -166,7 +197,7 @@ export function RecurrenceFields({
                     <div className="grid gap-4 sm:grid-cols-2">
                         <Field>
                             <FieldLabel htmlFor="repeat-frequency">
-                                Frequency
+                                {t("Frequency")}
                             </FieldLabel>
                             <select
                                 id="repeat-frequency"
@@ -180,15 +211,15 @@ export function RecurrenceFields({
                                 }
                                 className={selectClass}
                             >
-                                <option value="DAILY">Daily</option>
-                                <option value="WEEKLY">Weekly</option>
-                                <option value="MONTHLY">Monthly</option>
-                                <option value="YEARLY">Yearly</option>
+                                <option value="DAILY">{t("Daily")}</option>
+                                <option value="WEEKLY">{t("Weekly")}</option>
+                                <option value="MONTHLY">{t("Monthly")}</option>
+                                <option value="YEARLY">{t("Yearly")}</option>
                             </select>
                         </Field>
                         <Field>
                             <FieldLabel htmlFor="repeat-interval">
-                                Every how many periods?
+                                {t("Every how many periods?")}
                             </FieldLabel>
                             <Input
                                 id="repeat-interval"
@@ -206,14 +237,13 @@ export function RecurrenceFields({
                         </Field>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                        Additional occurrences are created upfront as Pending.
-                        They never post automatically. Fixed schedules create
-                        all copies; open-ended schedules keep the next 12 months
-                        ready.
+                        {t(
+                            "Additional occurrences are created upfront as Pending. They never post automatically. Fixed schedules create all copies; open-ended schedules keep the next 12 months ready."
+                        )}
                     </p>
                     <Field>
                         <FieldLabel htmlFor="repeat-timezone">
-                            Schedule timezone
+                            {t("Schedule timezone")}
                         </FieldLabel>
                         <Input
                             id="repeat-timezone"
@@ -226,12 +256,13 @@ export function RecurrenceFields({
                             }
                         />
                         <FieldDescription>
-                            Calendar dates are checked in this timezone.
-                            Payments have no time of day.
+                            {t(
+                                "Calendar dates are checked in this timezone. Payments have no time of day."
+                            )}
                         </FieldDescription>
                     </Field>
                     <Field>
-                        <FieldLabel htmlFor="repeat-end">End</FieldLabel>
+                        <FieldLabel htmlFor="repeat-end">{t("End")}</FieldLabel>
                         <select
                             id="repeat-end"
                             name="repeatEnd"
@@ -239,17 +270,17 @@ export function RecurrenceFields({
                             onChange={(event) => setEnd(event.target.value)}
                             className={selectClass}
                         >
-                            <option value="never">Never</option>
-                            <option value="date">On a date</option>
+                            <option value="never">{t("Never")}</option>
+                            <option value="date">{t("On a date")}</option>
                             <option value="count">
-                                After a number of occurrences
+                                {t("After a number of occurrences")}
                             </option>
                         </select>
                     </Field>
                     {end === "date" && (
                         <Field>
                             <FieldLabel htmlFor="repeat-ends-on">
-                                Last eligible date (inclusive)
+                                {t("Last eligible date (inclusive)")}
                             </FieldLabel>
                             <Input
                                 id="repeat-ends-on"
@@ -267,7 +298,7 @@ export function RecurrenceFields({
                     {end === "count" && (
                         <Field>
                             <FieldLabel htmlFor="repeat-end-after">
-                                Total scheduled occurrences
+                                {t("Total scheduled occurrences")}
                             </FieldLabel>
                             <Input
                                 id="repeat-end-after"
@@ -283,22 +314,29 @@ export function RecurrenceFields({
                                 }
                             />
                             <FieldDescription>
-                                Includes the first payment and skipped dates.
+                                {t(
+                                    "Includes the first payment and skipped dates."
+                                )}
                             </FieldDescription>
                         </Field>
                     )}
                     <p className="text-sm text-muted-foreground">
                         {initial
-                            ? "Schedule changes apply only to ungenerated dates, anchored to the series’ original start date."
+                            ? t(
+                                  "Schedule changes apply only to ungenerated dates, anchored to the series’ original start date."
+                              )
                             : next
-                              ? `Next pending copy: ${next}.`
-                              : "No further payments with this ending."}{" "}
-                        Month-end and leap-day schedules clamp to the last valid
-                        day without drifting.
+                              ? t("Next pending copy: {value0}.", {
+                                    value0: next,
+                                })
+                              : t("No further payments with this ending.")}{" "}
+                        {t(
+                            "Month-end and leap-day schedules clamp to the last valid day without drifting."
+                        )}
                     </p>
                 </fieldset>
             )}
-            {error && <FieldError role="alert">{error}</FieldError>}
+            {error && <FieldError role="alert">{t(error || "")}</FieldError>}
         </div>
     )
 }

@@ -8,6 +8,7 @@ import {
 } from "@/lib/auth/email"
 import { deleteAccountData } from "@/lib/auth/delete-account-data"
 import { prisma } from "@/lib/prisma"
+import { requestLocale } from "@/lib/i18n/request"
 
 export const auth = betterAuth({
     appName: "CentScope",
@@ -16,8 +17,12 @@ export const auth = betterAuth({
         deleteUser: {
             enabled: true,
             deleteTokenExpiresIn: 30 * 60,
-            sendDeleteAccountVerification: async ({ user, url }) => {
-                await sendDeleteAccountEmail({ to: user.email, url })
+            sendDeleteAccountVerification: async ({ user, url }, request) => {
+                await sendDeleteAccountEmail({
+                    to: user.email,
+                    url,
+                    locale: requestLocale(request),
+                })
             },
             beforeDelete: async (user) => {
                 await deleteAccountData(user.id)
@@ -52,8 +57,12 @@ export const auth = betterAuth({
         maxPasswordLength: 128,
         resetPasswordTokenExpiresIn: 30 * 60,
         revokeSessionsOnPasswordReset: true,
-        sendResetPassword: async ({ user, url }) => {
-            await sendPasswordResetEmail({ to: user.email, url })
+        sendResetPassword: async ({ user, url }, request) => {
+            await sendPasswordResetEmail({
+                to: user.email,
+                url,
+                locale: requestLocale(request),
+            })
         },
     },
     emailVerification: {
@@ -61,8 +70,12 @@ export const auth = betterAuth({
         sendOnSignIn: true,
         autoSignInAfterVerification: false,
         expiresIn: 60 * 60,
-        sendVerificationEmail: async ({ user, url }) => {
-            await sendVerificationEmail({ to: user.email, url })
+        sendVerificationEmail: async ({ user, url }, request) => {
+            await sendVerificationEmail({
+                to: user.email,
+                url,
+                locale: requestLocale(request),
+            })
         },
     },
     advanced: {

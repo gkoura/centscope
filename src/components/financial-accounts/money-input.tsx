@@ -1,6 +1,7 @@
 "use client"
 
-import { useSyncExternalStore } from "react"
+import { useLocale } from "@/components/i18n/locale-provider"
+import { intlLocale } from "@/lib/i18n/config"
 import { NumericFormat } from "react-number-format"
 import { Input } from "@/components/ui/input"
 import {
@@ -10,13 +11,6 @@ import {
     validMoneyDraft,
 } from "@/lib/money-input"
 import type { ComponentProps } from "react"
-
-function subscribeLocale(onChange: () => void) {
-    window.addEventListener("languagechange", onChange)
-    return () => window.removeEventListener("languagechange", onChange)
-}
-const browserLocale = () => navigator.language || "en-US"
-const serverLocale = () => "en-US"
 
 type MoneyInputProps = Omit<
     ComponentProps<typeof Input>,
@@ -39,11 +33,7 @@ export function MoneyInput({
     onValueChange,
     ...props
 }: MoneyInputProps) {
-    const locale = useSyncExternalStore(
-        subscribeLocale,
-        browserLocale,
-        serverLocale
-    )
+    const locale = intlLocale(useLocale())
     const { group, decimal, grouping } = moneyInputLocale(locale)
     return (
         <>

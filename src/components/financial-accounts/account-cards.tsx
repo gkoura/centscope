@@ -1,10 +1,12 @@
 "use client"
 
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { currencySymbol } from "@/lib/currency"
-import Link from "next/link"
+import Link from "@/components/i18n/link"
 import { ArrowUpRightIcon } from "lucide-react"
 import type { listOwnedFinancialAccounts } from "@/lib/financial-accounts"
-import { saveAccountOrder } from "@/app/dashboard/order-actions"
+import { saveAccountOrder } from "@/app/[locale]/dashboard/order-actions"
 import { ReorderableList } from "@/components/sortable/reorderable-list"
 import { SortableHandle } from "@/components/sortable/sortable-item"
 import { Badge } from "@/components/ui/badge"
@@ -21,16 +23,20 @@ export function AccountCards({
 }: {
     accounts: Awaited<ReturnType<typeof listOwnedFinancialAccounts>>
 }) {
+    const t = useTranslations()
+
     return (
         <ReorderableList
             items={accounts}
-            label="accounts"
+            label={t("accounts")}
             onSave={saveAccountOrder}
             renderItem={(account) => (
                 <Card className="account-card-link relative h-full">
                     <Link
                         href={`/dashboard/accounts/${account.id}`}
-                        aria-label={`Open ${account.name}`}
+                        aria-label={t("Open {value0}", {
+                            value0: account.name,
+                        })}
                         className="absolute inset-0 rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                     />
                     <CardHeader className="pointer-events-none">
@@ -38,7 +44,7 @@ export function AccountCards({
                             <h2 className="wrap-break-word">{account.name}</h2>
                         </CardTitle>
                         <CardDescription>
-                            Reporting currency:{" "}
+                            {t("Reporting currency:")}{" "}
                             {currencySymbol(account.reportingCurrency)}
                         </CardDescription>
                     </CardHeader>
@@ -47,8 +53,8 @@ export function AccountCards({
                             <SortableHandle />
                             <Badge variant="secondary">
                                 {account.id === accounts[0]?.id
-                                    ? "Default account"
-                                    : "Owner"}
+                                    ? t("Default account")
+                                    : t("Owner")}
                             </Badge>
                         </div>
                         <ArrowUpRightIcon

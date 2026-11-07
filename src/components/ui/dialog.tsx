@@ -1,4 +1,5 @@
 "use client"
+import { useTranslations } from "@/components/i18n/locale-provider"
 
 import * as React from "react"
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
@@ -47,6 +48,7 @@ function DialogContent({
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
 }) {
+  const t = useTranslations()
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -72,7 +74,7 @@ function DialogContent({
           >
             <XIcon
             />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{t("Close")}</span>
           </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Popup>

@@ -1,4 +1,8 @@
-import Link from "next/link"
+"use client"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
+import Link from "@/components/i18n/link"
 import {
     Settings2,
     Plus,
@@ -18,33 +22,35 @@ import {
 import { Button } from "@/components/ui/button"
 
 export function AccountTools({ accountId }: { accountId: string }) {
+    const t = useTranslations()
+
     const base = `/dashboard/accounts/${accountId}`
     return (
         <DropdownMenu>
             <DropdownMenuTrigger
                 render={<Button variant="outline" size="lg" className="h-11" />}
-                aria-label="Account tools"
+                aria-label={t("Account tools")}
             >
                 <Settings2 data-icon="inline-start" />
-                Account tools
+                {t("Account tools")}
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64">
                 <DropdownMenuGroup>
-                    <DropdownMenuLabel>Account tools</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t("Account tools")}</DropdownMenuLabel>
                     {[
                         {
                             href: `${base}/wallets/new`,
-                            label: "Add wallet",
+                            label: t("Add wallet"),
                             icon: Plus,
                         },
                         {
                             href: `${base}/categories`,
-                            label: "Categories",
+                            label: t("Categories"),
                             icon: Tags,
                         },
                         {
                             href: `${base}/analytics`,
-                            label: "Analytics",
+                            label: t("Analytics"),
                             icon: ChartNoAxesCombined,
                         },
                     ].map(({ href, label, icon: Icon }) => (
@@ -53,7 +59,7 @@ export function AccountTools({ accountId }: { accountId: string }) {
                             render={<Link href={href} />}
                         >
                             <Icon />
-                            {label}
+                            {t(label || "")}
                         </DropdownMenuItem>
                     ))}
                 </DropdownMenuGroup>
@@ -63,7 +69,7 @@ export function AccountTools({ accountId }: { accountId: string }) {
                         render={<Link href="/dashboard/accounts" />}
                     >
                         <Layers />
-                        Manage accounts & order
+                        {t("Manage accounts & order")}
                     </DropdownMenuItem>
                 </DropdownMenuGroup>
             </DropdownMenuContent>

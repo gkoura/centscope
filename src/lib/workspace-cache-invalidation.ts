@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto"
 import { cookies } from "next/headers"
 import { revalidatePath } from "next/cache"
 import { WORKSPACE_REVISION_COOKIE } from "@/lib/workspace-cache-policy"
+import { locales, localizeHref } from "@/lib/i18n/config"
 
 /** Call only after a committed financial write. The cookie also rerenders layouts after Server Actions. */
 export async function markWorkspaceChanged() {
@@ -19,5 +20,6 @@ export async function revalidateWorkspacePath(
     type?: "layout" | "page"
 ) {
     await markWorkspaceChanged()
-    revalidatePath(path, type)
+    for (const locale of locales)
+        revalidatePath(localizeHref(path, locale), type)
 }

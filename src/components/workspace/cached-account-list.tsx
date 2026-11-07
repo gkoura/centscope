@@ -1,7 +1,10 @@
 "use client"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { useWorkspaceQuery } from "./use-workspace-query"
 import { WorkspaceQueryState } from "./workspace-query-state"
-import Link from "next/link"
+import Link from "@/components/i18n/link"
 import { FolderOpenIcon, PlusIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AccountCards } from "@/components/financial-accounts/account-cards"
@@ -15,12 +18,14 @@ import {
 } from "@/components/ui/empty"
 
 export function CachedAccountList() {
+    const t = useTranslations()
+
     const result = useWorkspaceQuery("accounts")
     if (!result.data)
         return (
             <WorkspaceQueryState
                 queries={[result]}
-                label="Loading your accounts…"
+                label={t("Loading your accounts…")}
             />
         )
     const accounts = result.data
@@ -35,11 +40,12 @@ export function CachedAccountList() {
                             <FolderOpenIcon />
                         </EmptyMedia>
                         <EmptyTitle>
-                            Create your first financial account
+                            {t("Create your first financial account")}
                         </EmptyTitle>
                         <EmptyDescription>
-                            Start with Personal, Home, or any purpose you want
-                            to track.
+                            {t(
+                                "Start with Personal, Home, or any purpose you want to track."
+                            )}
                         </EmptyDescription>
                     </EmptyHeader>
                     <EmptyContent>
@@ -48,7 +54,7 @@ export function CachedAccountList() {
                             nativeButton={false}
                         >
                             <PlusIcon data-icon="inline-start" />
-                            Create account
+                            {t("Create account")}
                         </Button>
                     </EmptyContent>
                 </Empty>

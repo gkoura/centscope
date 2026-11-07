@@ -1,7 +1,9 @@
 "use client"
 
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { useActionState, useRef, useState } from "react"
-import { changeTransactionStatus } from "@/app/dashboard/accounts/[id]/transactions/actions"
+import { changeTransactionStatus } from "@/app/[locale]/dashboard/accounts/[id]/transactions/actions"
 import type { TransactionFormState } from "@/lib/transaction-input"
 import { StatusSwitch } from "./status-switch"
 
@@ -21,6 +23,8 @@ export function TransactionStatusForm({
     status: "POSTED" | "PENDING"
     version: number
 }) {
+    const t = useTranslations()
+
     const [requested, setRequested] = useState<{
         version: number
         status: "POSTED" | "PENDING"
@@ -59,9 +63,11 @@ export function TransactionStatusForm({
                 }}
                 disabled={pending || awaitingRefresh}
                 saving={pending || awaitingRefresh}
-                error={state.message}
-                accessibleLabel={`Posted status for ${name}`}
-                description="Posted affects your balance. Pending does not."
+                error={t(state.message || "")}
+                accessibleLabel={t("Posted status for {name}", { name })}
+                description={t(
+                    "Posted affects your balance. Pending does not."
+                )}
             />
         </form>
     )

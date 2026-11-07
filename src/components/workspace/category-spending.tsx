@@ -1,5 +1,10 @@
 "use client"
 
+import { useLocale } from "@/components/i18n/locale-provider"
+import { intlLocale } from "@/lib/i18n/config"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { useState } from "react"
 import { Percent } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -8,10 +13,6 @@ import { categorySpendingGroups } from "@/lib/analytics"
 import { currencyLabel } from "@/lib/currency"
 import { formatWalletMoney } from "@/lib/wallet-input"
 
-const percentageFormatter = new Intl.NumberFormat("en", {
-    maximumFractionDigits: 2,
-})
-
 export function CategorySpending({
     categories,
     incomeCategories = [],
@@ -19,6 +20,13 @@ export function CategorySpending({
     categories: { name: string; currency: string; amount: string }[]
     incomeCategories?: { name: string; currency: string; amount: string }[]
 }) {
+    const locale = useLocale()
+    const percentageFormatter = new Intl.NumberFormat(intlLocale(locale), {
+        maximumFractionDigits: 2,
+    })
+
+    const t = useTranslations()
+
     const [type, setType] = useState("EXPENSE")
     const [percentage, setPercentage] = useState(false)
     const income = type === "INCOME"
@@ -35,7 +43,7 @@ export function CategorySpending({
                     id="category-spending-heading"
                     className="text-base font-semibold tracking-tight"
                 >
-                    Categories Overview
+                    {t("Categories Overview")}
                 </h2>
                 <Button
                     variant={percentage ? "default" : "outline"}
@@ -44,24 +52,31 @@ export function CategorySpending({
                     aria-pressed={percentage}
                     onClick={() => setPercentage((value) => !value)}
                 >
-                    <Percent data-icon="inline-start" /> Percentage
+                    <Percent data-icon="inline-start" /> {t("Percentage")}
                 </Button>
             </div>
             <Tabs value={type} onValueChange={setType} className="mb-3">
-                <TabsList aria-label="Category overview type" className="h-11">
+                <TabsList
+                    aria-label={t("Category overview type")}
+                    className="h-11"
+                >
                     <TabsTrigger value="EXPENSE" className="min-h-10">
-                        Expenses
+                        {t("Expenses")}
                     </TabsTrigger>
                     <TabsTrigger value="INCOME" className="min-h-10">
-                        Income
+                        {t("Income")}
                     </TabsTrigger>
                 </TabsList>
             </Tabs>
             <p className="mb-6 text-xs leading-6 text-muted-foreground">
                 {percentage
-                    ? `Share of posted ${income ? "income" : "spending"} in each currency.`
-                    : `Posted ${income ? "income" : "expense"} amounts by category.`}{" "}
-                Pending entries and transfers are excluded.
+                    ? t("Share of posted {value0} in each currency.", {
+                          value0: income ? t("income") : t("spending"),
+                      })
+                    : t("Posted {value0} amounts by category.", {
+                          value0: income ? t("income") : t("expense"),
+                      })}{" "}
+                {t("Pending entries and transfers are excluded.")}
             </p>
             {groups.length ? (
                 groups.map(({ currency, categories: items }) => (
@@ -71,7 +86,7 @@ export function CategorySpending({
                     >
                         {groups.length > 1 && (
                             <h3 className="text-xs font-medium text-muted-foreground">
-                                {currencyLabel(currency)}
+                                {t(currencyLabel(currency))}
                             </h3>
                         )}
                         {items.map((category) => (
@@ -90,7 +105,8 @@ export function CategorySpending({
                                             ? `${percentageFormatter.format(category.percentage)}%`
                                             : formatWalletMoney(
                                                   category.amount,
-                                                  currency
+                                                  currency,
+                                                  intlLocale(locale)
                                               )}
                                     </span>
                                 </div>
@@ -115,10 +131,10 @@ export function CategorySpending({
                 ))
             ) : (
                 <p className="text-sm leading-7 text-muted-foreground">
-                    No posted {income ? "income" : "expenses"} in this period.
-                    Choose another period or add a posted{" "}
-                    {income ? "income transaction" : "expense"} to see your
-                    category breakdown.
+                    {t("No posted")} {income ? t("income") : t("expenses")}{" "}
+                    {t("in this period. Choose another period or add a posted")}{" "}
+                    {income ? t("income transaction") : t("expense")}{" "}
+                    {t("to see your category breakdown.")}
                 </p>
             )}
         </section>

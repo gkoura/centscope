@@ -1,7 +1,9 @@
 "use client"
 
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { useActionState, useState } from "react"
-import { createWallet } from "@/app/dashboard/accounts/[id]/wallets/actions"
+import { createWallet } from "@/app/[locale]/dashboard/accounts/[id]/wallets/actions"
 import {
     walletCurrencies,
     walletTypes,
@@ -47,14 +49,19 @@ function WalletSelectField({
     error?: string
     description?: string
 }) {
+    const t = useTranslations()
+
     const id = `wallet-${name}`
     return (
         <Field data-invalid={Boolean(error)}>
-            <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            <FieldLabel htmlFor={id}>{t(label || "")}</FieldLabel>
             <Select
                 name={name}
                 value={value}
-                items={options}
+                items={options.map((option) => ({
+                    ...option,
+                    label: t(option.label),
+                }))}
                 onValueChange={(next) => {
                     if (next) onChange(next)
                 }}
@@ -78,7 +85,7 @@ function WalletSelectField({
                     <SelectGroup>
                         {options.map((option) => (
                             <SelectItem key={option.value} value={option.value}>
-                                {option.label}
+                                {t(option.label || "")}
                             </SelectItem>
                         ))}
                     </SelectGroup>
@@ -89,7 +96,9 @@ function WalletSelectField({
                     {description}
                 </FieldDescription>
             ) : null}
-            {error ? <FieldError id={`${id}-error`}>{error}</FieldError> : null}
+            {error ? (
+                <FieldError id={`${id}-error`}>{t(error || "")}</FieldError>
+            ) : null}
         </Field>
     )
 }
@@ -105,6 +114,8 @@ export function CreateWalletForm({
     defaultCurrency: string
     today: string
 }) {
+    const t = useTranslations()
+
     const [state, action, pending] = useActionState(createWallet, initialState)
     const [values, setValues] = useState({
         name: "",
@@ -126,7 +137,9 @@ export function CreateWalletForm({
             <input type="hidden" name="requestId" value={requestId} />
             <FieldGroup>
                 <Field data-invalid={Boolean(state.errors?.name)}>
-                    <FieldLabel htmlFor="wallet-name">Wallet name</FieldLabel>
+                    <FieldLabel htmlFor="wallet-name">
+                        {t("Wallet name")}
+                    </FieldLabel>
                     <Input
                         id="wallet-name"
                         name="name"
@@ -134,7 +147,7 @@ export function CreateWalletForm({
                         onChange={(event) => update("name", event.target.value)}
                         required
                         maxLength={80}
-                        placeholder="e.g. Everyday bank or Cash"
+                        placeholder={t("e.g. Everyday bank or Cash")}
                         aria-invalid={Boolean(state.errors?.name)}
                         aria-describedby={
                             state.errors?.name ? "wallet-name-error" : undefined
@@ -142,30 +155,32 @@ export function CreateWalletForm({
                     />
                     {state.errors?.name ? (
                         <FieldError id="wallet-name-error">
-                            {state.errors.name}
+                            {t(state.errors.name || "")}
                         </FieldError>
                     ) : null}
                 </Field>
                 <WalletSelectField
                     name="type"
-                    label="Wallet type"
+                    label={t("Wallet type")}
                     value={values.type}
                     options={walletTypes}
                     onChange={(value) => update("type", value)}
-                    error={state.errors?.type}
+                    error={t(state.errors?.type || "")}
                 />
                 <WalletSelectField
                     name="currency"
-                    label="Currency"
+                    label={t("Currency")}
                     value={values.currency}
                     options={walletCurrencies}
                     onChange={(value) => update("currency", value)}
-                    error={state.errors?.currency}
-                    description="Balances stay in this currency. It can differ from your account’s reporting currency."
+                    error={t(state.errors?.currency || "")}
+                    description={t(
+                        "Balances stay in this currency. It can differ from your account’s reporting currency."
+                    )}
                 />
                 <Field data-invalid={Boolean(state.errors?.openingBalance)}>
                     <FieldLabel htmlFor="wallet-opening-balance">
-                        Opening balance
+                        {t("Opening balance")}
                     </FieldLabel>
                     <Input
                         id="wallet-opening-balance"
@@ -181,19 +196,19 @@ export function CreateWalletForm({
                         aria-describedby={`wallet-balance-description${state.errors?.openingBalance ? " wallet-balance-error" : ""}`}
                     />
                     <FieldDescription id="wallet-balance-description">
-                        How much this account has in the wallet on the date
-                        below. Use a decimal point; negative amounts are
-                        allowed. Leave blank to start at zero.
+                        {t(
+                            "How much this account has in the wallet on the date below. Use a decimal point; negative amounts are allowed. Leave blank to start at zero."
+                        )}
                     </FieldDescription>
                     {state.errors?.openingBalance ? (
                         <FieldError id="wallet-balance-error">
-                            {state.errors.openingBalance}
+                            {t(state.errors.openingBalance || "")}
                         </FieldError>
                     ) : null}
                 </Field>
                 <Field data-invalid={Boolean(state.errors?.openingDate)}>
                     <FieldLabel htmlFor="wallet-opening-date">
-                        Balance date
+                        {t("Balance date")}
                     </FieldLabel>
                     <DatePicker
                         id="wallet-opening-date"
@@ -209,17 +224,19 @@ export function CreateWalletForm({
                     />
                     {state.errors?.openingDate ? (
                         <FieldError id="wallet-date-error">
-                            {state.errors.openingDate}
+                            {t(state.errors.openingDate || "")}
                         </FieldError>
                     ) : null}
                 </Field>
                 <StatusSwitch
                     name="openingStatus"
-                    label="Opening balance status"
+                    label={t("Opening balance status")}
                     value={values.openingStatus}
                     onValueChange={(value) => update("openingStatus", value)}
-                    error={state.errors?.openingStatus}
-                    description="Posted counts toward your balance immediately. Pending does not. The date does not change the status. A zero opening balance creates no transaction."
+                    error={t(state.errors?.openingStatus || "")}
+                    description={t(
+                        "Posted counts toward your balance immediately. Pending does not. The date does not change the status. A zero opening balance creates no transaction."
+                    )}
                 />
             </FieldGroup>
             {state.message ||
@@ -233,7 +250,7 @@ export function CreateWalletForm({
             ) : null}
             <Button type="submit" disabled={pending}>
                 {pending ? <Spinner data-icon="inline-start" /> : null}
-                {pending ? "Creating wallet…" : "Create wallet"}
+                {pending ? t("Creating wallet…") : t("Create wallet")}
             </Button>
         </form>
     )

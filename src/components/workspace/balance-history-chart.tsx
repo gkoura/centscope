@@ -1,5 +1,10 @@
 "use client"
 
+import { useLocale } from "@/components/i18n/locale-provider"
+import { intlLocale } from "@/lib/i18n/config"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { appendCurrencySymbol, currencySymbol } from "@/lib/currency"
 
 import { useState } from "react"
@@ -34,12 +39,7 @@ import {
 const config = {
     balance: { label: "Smoothed balance", color: "var(--primary)" },
 } satisfies ChartConfig
-const monthLabel = (month: string, short = false) =>
-    new Intl.DateTimeFormat("en", {
-        month: short ? "short" : "long",
-        ...(short ? {} : { year: "numeric" }),
-        timeZone: "UTC",
-    }).format(new Date(`${month}-01T00:00:00Z`))
+
 export function BalanceHistoryChart({
     series,
     defaultCurrency,
@@ -49,6 +49,16 @@ export function BalanceHistoryChart({
     defaultCurrency: string
     today: string
 }) {
+    const locale = useLocale()
+    const monthLabel = (month: string, short = false) =>
+        new Intl.DateTimeFormat(intlLocale(locale), {
+            month: short ? "short" : "long",
+            ...(short ? {} : { year: "numeric" }),
+            timeZone: "UTC",
+        }).format(new Date(`${month}-01T00:00:00Z`))
+
+    const t = useTranslations()
+
     const [currency, setCurrency] = useState(defaultCurrency)
     const current =
         series.find((item) => item.currency === currency) ?? series[0]
@@ -64,16 +74,16 @@ export function BalanceHistoryChart({
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-1">
-                    <h2>Balance over L12M</h2>
+                    <h2>{t("Balance over L12M")}</h2>
                     <BalanceHistoryHelp />
                 </CardTitle>
                 <CardDescription>
-                    Smoothed end-of-month balance ·{" "}
+                    {t("Smoothed end-of-month balance ·")}{" "}
                     {monthLabel(points[0].month)} – {monthLabel(last.month)}
                 </CardDescription>
                 {series.length > 1 && (
                     <Tabs value={current.currency} onValueChange={setCurrency}>
-                        <TabsList aria-label="Chart currency">
+                        <TabsList aria-label={t("Chart currency")}>
                             {series.map((item) => (
                                 <TabsTrigger
                                     key={item.currency}
@@ -88,18 +98,30 @@ export function BalanceHistoryChart({
             </CardHeader>
             <CardContent className="flex min-w-0 flex-col gap-4">
                 <p className="text-2xl font-semibold tracking-tight tabular-nums">
-                    {formatWalletMoney(last.balance, current.currency)}
+                    {formatWalletMoney(
+                        last.balance,
+                        current.currency,
+                        intlLocale(locale)
+                    )}
                     <span className="mt-1 block text-xs font-normal tracking-normal text-muted-foreground">
                         {monthLabel(last.month)}
                         {last.month >= today.slice(0, 7)
-                            ? " · recorded entries so far"
+                            ? t(" · recorded entries so far")
                             : ""}
                     </span>
                 </p>
                 <ChartContainer
-                    config={config}
+                    config={{
+                        ...config,
+                        balance: {
+                            ...config.balance,
+                            label: t("Smoothed balance"),
+                        },
+                    }}
                     role="group"
-                    aria-label={`Smoothed monthly balances in ${currencySymbol(current.currency)}`}
+                    aria-label={t("Smoothed monthly balances in {value0}", {
+                        value0: currencySymbol(current.currency),
+                    })}
                     className="aspect-auto h-64 w-full min-w-0 [&_.recharts-surface:focus-visible]:outline-2 [&_.recharts-surface:focus-visible]:outline-offset-2 [&_.recharts-surface:focus-visible]:outline-ring"
                 >
                     <LineChart
@@ -128,7 +150,7 @@ export function BalanceHistoryChart({
                             axisLine={false}
                             tickFormatter={(value) =>
                                 appendCurrencySymbol(
-                                    new Intl.NumberFormat("en", {
+                                    new Intl.NumberFormat(intlLocale(locale), {
                                         notation: "compact",
                                         maximumFractionDigits: 1,
                                     }).format(Number(value)),
@@ -149,12 +171,13 @@ export function BalanceHistoryChart({
                                         <strong className="font-medium tabular-nums">
                                             {formatWalletMoney(
                                                 point.balance,
-                                                current.currency
+                                                current.currency,
+                                                intlLocale(locale)
                                             )}
                                         </strong>
                                         {point.month >= today.slice(0, 7) && (
                                             <span className="text-muted-foreground">
-                                                Recorded entries so far
+                                                {t("Recorded entries so far")}
                                             </span>
                                         )}
                                     </div>
@@ -178,18 +201,18 @@ export function BalanceHistoryChart({
                     </LineChart>
                 </ChartContainer>
                 <p className="text-xs leading-5 text-muted-foreground">
-                    Posted entries only. Spread expenses are allocated across
-                    their assigned months; this doesn’t change your cash
-                    balance. Current and future months may be incomplete.
+                    {t(
+                        "Posted entries only. Spread expenses are allocated across their assigned months; this doesn’t change your cash balance. Current and future months may be incomplete."
+                    )}
                 </p>
                 <details className="rounded-xl border">
                     <summary className="cursor-pointer px-4 py-3 text-xs font-medium">
-                        View monthly amounts ·{" "}
+                        {t("View monthly amounts ·")}{" "}
                         {currencySymbol(current.currency)}
                     </summary>
                     <table className="w-full border-t text-sm">
                         <caption className="sr-only">
-                            Smoothed end-of-month balances in{" "}
+                            {t("Smoothed end-of-month balances in")}{" "}
                             {currencySymbol(current.currency)}
                         </caption>
                         <thead>
@@ -198,13 +221,13 @@ export function BalanceHistoryChart({
                                     scope="col"
                                     className="px-4 py-2 text-left font-medium"
                                 >
-                                    Month
+                                    {t("Month")}
                                 </th>
                                 <th
                                     scope="col"
                                     className="px-4 py-2 text-right font-medium"
                                 >
-                                    Balance
+                                    {t("Balance")}
                                 </th>
                             </tr>
                         </thead>
@@ -220,7 +243,8 @@ export function BalanceHistoryChart({
                                     <td className="px-4 py-2 text-right text-xs tabular-nums">
                                         {formatWalletMoney(
                                             point.balance,
-                                            current.currency
+                                            current.currency,
+                                            intlLocale(locale)
                                         )}
                                     </td>
                                 </tr>

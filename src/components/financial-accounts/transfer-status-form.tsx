@@ -1,8 +1,10 @@
 "use client"
 
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { currencySymbol } from "@/lib/currency"
 import { useActionState, useState, useRef } from "react"
-import { setTransferStatus } from "@/app/dashboard/accounts/[id]/transactions/transfer-actions"
+import { setTransferStatus } from "@/app/[locale]/dashboard/accounts/[id]/transactions/transfer-actions"
 import type { TransferFormState } from "@/lib/transfer-input"
 import { StatusSwitch } from "./status-switch"
 import { Input } from "@/components/ui/input"
@@ -33,6 +35,8 @@ export function TransferStatusForm({
         transfer: { source: Endpoint; destination: Endpoint }
     }
 }) {
+    const t = useTranslations()
+
     const [requested, setRequested] = useState<{
         version: number
         status: "POSTED" | "PENDING"
@@ -90,9 +94,13 @@ export function TransferStatusForm({
                         formRef.current?.requestSubmit()
                     }}
                     saving={pending || awaitingRefresh}
-                    error={state.message}
-                    accessibleLabel={`Posted status for ${transaction.name}`}
-                    description="Posted updates both wallet balances. Pending does not."
+                    error={t(state.message || "")}
+                    accessibleLabel={t("Posted status for {name}", {
+                        name: transaction.name,
+                    })}
+                    description={t(
+                        "Posted updates both wallet balances. Pending does not."
+                    )}
                 />
             </form>
         )
@@ -110,8 +118,12 @@ export function TransferStatusForm({
                 onValueChange={() => setOpen(true)}
                 controlRef={switchRef}
                 disabled={pending}
-                accessibleLabel={`Posted status for ${transaction.name}`}
-                description="Confirm the actual amounts before posting this currency transfer."
+                accessibleLabel={t("Posted status for {name}", {
+                    name: transaction.name,
+                })}
+                description={t(
+                    "Confirm the actual amounts before posting this currency transfer."
+                )}
             />
             {open && (
                 <AlertDialogContent
@@ -132,13 +144,15 @@ export function TransferStatusForm({
                         <input type="hidden" name="confirmed" value="yes" />
                         <AlertDialogHeader>
                             <AlertDialogTitle>
-                                Confirm actual transfer amounts
+                                {t("Confirm actual transfer amounts")}
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                                Posting updates both wallets together. Confirm
-                                what left {source.walletName} and what arrived
-                                in {destination.walletName}. This changes only
-                                this occurrence.
+                                {t(
+                                    "Posting updates both wallets together. Confirm what left"
+                                )}{" "}
+                                {source.walletName} {t("and what arrived in")}{" "}
+                                {destination.walletName}
+                                {t(". This changes only this occurrence.")}
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <fieldset
@@ -149,7 +163,7 @@ export function TransferStatusForm({
                                 <FieldLabel
                                     htmlFor={`post-sent-${transaction.id}`}
                                 >
-                                    Amount sent (
+                                    {t("Amount sent (")}
                                     {currencySymbol(source.currency)})
                                 </FieldLabel>
                                 <Input
@@ -164,7 +178,7 @@ export function TransferStatusForm({
                                 <FieldLabel
                                     htmlFor={`post-received-${transaction.id}`}
                                 >
-                                    Amount received (
+                                    {t("Amount received (")}
                                     {currencySymbol(destination.currency)})
                                 </FieldLabel>
                                 <Input
@@ -178,15 +192,17 @@ export function TransferStatusForm({
                         </fieldset>
                         {state.message && (
                             <FieldError role="alert">
-                                {state.message}
+                                {t(state.message || "")}
                             </FieldError>
                         )}
                         <AlertDialogFooter>
                             <AlertDialogCancel type="button" disabled={pending}>
-                                Cancel
+                                {t("Cancel")}
                             </AlertDialogCancel>
                             <AlertDialogAction type="submit" disabled={pending}>
-                                {pending ? "Posting…" : "Confirm and post"}
+                                {pending
+                                    ? t("Posting…")
+                                    : t("Confirm and post")}
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </form>

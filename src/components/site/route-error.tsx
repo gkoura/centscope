@@ -1,8 +1,13 @@
 "use client"
-import Link from "next/link"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
+import Link from "@/components/i18n/link"
 import { CircleAlert, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 export function RouteError({ retry }: { retry: () => void }) {
+    const t = useTranslations()
+
     return (
         <div
             role="alert"
@@ -10,19 +15,20 @@ export function RouteError({ retry }: { retry: () => void }) {
         >
             <CircleAlert className="size-8 text-muted-foreground" />
             <h2 className="text-2xl font-medium tracking-tight">
-                Let’s give that another try.
+                {t("Let’s give that another try.")}
             </h2>
             <p className="text-sm leading-7 text-muted-foreground">
-                We couldn’t load this page. Try again, or return home to start
-                fresh.
+                {t(
+                    "We couldn’t load this page. Try again, or return home to start fresh."
+                )}
             </p>
             <div className="flex items-center gap-4">
                 <Button onClick={retry}>
                     <RotateCcw data-icon="inline-start" />
-                    Try again
+                    {t("Try again")}
                 </Button>
                 <Link href="/" className="text-sm underline underline-offset-4">
-                    Back to home
+                    {t("Back to home")}
                 </Link>
             </div>
         </div>

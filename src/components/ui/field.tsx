@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import { useTranslations } from "@/components/i18n/locale-provider"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 
@@ -181,9 +182,10 @@ function FieldError({
 }: React.ComponentProps<"div"> & {
   errors?: Array<{ message?: string } | undefined>
 }) {
+  const t = useTranslations()
   const content = useMemo(() => {
     if (children) {
-      return children
+      return typeof children === "string" ? t(children) : children
     }
 
     if (!errors?.length) {
@@ -195,18 +197,18 @@ function FieldError({
     ]
 
     if (uniqueErrors?.length == 1) {
-      return uniqueErrors[0]?.message
+      return t(uniqueErrors[0]?.message || "")
     }
 
     return (
       <ul className="ml-4 flex list-disc flex-col gap-1">
         {uniqueErrors.map(
           (error, index) =>
-            error?.message && <li key={index}>{error.message}</li>
+            error?.message && <li key={index}>{t(error.message)}</li>
         )}
       </ul>
     )
-  }, [children, errors])
+  }, [children, errors, t])
 
   if (!content) {
     return null

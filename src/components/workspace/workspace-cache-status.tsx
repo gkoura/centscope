@@ -1,4 +1,7 @@
 "use client"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { useCallback, useSyncExternalStore } from "react"
 import { useIsFetching, useQueryClient } from "@tanstack/react-query"
 import { belongsToWorkspace } from "@/lib/workspace-cache-policy"
@@ -7,6 +10,8 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertAction } from "@/components/ui/alert"
 
 export function WorkspaceCacheStatus() {
+    const t = useTranslations()
+
     const client = useQueryClient()
     const { userId, revision, ready } = useWorkspaceScope()
     const fetching = useIsFetching({
@@ -34,7 +39,7 @@ export function WorkspaceCacheStatus() {
         return (
             <Alert role="status" className="mb-3">
                 <AlertDescription>
-                    Couldn’t refresh. Showing saved data.
+                    {t("Couldn’t refresh. Showing saved data.")}
                 </AlertDescription>
                 <AlertAction>
                     <Button
@@ -47,14 +52,16 @@ export function WorkspaceCacheStatus() {
                             })
                         }}
                     >
-                        Retry
+                        {t("Retry")}
                     </Button>
                 </AlertAction>
             </Alert>
         )
     return (
         <span role="status" className="sr-only">
-            {fetching ? "Refreshing your workspace…" : "Workspace loaded."}
+            {fetching
+                ? t("Refreshing your workspace…")
+                : t("Workspace loaded.")}
         </span>
     )
 }

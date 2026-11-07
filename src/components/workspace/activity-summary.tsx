@@ -1,3 +1,10 @@
+"use client"
+
+import { useLocale } from "@/components/i18n/locale-provider"
+import { intlLocale } from "@/lib/i18n/config"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { ArrowDownLeft, ArrowUpRight, TrendingUp } from "lucide-react"
 import { formatWalletMoney } from "@/lib/wallet-input"
 import type { summarizeActivity } from "@/lib/account-summary"
@@ -10,9 +17,13 @@ export function ActivitySummary({
     walletActivityExpanded?: boolean
     activity: ReturnType<typeof summarizeActivity>
 }) {
+    const locale = useLocale()
+
+    const t = useTranslations()
+
     return (
         <section
-            aria-label="Period totals"
+            aria-label={t("Period totals")}
             className={
                 compact
                     ? "activity-summary-compact flex flex-col gap-2"
@@ -22,13 +33,22 @@ export function ActivitySummary({
             <div className="flex items-center justify-between gap-4">
                 <h2 className="text-sm font-medium">
                     {activity.status === "PENDING"
-                        ? "Pending totals"
-                        : "Posted totals"}
+                        ? t("Pending totals")
+                        : t("Posted totals")}
                 </h2>
                 <p className="text-xs text-muted-foreground">
                     {activity.status === "PENDING"
-                        ? `${activity.pendingCount} pending`
-                        : `${activity.postedCount} posted${activity.pendingCount ? ` · ${activity.pendingCount} pending` : ""}`}
+                        ? t("{value0} pending", {
+                              value0: activity.pendingCount,
+                          })
+                        : t("{value0} posted{value1}", {
+                              value0: activity.postedCount,
+                              value1: activity.pendingCount
+                                  ? t(" · {value0} pending", {
+                                        value0: activity.pendingCount,
+                                    })
+                                  : "",
+                          })}
                 </p>
             </div>
             {activity.currencies.length ? (
@@ -39,22 +59,22 @@ export function ActivitySummary({
                     >
                         {[
                             {
-                                label: "Income",
+                                label: t("Income"),
                                 amount: total.income,
                                 icon: ArrowDownLeft,
                             },
                             {
-                                label: "Expenses",
+                                label: t("Expenses"),
                                 amount: total.expenses,
                                 icon: ArrowUpRight,
                             },
                             {
-                                label: "Net",
+                                label: t("Net"),
                                 amount: total.net,
                                 icon: TrendingUp,
                             },
                         ].map(({ label, amount, icon: Icon }) => (
-                            <div key={label} className="activity-stat">
+                            <div key={t(label || "")} className="activity-stat">
                                 <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                                     <Icon
                                         data-flow={
@@ -67,7 +87,7 @@ export function ActivitySummary({
                                         className="size-3.5"
                                         aria-hidden="true"
                                     />
-                                    {label}
+                                    {t(label || "")}
                                 </span>
                                 <p
                                     data-flow={
@@ -83,7 +103,11 @@ export function ActivitySummary({
                                     }
                                     className="mt-2 text-sm font-semibold wrap-break-word tabular-nums sm:text-lg"
                                 >
-                                    {formatWalletMoney(amount, total.currency)}
+                                    {formatWalletMoney(
+                                        amount,
+                                        total.currency,
+                                        intlLocale(locale)
+                                    )}
                                 </p>
                             </div>
                         ))}
@@ -91,15 +115,17 @@ export function ActivitySummary({
                 ))
             ) : (
                 <p className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">
-                    No activity in this period.
+                    {t("No activity in this period.")}
                 </p>
             )}
             {!compact && (
                 <p className="text-[11px] leading-5 text-muted-foreground">
                     {activity.status === "PENDING"
-                        ? "Pending entries don’t affect your balance."
-                        : "Pending entries excluded."}{" "}
-                    Transfers and opening balances aren’t income or spending.
+                        ? t("Pending entries don’t affect your balance.")
+                        : t("Pending entries excluded.")}{" "}
+                    {t(
+                        "Transfers and opening balances aren’t income or spending."
+                    )}
                 </p>
             )}
             {activity.wallets.length > 0 && (
@@ -108,15 +134,18 @@ export function ActivitySummary({
                     open={walletActivityExpanded}
                 >
                     <summary className="cursor-pointer px-4 py-3 text-xs font-medium">
-                        Activity by wallet
+                        {t("Activity by wallet")}
                     </summary>
                     {compact && (
                         <p className="text-[11px] leading-5 text-muted-foreground">
                             {activity.status === "PENDING"
-                                ? "Pending entries don’t affect your balance."
-                                : "Pending entries excluded."}{" "}
-                            Transfers and opening balances aren’t income or
-                            spending.
+                                ? t(
+                                      "Pending entries don’t affect your balance."
+                                  )
+                                : t("Pending entries excluded.")}{" "}
+                            {t(
+                                "Transfers and opening balances aren’t income or spending."
+                            )}
                         </p>
                     )}
                     <ul className="divide-y border-t">
@@ -130,18 +159,20 @@ export function ActivitySummary({
                                 </span>
                                 <span className="text-muted-foreground">
                                     <span data-flow="income">
-                                        In{" "}
+                                        {t("In")}{" "}
                                         {formatWalletMoney(
                                             wallet.income,
-                                            wallet.currency
+                                            wallet.currency,
+                                            intlLocale(locale)
                                         )}
                                     </span>
                                     {" · "}
                                     <span data-flow="expense">
-                                        Out{" "}
+                                        {t("Out")}{" "}
                                         {formatWalletMoney(
                                             wallet.expenses,
-                                            wallet.currency
+                                            wallet.currency,
+                                            intlLocale(locale)
                                         )}
                                     </span>
                                 </span>

@@ -18,7 +18,16 @@ export function recurringSummaryDescription(
     rule: Pick<
         RecurringSummaryItem,
         "frequency" | "interval" | "startsOn" | "endsOn" | "endAfter" | "paused"
-    >
+    >,
+    t: (message: string, values?: Record<string, string | number>) => string = (
+        message,
+        values
+    ) =>
+        values
+            ? message.replace(/\{(\w+)\}/g, (match, key) =>
+                  String(values[key] ?? match)
+              )
+            : message
 ): string {
     const units = {
         DAILY: ["Daily", "days"],
@@ -28,8 +37,11 @@ export function recurringSummaryDescription(
     } as const
     const cadence =
         rule.interval === 1
-            ? units[rule.frequency][0]
-            : `Every ${rule.interval} ${units[rule.frequency][1]}`
+            ? t(units[rule.frequency][0])
+            : t("Every {count} {unit}", {
+                  count: rule.interval,
+                  unit: t(units[rule.frequency][1]),
+              })
     const endsOn =
         rule.endsOn ??
         (rule.endAfter && rule.endAfter > 0
@@ -40,6 +52,8 @@ export function recurringSummaryDescription(
                   rule.endAfter - 1
               )
             : null)
-    const end = endsOn ? ` until ${endsOn.split("-").reverse().join("/")}` : ""
-    return `${cadence}${end}${rule.paused ? " · Paused" : ""}`
+    const end = endsOn
+        ? t(" until {date}", { date: endsOn.split("-").reverse().join("/") })
+        : ""
+    return `${cadence}${end}${rule.paused ? t(" · Paused") : ""}`
 }

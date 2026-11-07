@@ -1,5 +1,9 @@
 "use client"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { notFound } from "next/navigation"
+
 import { SectionLoading } from "@/components/site/section-loading"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertAction } from "@/components/ui/alert"
@@ -13,15 +17,19 @@ export function WorkspaceQueryState({
     queries: { error: WorkspaceReadError | null; refetch: () => unknown }[]
     label?: string
 }) {
+    const t = useTranslations()
+
     const session = authClient.useSession()
     if (queries.some((query) => query.error?.status === 404)) notFound()
     const failed = queries.find((query) => query.error)
     if ((!failed && !session.error) || failed?.error?.redirectTo)
-        return <SectionLoading label={label} />
+        return <SectionLoading label={t(label || "")} />
     return (
         <Alert role="status">
             <AlertDescription>
-                Couldn’t load this data. Check your connection and try again.
+                {t(
+                    "Couldn’t load this data. Check your connection and try again."
+                )}
             </AlertDescription>
             <AlertAction>
                 <Button
@@ -34,7 +42,7 @@ export function WorkspaceQueryState({
                         })
                     }}
                 >
-                    Retry
+                    {t("Retry")}
                 </Button>
             </AlertAction>
         </Alert>

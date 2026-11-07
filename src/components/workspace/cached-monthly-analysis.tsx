@@ -1,9 +1,14 @@
 "use client"
 
+import { useLocale } from "@/components/i18n/locale-provider"
+import { intlLocale } from "@/lib/i18n/config"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { currencySymbol, currencyLabel } from "@/lib/currency"
 import { useWorkspaceQuery, useWorkspaceDay } from "./use-workspace-query"
 import { WorkspaceQueryState } from "./workspace-query-state"
-import Link from "next/link"
+import Link from "@/components/i18n/link"
 import { RecurringSync } from "@/components/financial-accounts/recurring-sync"
 import { moneyCents, centsMoney, shiftMonth } from "@/lib/expense-spread"
 import { formatWalletMoney } from "@/lib/wallet-input"
@@ -31,13 +36,17 @@ export function CachedMonthlyAnalysis({
     accountId: string
     query: Record<string, string | string[] | undefined>
 }) {
+    const locale = useLocale()
+
+    const t = useTranslations()
+
     const result = useWorkspaceQuery("analysis", id, query)
     const today = useWorkspaceDay()
     if (!result.data || !today)
         return (
             <WorkspaceQueryState
                 queries={[result]}
-                label="Loading monthly analysis…"
+                label={t("Loading monthly analysis…")}
             />
         )
     const {
@@ -51,7 +60,8 @@ export function CachedMonthlyAnalysis({
         previous,
     } = result.data
     const base = `/dashboard/accounts/${id}/analysis`
-    const money = (amount: string) => formatWalletMoney(amount, currency)
+    const money = (amount: string) =>
+        formatWalletMoney(amount, currency, intlLocale(locale))
     const delta = centsMoney(
         moneyCents(current.total) - moneyCents(previous.total)
     )
@@ -63,7 +73,7 @@ export function CachedMonthlyAnalysis({
                 href={`/dashboard/accounts/${id}`}
                 className="text-sm underline underline-offset-4"
             >
-                Back to {account.name}
+                {t("Back to")} {account.name}
             </Link>
             <PeriodControls
                 period={periodForMonth(month)}
@@ -79,23 +89,25 @@ export function CachedMonthlyAnalysis({
                 <input type="hidden" name="month" value={month} />
                 <div className="grid gap-4 sm:grid-cols-2">
                     <Field>
-                        <FieldLabel htmlFor="analysis-mode">View</FieldLabel>
+                        <FieldLabel htmlFor="analysis-mode">
+                            {t("View")}
+                        </FieldLabel>
                         <NativeSelect
                             id="analysis-mode"
                             name="mode"
                             defaultValue={mode}
                         >
                             <NativeSelectOption value="smoothed">
-                                Smoothed spending
+                                {t("Smoothed spending")}
                             </NativeSelectOption>
                             <NativeSelectOption value="actual">
-                                Actual payments
+                                {t("Actual payments")}
                             </NativeSelectOption>
                         </NativeSelect>
                     </Field>
                     <Field>
                         <FieldLabel htmlFor="analysis-currency">
-                            Currency
+                            {t("Currency")}
                         </FieldLabel>
                         <NativeSelect
                             id="analysis-currency"
@@ -104,14 +116,14 @@ export function CachedMonthlyAnalysis({
                         >
                             {["EUR", "GBP", "USD"].map((code) => (
                                 <NativeSelectOption key={code} value={code}>
-                                    {currencyLabel(code)}
+                                    {t(currencyLabel(code))}
                                 </NativeSelectOption>
                             ))}
                         </NativeSelect>
                     </Field>
                     <Field>
                         <FieldLabel htmlFor="analysis-wallet">
-                            Wallet
+                            {t("Wallet")}
                         </FieldLabel>
                         <NativeSelect
                             id="analysis-wallet"
@@ -119,7 +131,7 @@ export function CachedMonthlyAnalysis({
                             defaultValue={wallet}
                         >
                             <NativeSelectOption value="">
-                                All wallets
+                                {t("All wallets")}
                             </NativeSelectOption>
                             {wallets.map((item) => (
                                 <NativeSelectOption
@@ -134,18 +146,19 @@ export function CachedMonthlyAnalysis({
                     </Field>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                    Currencies are reported separately. Only posted expenses are
-                    included; pending transactions are excluded.
+                    {t(
+                        "Currencies are reported separately. Only posted expenses are included; pending transactions are excluded."
+                    )}
                 </p>
-                <Button type="submit">Apply filters</Button>
+                <Button type="submit">{t("Apply filters")}</Button>
             </form>
             <div className="grid gap-4 sm:grid-cols-2">
                 <Card>
                     <CardHeader>
                         <CardTitle>
                             {mode === "smoothed"
-                                ? "Smoothed spending"
-                                : "Actual payments"}
+                                ? t("Smoothed spending")
+                                : t("Actual payments")}
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -157,14 +170,21 @@ export function CachedMonthlyAnalysis({
                         </p>
                         <p className="mt-2 text-sm text-muted-foreground">
                             {future
-                                ? "Future costs are shown as planned."
-                                : `${money(delta)} compared with ${shiftMonth(month, -1)} (${money(previous.total)}).`}
+                                ? t("Future costs are shown as planned.")
+                                : t(
+                                      "{value0} compared with {value1} ({value2}).",
+                                      {
+                                          value0: money(delta),
+                                          value1: shiftMonth(month, -1),
+                                          value2: money(previous.total),
+                                      }
+                                  )}
                         </p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Planned costs</CardTitle>
+                        <CardTitle>{t("Planned costs")}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <p
@@ -174,8 +194,9 @@ export function CachedMonthlyAnalysis({
                             {money(current.planned)}
                         </p>
                         <p className="mt-2 text-sm text-muted-foreground">
-                            Future allocations and future-dated payments are
-                            excluded from spending totals.
+                            {t(
+                                "Future allocations and future-dated payments are excluded from spending totals."
+                            )}
                         </p>
                     </CardContent>
                 </Card>
@@ -185,7 +206,7 @@ export function CachedMonthlyAnalysis({
                 aria-labelledby="analysis-categories"
             >
                 <h2 id="analysis-categories" className="text-lg font-semibold">
-                    Spending by category
+                    {t("Spending by category")}
                 </h2>
                 {current.categories.length ? (
                     <ul className="divide-y rounded-lg border">
@@ -205,7 +226,7 @@ export function CachedMonthlyAnalysis({
                     </ul>
                 ) : (
                     <p className="text-sm text-muted-foreground">
-                        No spending for this month and these filters.
+                        {t("No spending for this month and these filters.")}
                     </p>
                 )}
             </section>
@@ -214,7 +235,7 @@ export function CachedMonthlyAnalysis({
                 aria-labelledby="analysis-expenses"
             >
                 <h2 id="analysis-expenses" className="text-lg font-semibold">
-                    Expenses included
+                    {t("Expenses included")}
                 </h2>
                 {current.rows.length ? (
                     <ul className="divide-y rounded-lg border">
@@ -231,17 +252,20 @@ export function CachedMonthlyAnalysis({
                                         {row.name}
                                     </Link>
                                     <p className="text-xs text-muted-foreground">
-                                        Payment date: {row.date} ·{" "}
+                                        {t("Payment date:")} {row.date} ·{" "}
                                         {row.walletName} · {row.category}
                                     </p>
                                     {row.allocated && (
                                         <Badge variant="secondary">
-                                            Spread across{" "}
-                                            {row.spread!.monthCount} months
+                                            {t("Spread across")}{" "}
+                                            {row.spread!.monthCount}{" "}
+                                            {t("months")}
                                         </Badge>
                                     )}
                                     {row.planned && (
-                                        <Badge variant="outline">Planned</Badge>
+                                        <Badge variant="outline">
+                                            {t("Planned")}
+                                        </Badge>
                                     )}
                                 </div>
                                 <p className="tabular-nums">
@@ -249,7 +273,7 @@ export function CachedMonthlyAnalysis({
                                     {row.allocated && (
                                         <span className="text-sm text-muted-foreground">
                                             {" "}
-                                            of {money(row.amount)}
+                                            {t("of")} {money(row.amount)}
                                         </span>
                                     )}
                                 </p>
@@ -258,7 +282,7 @@ export function CachedMonthlyAnalysis({
                     </ul>
                 ) : (
                     <p className="text-sm text-muted-foreground">
-                        No expenses or allocations for this month.
+                        {t("No expenses or allocations for this month.")}
                     </p>
                 )}
             </section>

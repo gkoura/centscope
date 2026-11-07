@@ -1,10 +1,13 @@
 "use client"
 
-import { getSafeRedirectTo } from "@better-auth-ui/core"
+import { getSafeRedirectTo, localization } from "@better-auth-ui/core"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState, type ReactNode } from "react"
+import Link from "@/components/i18n/link"
+import { useRouter } from "@/components/i18n/navigation"
+import { useMemo, useState, type ReactNode } from "react"
+import { useLocale } from "@/components/i18n/locale-provider"
+import { translateObject } from "@/lib/i18n/translate"
+import { localizeHref } from "@/lib/i18n/config"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { authClient } from "@/lib/auth-client"
@@ -30,6 +33,19 @@ export function AuthProviders({
     baseURL?: string
     googleEnabled: boolean
 }) {
+    const locale = useLocale()
+    const messages = useMemo(
+        () => translateObject(localization, locale),
+        [locale]
+    )
+    const plugins = useMemo(
+        () =>
+            authPlugins.map((plugin) => ({
+                ...plugin,
+                localization: translateObject(plugin.localization, locale),
+            })),
+        [locale]
+    )
     const router = useRouter()
     const [queryClient] = useState(
         () =>
@@ -41,12 +57,14 @@ export function AuthProviders({
         <QueryClientProvider client={queryClient}>
             <AuthProvider
                 authClient={authClient}
-                plugins={authPlugins}
+                plugins={plugins}
+                localization={messages}
                 baseURL={baseURL}
                 socialProviders={googleEnabled ? ["google"] : []}
                 multipleAccountsPerProvider={false}
                 allowUnlinkingAllAccounts={false}
-                redirectTo="/dashboard"
+                redirectTo={localizeHref("/dashboard", locale)}
+                basePaths={{ auth: localizeHref("/auth", locale), settings: localizeHref("/settings", locale) }}
                 emailAndPassword={{
                     enabled: true,
                     requireEmailVerification: true,

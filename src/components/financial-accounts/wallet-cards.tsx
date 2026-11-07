@@ -1,13 +1,18 @@
 "use client"
 
+import { useLocale } from "@/components/i18n/locale-provider"
+import { intlLocale } from "@/lib/i18n/config"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { currencySymbol } from "@/lib/currency"
-import Link from "next/link"
+import Link from "@/components/i18n/link"
 import { Button } from "@/components/ui/button"
 import { WalletDeleteDialog } from "./wallet-delete-dialog"
 import { WalletEditDialog } from "./wallet-edit-dialog"
 import type { listOwnedAccountWallets } from "@/lib/wallets"
 import { formatWalletMoney, walletTypes } from "@/lib/wallet-input"
-import { saveWalletOrder } from "@/app/dashboard/order-actions"
+import { saveWalletOrder } from "@/app/[locale]/dashboard/order-actions"
 import { ReorderableList } from "@/components/sortable/reorderable-list"
 import { SortableHandle } from "@/components/sortable/sortable-item"
 import { Badge } from "@/components/ui/badge"
@@ -28,10 +33,14 @@ export function WalletCards({
     today: string
     wallets: Awaited<ReturnType<typeof listOwnedAccountWallets>>
 }) {
+    const locale = useLocale()
+
+    const t = useTranslations()
+
     return (
         <ReorderableList
             items={wallets}
-            label="wallets"
+            label={t("wallets")}
             onSave={(input) => saveWalletOrder(financialAccountId, input)}
             renderItem={(wallet, { disabled }) => (
                 <Card className="h-full">
@@ -43,23 +52,24 @@ export function WalletCards({
                             <h3 className="wrap-break-word">{wallet.name}</h3>
                         </CardTitle>
                         <CardDescription>
-                            {
+                            {t(
                                 walletTypes.find(
                                     (option) => option.value === wallet.type
-                                )?.label
-                            }{" "}
+                                )?.label || wallet.type
+                            )}{" "}
                             · {currencySymbol(wallet.currency)}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-3">
                         <div className="flex flex-col gap-1">
                             <p className="text-sm text-muted-foreground">
-                                Posted balance
+                                {t("Posted balance")}
                             </p>
                             <p className="text-xl font-semibold wrap-break-word tabular-nums">
                                 {formatWalletMoney(
                                     wallet.balance,
-                                    wallet.currency
+                                    wallet.currency,
+                                    intlLocale(locale)
                                 )}
                             </p>
                         </div>
@@ -67,21 +77,22 @@ export function WalletCards({
                             <div className="flex flex-col items-start gap-2">
                                 <Badge variant="secondary">
                                     {wallet.opening.status === "POSTED"
-                                        ? "Posted"
-                                        : "Pending"}{" "}
-                                    opening balance
+                                        ? t("Posted")
+                                        : t("Pending")}{" "}
+                                    {t("opening balance")}
                                 </Badge>
                                 <p className="text-sm text-muted-foreground">
                                     {formatWalletMoney(
                                         wallet.opening.amount,
-                                        wallet.currency
+                                        wallet.currency,
+                                        intlLocale(locale)
                                     )}{" "}
                                     · {wallet.opening.date}
                                 </p>
                             </div>
                         ) : (
                             <p className="text-sm text-muted-foreground">
-                                Started at zero.
+                                {t("Started at zero.")}
                             </p>
                         )}
                         <div className="flex flex-wrap justify-end gap-2">
@@ -96,7 +107,7 @@ export function WalletCards({
                                 }
                                 nativeButton={false}
                             >
-                                Transfer
+                                {t("Transfer")}
                             </Button>
                             <WalletEditDialog
                                 key={`${wallet.id}-${wallet.updatedAt}`}

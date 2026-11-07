@@ -1,7 +1,10 @@
 "use client"
+
+import { useTranslations } from "@/components/i18n/locale-provider"
+
 import { useWorkspaceQuery, useWorkspaceDay } from "./use-workspace-query"
 import { WorkspaceQueryState } from "./workspace-query-state"
-import Link from "next/link"
+import Link from "@/components/i18n/link"
 import { WalletCards } from "@/components/financial-accounts/wallet-cards"
 import { PlusIcon, WalletIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -15,13 +18,15 @@ import {
 } from "@/components/ui/empty"
 
 export function CachedWallets({ accountId }: { accountId: string }) {
+    const t = useTranslations()
+
     const reference = useWorkspaceQuery("reference", accountId)
     const today = useWorkspaceDay()
     if (!reference.data || !today)
         return (
             <WorkspaceQueryState
                 queries={[reference]}
-                label="Loading wallet settings…"
+                label={t("Loading wallet settings…")}
             />
         )
     const { account, wallets } = reference.data
@@ -32,7 +37,7 @@ export function CachedWallets({ accountId }: { accountId: string }) {
         >
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <h2 id="wallets-heading" className="text-lg font-semibold">
-                    Wallets
+                    {t("Wallets")}
                 </h2>
                 {wallets.length ? (
                     <Button
@@ -44,7 +49,7 @@ export function CachedWallets({ accountId }: { accountId: string }) {
                         nativeButton={false}
                     >
                         <PlusIcon data-icon="inline-start" />
-                        Add wallet
+                        {t("Add wallet")}
                     </Button>
                 ) : null}
             </div>
@@ -60,10 +65,11 @@ export function CachedWallets({ accountId }: { accountId: string }) {
                         <EmptyMedia variant="icon">
                             <WalletIcon />
                         </EmptyMedia>
-                        <EmptyTitle>Add your first wallet</EmptyTitle>
+                        <EmptyTitle>{t("Add your first wallet")}</EmptyTitle>
                         <EmptyDescription>
-                            Start with a bank account or the cash you keep on
-                            hand.
+                            {t(
+                                "Start with a bank account or the cash you keep on hand."
+                            )}
                         </EmptyDescription>
                     </EmptyHeader>
                     <EmptyContent>
@@ -76,7 +82,7 @@ export function CachedWallets({ accountId }: { accountId: string }) {
                             nativeButton={false}
                         >
                             <PlusIcon data-icon="inline-start" />
-                            Add wallet
+                            {t("Add wallet")}
                         </Button>
                     </EmptyContent>
                 </Empty>

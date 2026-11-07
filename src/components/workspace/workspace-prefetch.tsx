@@ -1,7 +1,9 @@
 "use client"
 import { useEffect } from "react"
+import { stripLocale } from "@/lib/i18n/config"
 import { useQueryClient } from "@tanstack/react-query"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
+import { usePathname, useRouter } from "@/components/i18n/navigation"
 import {
     workspaceQueryOptions,
     WorkspaceReadError,
@@ -109,7 +111,7 @@ export function WorkspacePrefetch({ accountId }: { accountId: string }) {
         window.addEventListener("focus", prefetch.resume)
         window.addEventListener(WORKSPACE_CACHE_EVENT, cacheEvent)
         return () => {
-            const destination = window.location.pathname
+            const destination = stripLocale(window.location.pathname)
             prefetch.stop({
                 cancelInactive:
                     workspaceRevision() !== revision ||
