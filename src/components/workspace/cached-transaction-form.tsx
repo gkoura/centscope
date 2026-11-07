@@ -50,6 +50,7 @@ export function CachedTransactionForm({
                 <CardContent>
                     {wallets.length ? (
                         <CreateTransactionForm
+                            key={account.id}
                             returnTo={returnTo}
                             initialWalletId={
                                 wallets.some((w) => w.id === query.wallet)

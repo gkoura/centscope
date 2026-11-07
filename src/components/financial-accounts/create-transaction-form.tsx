@@ -193,8 +193,7 @@ export function CreateTransactionForm({
     const [values, setValues] = useState({
         name: editing?.name ?? "",
         type: String(editing?.type ?? "EXPENSE"),
-        accountWalletId:
-            editing?.accountWalletId ?? initialWalletId ?? wallets[0]?.id ?? "",
+        accountWalletId: editing?.accountWalletId ?? initialWalletId ?? "",
         categoryId:
             initialCategory?.parentId ??
             initialCategory?.id ??
@@ -231,9 +230,10 @@ export function CreateTransactionForm({
                     .includes(values.name.trim().toLocaleLowerCase())
         )
         .slice(0, 6)
+    // Follow refreshed saved order until the user explicitly chooses a wallet.
+    const accountWalletId = values.accountWalletId || wallets[0]?.id || ""
     const currency =
-        wallets.find((wallet) => wallet.id === values.accountWalletId)
-            ?.currency ?? ""
+        wallets.find((wallet) => wallet.id === accountWalletId)?.currency ?? ""
     return (
         <form action={action} className="flex flex-col gap-6">
             <input type="hidden" name="returnTo" value={returnTo ?? ""} />
@@ -428,7 +428,7 @@ export function CreateTransactionForm({
                     <TransactionSelect
                         name="accountWalletId"
                         label="Wallet"
-                        value={values.accountWalletId}
+                        value={accountWalletId}
                         options={wallets.map((wallet) => ({
                             value: wallet.id,
                             label: `${wallet.name} (${currencySymbol(wallet.currency)})`,
