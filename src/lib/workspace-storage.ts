@@ -1,13 +1,11 @@
-import { WORKSPACE_CACHE_VERSION } from "./workspace-cache-policy"
 import type { SavedWorkspace } from "./workspace-cache-state"
 
 // Only financial query results go here; authentication/session queries are never persisted.
 async function database() {
     return new Promise<IDBDatabase>((resolve, reject) => {
-        const request = indexedDB.open(
-            "fintrack-workspace",
-            WORKSPACE_CACHE_VERSION
-        )
+        // Storage schema is independent of response versions. An app deployment
+        // must not require other tabs to close their database connections.
+        const request = indexedDB.open("fintrack-workspace", 1)
         request.onupgradeneeded = () => {
             const db = request.result
             if (!db.objectStoreNames.contains("users"))

@@ -2,6 +2,8 @@ import type { QueryClient } from "@tanstack/react-query"
 import { shiftMonth, validMonth } from "./expense-spread.ts"
 import { resolveAccountPeriod } from "./account-period.ts"
 import type { TransactionQuery } from "./transaction-filters.ts"
+import { analyticsPeriodInput } from "./analytics.ts"
+import { trendEndMonth } from "./monthly-trends.ts"
 import {
     canonicalWorkspaceRequest,
     type WorkspaceRequest,
@@ -12,6 +14,13 @@ import {
     type WorkspaceQueryScope,
 } from "./workspace-query-options.ts"
 
+export function isWorkspacePrefetchRoute(accountId: string, pathname: string) {
+    const base = `/dashboard/accounts/${accountId}`
+    return [base, `${base}/transactions`, `${base}/analytics`].includes(
+        pathname
+    )
+}
+
 export function workspacePrefetchPlan(
     accountId: string,
     pathname: string,
@@ -20,7 +29,8 @@ export function workspacePrefetchPlan(
 ) {
     const base = `/dashboard/accounts/${accountId}`
     const overview = pathname === base
-    if (!overview && pathname !== `${base}/transactions`) return null
+    const analytics = pathname === `${base}/analytics`
+    if (!isWorkspacePrefetchRoute(accountId, pathname)) return null
     const params = new URLSearchParams(search)
     const query: TransactionQuery = {}
     for (const key of new Set(params.keys())) {
@@ -28,19 +38,43 @@ export function workspacePrefetchPlan(
         query[key] = values.length > 1 ? values : values[0]
     }
     const period = resolveAccountPeriod(
-        overview ? { ...query, view: "month" } : query,
+        overview
+            ? { ...query, view: "month" }
+            : analytics
+              ? analyticsPeriodInput(query)
+              : query,
         today
     )
-    if (period.view !== "month") return null
+    if (period.view !== "month" && !analytics) return null
     const foreground: WorkspaceRequest = overview
         ? {
               resource: "reference",
               accountId,
           }
-        : { resource: "transactions", accountId, query }
+        : analytics
+          ? {
+                resource: "activity",
+                accountId,
+                query: analyticsPeriodInput(query),
+            }
+          : { resource: "transactions", accountId, query }
     return {
         foreground,
-        requests: transactionPrefetchRequests(accountId, period.month, today),
+        requests: [
+            ...(period.view === "month"
+                ? transactionPrefetchRequests(accountId, period.month, today)
+                : []),
+            // The trends chart has its own rolling window, independent of the
+            // selected activity period. Warm only its default, not every year.
+            canonicalWorkspaceRequest(
+                {
+                    resource: "monthlyTrends",
+                    accountId,
+                    query: { month: trendEndMonth("rolling", today) },
+                },
+                today
+            ),
+        ],
     }
 }
 

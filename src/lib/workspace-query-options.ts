@@ -40,7 +40,8 @@ export function workspaceQueryOptions<R extends WorkspaceResource>(
         refetchOnMount: true,
         refetchOnWindowFocus: "always",
         retry: (count, error) => error.status >= 500 && count < 1,
-        queryFn: async ({ signal }) => {
+        queryFn: async ({ signal, client }) => {
+            const startedAt = Date.now()
             const params = new URLSearchParams({ resource: request.resource })
             if (request.accountId) params.set("accountId", request.accountId)
             for (const [key, value] of Object.entries(request.query ?? {}))
@@ -68,7 +69,31 @@ export function workspaceQueryOptions<R extends WorkspaceResource>(
                     409,
                     "Your workspace changed. Refreshing…"
                 )
-            return body.data as WorkspaceData[R]
+            signal.throwIfAborted()
+            const data = body.data as WorkspaceData[R]
+            // Transaction responses already include the exact period/filter
+            // summary used by Analytics. Reuse it without refetching or copying
+            // transaction rows into another cache entry. Cursors affect history only.
+            if (request.resource === "transactions") {
+                const activityKey = workspaceQueryKey(
+                    userId,
+                    revision,
+                    canonicalWorkspaceRequest(
+                        { ...request, resource: "activity" },
+                        today
+                    )
+                )
+                const existing = client.getQueryState(activityKey)
+                if (
+                    existing?.fetchStatus !== "fetching" &&
+                    (existing?.dataUpdatedAt ?? 0) < startedAt
+                )
+                    client.setQueryData(
+                        activityKey,
+                        (data as WorkspaceData["transactions"]).activity
+                    )
+            }
+            return data
         },
     })
 }

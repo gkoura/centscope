@@ -157,3 +157,62 @@ test("a failed background refresh retains its last successful value without pers
     assert.equal(JSON.stringify(state).includes("private error detail"), false)
     source.clear()
 })
+
+test("response schema upgrades reject v1 snapshots even with an unchanged financial revision", () => {
+    const source = client()
+    source.setQueryData(key(), { activity: { categories: [] } })
+    const state = dehydrate(source)
+    const saved = {
+        version: 1,
+        userId: "alice",
+        revision: "v1",
+        savedAt: 10,
+        state,
+    }
+    assert.equal(restoredWorkspaceState(saved, "alice", "v1", 11), undefined)
+    const oldKey = [...key()]
+    oldKey[1] = 1
+    const incompatible = {
+        ...state,
+        queries: state.queries.map((q) => ({ ...q, queryKey: oldKey })),
+    }
+    assert.equal(
+        persistedWorkspaceState(incompatible, "alice", "v1").queries.length,
+        0
+    )
+    assert.equal(
+        restoredWorkspaceState(
+            { ...saved, version: WORKSPACE_CACHE_VERSION, state: incompatible },
+            "alice",
+            "v1",
+            11
+        ).queries.length,
+        0
+    )
+    source.clear()
+})
+
+test("access/revision rejection cannot turn saved data back into success on reload", async () => {
+    for (const status of [401, 403, 404, 409]) {
+        const source = client()
+        source.setQueryData(key(), { private: "previously allowed data" })
+        await assert.rejects(
+            source.query({
+                queryKey: key(),
+                staleTime: 0,
+                retry: false,
+                queryFn: () => {
+                    throw Object.assign(new Error("Access rejected"), {
+                        status,
+                    })
+                },
+            })
+        )
+        const state = dehydrate(source, { shouldDehydrateQuery: () => true })
+        assert.equal(
+            persistedWorkspaceState(state, "alice", "v1").queries.length,
+            0
+        )
+        source.clear()
+    }
+})

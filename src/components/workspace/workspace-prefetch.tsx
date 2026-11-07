@@ -9,6 +9,7 @@ import {
 import {
     startWorkspacePrefetch,
     workspacePrefetchPlan,
+    isWorkspacePrefetchRoute,
 } from "@/lib/workspace-prefetch"
 import {
     clearWorkspaceCache,
@@ -108,13 +109,11 @@ export function WorkspacePrefetch({ accountId }: { accountId: string }) {
         window.addEventListener("focus", prefetch.resume)
         window.addEventListener(WORKSPACE_CACHE_EVENT, cacheEvent)
         return () => {
-            const base = `/dashboard/accounts/${accountId}`
             const destination = window.location.pathname
             prefetch.stop({
                 cancelInactive:
                     workspaceRevision() !== revision ||
-                    (destination !== base &&
-                        destination !== `${base}/transactions`),
+                    !isWorkspacePrefetchRoute(accountId, destination),
             })
             document.removeEventListener("visibilitychange", prefetch.resume)
             window.removeEventListener("online", prefetch.resume)

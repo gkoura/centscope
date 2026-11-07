@@ -15,6 +15,15 @@ export type SavedWorkspace = {
     state: DehydratedState
 }
 
+function accessRejected(error: unknown) {
+    return (
+        typeof error === "object" &&
+        error !== null &&
+        "status" in error &&
+        [401, 403, 404, 409].includes(Number(error.status))
+    )
+}
+
 export function restoredWorkspaceState(
     saved: SavedWorkspace | undefined,
     userId: string,
@@ -37,7 +46,8 @@ export function restoredWorkspaceState(
         queries: saved.state.queries.filter(
             (query) =>
                 belongsToWorkspace(query.queryKey, userId, revision) &&
-                query.state.status === "success"
+                query.state.status === "success" &&
+                !accessRejected(query.state.error)
         ),
     }
 }
@@ -52,7 +62,8 @@ export function persistedWorkspaceState(
         .filter(
             (query) =>
                 belongsToWorkspace(query.queryKey, userId, revision) &&
-                query.state.data !== undefined
+                query.state.data !== undefined &&
+                !accessRejected(query.state.error)
         )
         .sort((a, b) => b.state.dataUpdatedAt - a.state.dataUpdatedAt)
     const queries: DehydratedState["queries"] = []

@@ -4,7 +4,8 @@ import {
 } from "./transaction-filters.ts"
 import { resolveAccountPeriod, periodQuery } from "./account-period.ts"
 
-export const WORKSPACE_CACHE_VERSION = 1
+// Bump when persisted response shapes change (v2 adds income-category summaries).
+export const WORKSPACE_CACHE_VERSION = 2
 export const WORKSPACE_CACHE_MAX_AGE = 24 * 60 * 60 * 1000
 export const WORKSPACE_CACHE_MAX_BYTES = 20 * 1024 * 1024
 export const WORKSPACE_CACHE_MAX_QUERIES = 60

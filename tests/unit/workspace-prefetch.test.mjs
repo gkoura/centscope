@@ -413,3 +413,163 @@ test("only active account overview/month views speculate, and repeated filters m
         accountId: "personal",
     })
 })
+
+test("Analytics shares unfiltered month summaries and warms only its default rolling trends", () => {
+    const base = "/dashboard/accounts/personal"
+    const plan = workspacePrefetchPlan(
+        "personal",
+        base + "/analytics",
+        "month=2026-10&wallet=a&status=PENDING&q=coffee",
+        today
+    )
+    assert.deepEqual(plan.foreground, {
+        resource: "activity",
+        accountId: "personal",
+        query: { month: "2026-10" },
+    })
+    assert.deepEqual(
+        plan.requests
+            .filter((r) => r.resource === "transactions")
+            .map((r) => r.query.month),
+        ["2026-10", "2026-09", "2026-08", "2026-11"]
+    )
+    assert.deepEqual(plan.requests.at(-1), {
+        resource: "monthlyTrends",
+        accountId: "personal",
+        query: { month: "2026-10" },
+    })
+    const annual = workspacePrefetchPlan(
+        "personal",
+        base + "/analytics",
+        "view=year&year=2025",
+        today
+    )
+    assert.equal(annual.foreground.query.year, "2025")
+    assert.deepEqual(
+        annual.requests.map((r) => r.resource),
+        ["monthlyTrends"]
+    )
+    const overview = workspacePrefetchPlan(
+        "personal",
+        base,
+        "month=2025-01",
+        today
+    )
+    assert.equal(overview.foreground.resource, "reference")
+    assert.equal(overview.requests.at(-1).query.month, "2026-10")
+})
+
+test("a transaction response supplies Analytics without another request, with cursor and filter isolation", async (t) => {
+    const r = rig(t)
+    const query = {
+        view: "year",
+        year: "2026",
+        before: "cursor",
+        wallet: "a",
+        status: "POSTED",
+    }
+    const transaction = workspaceQueryOptions(
+        scope,
+        { resource: "transactions", accountId: "personal", query },
+        today
+    )
+    const activity = workspaceQueryOptions(
+        scope,
+        { resource: "activity", accountId: "personal", query },
+        today
+    )
+    const summary = {
+        count: 2,
+        categories: [],
+        incomeCategories: [
+            { name: "Salary", currency: "EUR", amount: "50.00" },
+        ],
+    }
+    const response = r.client.query(transaction)
+    r.calls[0].finish({ history: { transactions: [] }, activity: summary })
+    await response
+    const observer = new QueryObserver(r.client, activity)
+    const unsubscribe = observer.subscribe(() => {})
+    t.after(unsubscribe)
+    await tick()
+    assert.equal(r.calls.length, 1)
+    assert.deepEqual(observer.getCurrentResult().data, summary)
+    for (const input of [
+        {
+            resource: "activity",
+            accountId: "personal",
+            query: { ...query, wallet: "b" },
+        },
+        {
+            resource: "activity",
+            accountId: "personal",
+            query: { view: "year", year: "2026" },
+        },
+        { resource: "activity", accountId: "home", query },
+    ])
+        assert.equal(
+            r.client.getQueryData(
+                workspaceQueryOptions(scope, input, today).queryKey
+            ),
+            undefined
+        )
+    assert.equal(
+        r.client.getQueryData(
+            workspaceQueryOptions(
+                { userId: "bob", revision: "v1" },
+                { resource: "activity", accountId: "personal", query },
+                today
+            ).queryKey
+        ),
+        undefined
+    )
+})
+
+test("a delayed transaction response does not overwrite a newer Analytics summary", async (t) => {
+    const r = rig(t)
+    const activity = workspaceQueryOptions(
+        scope,
+        {
+            resource: "activity",
+            accountId: "personal",
+            query: { month: "2026-11" },
+        },
+        today
+    )
+    const response = r.client.query(
+        workspaceQueryOptions(scope, requests()[0], today)
+    )
+    r.client.setQueryData(
+        activity.queryKey,
+        { count: 3 },
+        { updatedAt: Date.now() + 1 }
+    )
+    r.calls[0].finish({ activity: { count: 2 } })
+    await response
+    assert.deepEqual(r.client.getQueryData(activity.queryKey), { count: 3 })
+})
+
+test("a cancelled transaction read cannot seed Analytics after account or scope teardown", async (t) => {
+    const r = rig(t)
+    const options = workspaceQueryOptions(scope, requests()[0], today)
+    const controller = new AbortController()
+    const response = options.queryFn({
+        signal: controller.signal,
+        client: r.client,
+        queryKey: options.queryKey,
+    })
+    // The transport may already have resolved its response when cleanup happens.
+    r.calls[0].finish({ activity: { count: 2 } })
+    controller.abort()
+    await assert.rejects(response, { name: "AbortError" })
+    assert.equal(
+        r.client.getQueryData(
+            workspaceQueryOptions(
+                scope,
+                { ...requests()[0], resource: "activity" },
+                today
+            ).queryKey
+        ),
+        undefined
+    )
+})
