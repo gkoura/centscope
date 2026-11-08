@@ -573,3 +573,31 @@ test("a cancelled transaction read cannot seed Analytics after account or scope 
         undefined
     )
 })
+
+test("All time keeps the analytics foreground key and does not speculate unrelated transaction months", () => {
+    const base = "/dashboard/accounts/account"
+    const analytics = workspacePrefetchPlan(
+        "account",
+        base + "/analytics",
+        "view=all&month=2000-01",
+        today
+    )
+    assert.deepEqual(analytics.foreground.query, { view: "all" })
+    assert.deepEqual(
+        analytics.requests.map((r) => r.resource),
+        ["monthlyTrends"]
+    )
+    assert.equal(
+        workspacePrefetchPlan(
+            "account",
+            base + "/transactions",
+            "view=all",
+            today
+        ),
+        null
+    )
+    assert.equal(
+        workspacePrefetchPlan("account", base, "view=all", today),
+        null
+    )
+})

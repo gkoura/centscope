@@ -716,6 +716,13 @@ export async function listOwnedAccountTransactions(
                         !e.accountWallet.wallet.archivedAt &&
                         !e.accountWallet.financialAccount.archivedAt
                 ),
+                categoryName:
+                    entry.category?.parent?.name ??
+                    entry.category?.name ??
+                    null,
+                subcategoryName: entry.category?.parent
+                    ? entry.category.name
+                    : null,
                 category:
                     row.type === "TRANSFER"
                         ? null
@@ -1276,4 +1283,35 @@ export async function deleteOwnedTransaction(input: {
         },
         { timeout: 30_000 }
     )
+}
+
+/** Account-wide bounds; category/status/wallet filters do not redefine All time. */
+export async function getOwnedAccountTransactionRange(
+    financialAccountId: string
+) {
+    const { user } = await requireVerifiedSession()
+    const bounds = await prisma.transaction.aggregate({
+        where: {
+            entries: {
+                some: {
+                    financialAccountId,
+                    accountWallet: {
+                        financialAccount: {
+                            ownerId: user.id,
+                            archivedAt: null,
+                        },
+                        wallet: { ownerId: user.id },
+                    },
+                },
+            },
+        },
+        _min: { occurredAt: true },
+        _max: { occurredAt: true },
+    })
+    return bounds._min.occurredAt && bounds._max.occurredAt
+        ? {
+              from: bounds._min.occurredAt.toISOString().slice(0, 10),
+              to: bounds._max.occurredAt.toISOString().slice(0, 10),
+          }
+        : null
 }

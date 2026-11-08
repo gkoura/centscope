@@ -39,8 +39,8 @@ async function transactions(
     )
     const filters = {
         ...parseTransactionFilters(query),
-        from: period.from,
-        to: period.to,
+        from: period.from || undefined,
+        to: period.to || undefined,
     }
     const [history, activity] = await Promise.all([
         listOwnedAccountTransactions(
@@ -133,14 +133,17 @@ export async function readWorkspaceData(
             )
             return getOwnedAccountActivity(id, {
                 ...parseTransactionFilters(query),
-                from: period.from,
-                to: period.to,
+                from: period.from || undefined,
+                to: period.to || undefined,
             })
         }
         case "balanceHistory":
             return balanceHistory(id, String(query.month))
         case "monthlyTrends":
-            return getOwnedMonthlyTrends(id, String(query.month))
+            return getOwnedMonthlyTrends(
+                id,
+                query.view === "all" ? "all" : String(query.month)
+            )
         case "suggestions":
             return listOwnedTransactionSuggestions(id)
         case "analysis":

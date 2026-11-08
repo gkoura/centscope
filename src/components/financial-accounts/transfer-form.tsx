@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/field"
 import { StatusSwitch } from "./status-switch"
 import { Button } from "@/components/ui/button"
+import { DatePicker } from "@/components/ui/date-picker"
 import { Input } from "@/components/ui/input"
 import { MoneyInput } from "./money-input"
 import { Textarea } from "@/components/ui/textarea"
@@ -240,22 +241,14 @@ export function TransferForm({
                     />
                     <Field>
                         <FieldLabel htmlFor="transfer-date">Date</FieldLabel>
-                        <Input
+                        <DatePicker
                             id="transfer-date"
-                            type="date"
                             name="date"
                             value={values.date}
                             disabled={scope !== "ONLY"}
                             required
-                            onChange={(e) => update("date", e.target.value)}
+                            onChange={(value) => update("date", value)}
                         />
-                        {scope !== "ONLY" && (
-                            <input
-                                type="hidden"
-                                name="date"
-                                value={editing?.date ?? values.date}
-                            />
-                        )}
                     </Field>
                     <StatusSwitch
                         name="status"

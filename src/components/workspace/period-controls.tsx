@@ -21,6 +21,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { MonthPicker } from "@/components/ui/month-picker"
 import { DatePicker } from "@/components/ui/date-picker"
 
 export function PeriodControls({
@@ -70,12 +71,13 @@ export function PeriodControls({
                         if (value === "custom") {
                             setDialogView("custom")
                             setOpen(true)
-                        } else
+                        } else if (value === "all") navigate({ view: "all" })
+                        else
                             navigate(
                                 value === "year"
                                     ? {
                                           view: "year",
-                                          year: period.from.slice(0, 4),
+                                          year: period.year,
                                       }
                                     : {
                                           view: "month",
@@ -91,6 +93,7 @@ export function PeriodControls({
                         <TabsTrigger value="month">Month</TabsTrigger>
                         <TabsTrigger value="year">Year</TabsTrigger>
                         <TabsTrigger value="custom">Custom</TabsTrigger>
+                        <TabsTrigger value="all">All time</TabsTrigger>
                     </TabsList>
                 </Tabs>
             )}
@@ -137,7 +140,7 @@ export function PeriodControls({
                             <DialogDescription>
                                 {monthlyOnly
                                     ? "Choose the month to review."
-                                    : "Browse a month, a year, or your own date range."}
+                                    : "Browse a month, a year, all time, or your own date range."}
                             </DialogDescription>
                         </DialogHeader>
                         <PeriodForm
@@ -206,11 +209,13 @@ function PeriodForm({
                     return
                 }
                 onApply(
-                    view === "month"
-                        ? { view, month }
-                        : view === "year"
-                          ? { view, year: year.padStart(4, "0") }
-                          : { view, from, to }
+                    view === "all"
+                        ? { view }
+                        : view === "month"
+                          ? { view, month }
+                          : view === "year"
+                            ? { view, year: year.padStart(4, "0") }
+                            : { view, from, to }
                 )
             }}
         >
@@ -225,59 +230,70 @@ function PeriodForm({
                         <TabsTrigger value="month">Month</TabsTrigger>
                         <TabsTrigger value="year">Year</TabsTrigger>
                         <TabsTrigger value="custom">Custom</TabsTrigger>
+                        <TabsTrigger value="all">All time</TabsTrigger>
                     </TabsList>
                 </Tabs>
             )}
-            <FieldGroup>
-                {view === "month" ? (
-                    <Field>
-                        <FieldLabel htmlFor="period-month">Month</FieldLabel>
-                        <Input
-                            id="period-month"
-                            type="month"
-                            min="0002-01"
-                            max="9998-12"
-                            value={month}
-                            required
-                            onChange={(event) => setMonth(event.target.value)}
-                        />
-                    </Field>
-                ) : view === "year" ? (
-                    <Field>
-                        <FieldLabel htmlFor="period-year">Year</FieldLabel>
-                        <Input
-                            id="period-year"
-                            type="number"
-                            min="2"
-                            max="9998"
-                            value={year}
-                            required
-                            onChange={(event) => setYear(event.target.value)}
-                        />
-                    </Field>
-                ) : (
-                    <>
+            {view === "all" ? (
+                <p className="text-sm text-muted-foreground">
+                    Include the full transaction history. Your other filters
+                    stay applied.
+                </p>
+            ) : (
+                <FieldGroup>
+                    {view === "month" ? (
                         <Field>
-                            <FieldLabel htmlFor="period-from">From</FieldLabel>
-                            <DatePicker
-                                id="period-from"
-                                name="from"
-                                value={from}
-                                onChange={setFrom}
+                            <FieldLabel htmlFor="period-month">
+                                Month
+                            </FieldLabel>
+                            <MonthPicker
+                                id="period-month"
+                                label="Period"
+                                value={month}
+                                onChange={setMonth}
                             />
                         </Field>
+                    ) : view === "year" ? (
                         <Field>
-                            <FieldLabel htmlFor="period-to">To</FieldLabel>
-                            <DatePicker
-                                id="period-to"
-                                name="to"
-                                value={to}
-                                onChange={setTo}
+                            <FieldLabel htmlFor="period-year">Year</FieldLabel>
+                            <Input
+                                id="period-year"
+                                type="number"
+                                min="2"
+                                max="9998"
+                                value={year}
+                                required
+                                onChange={(event) =>
+                                    setYear(event.target.value)
+                                }
                             />
                         </Field>
-                    </>
-                )}
-            </FieldGroup>
+                    ) : (
+                        <>
+                            <Field>
+                                <FieldLabel htmlFor="period-from">
+                                    From
+                                </FieldLabel>
+                                <DatePicker
+                                    id="period-from"
+                                    name="from"
+                                    value={from}
+                                    onChange={setFrom}
+                                />
+                            </Field>
+                            <Field>
+                                <FieldLabel htmlFor="period-to">To</FieldLabel>
+                                <DatePicker
+                                    id="period-to"
+                                    name="to"
+                                    value={to}
+                                    onChange={setTo}
+                                />
+                            </Field>
+                        </>
+                    )}
+                </FieldGroup>
+            )}
             {error && (
                 <p role="alert" className="text-sm text-destructive">
                     {error}

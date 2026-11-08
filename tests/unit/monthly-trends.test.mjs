@@ -172,3 +172,57 @@ test("rolling trends use the last twelve completed months and handle January rol
     ]
     assert.equal(series(entries, { end }).total, "20.00")
 })
+
+test("All time includes full actual and spread lifetimes, gaps and exact averages", async () => {
+    const { trendBounds, trendMonths } =
+        await import("../../src/lib/monthly-trends.ts")
+    const entries = [
+        entry({
+            month: "2020-12",
+            amount: "-100.01",
+            spread: { startMonth: "2021-01", monthCount: 3 },
+        }),
+    ]
+    const bounds = trendBounds(entries, "2026-11")
+    assert.deepEqual(bounds, { startMonth: "2020-12", endMonth: "2021-03" })
+    assert.equal(trendMonths(bounds.endMonth, bounds.startMonth).length, 4)
+    const buckets = monthlyTrendBuckets(
+        entries,
+        bounds.endMonth,
+        bounds.startMonth
+    )
+    const smoothed = monthlyTrendSeries(
+        buckets,
+        bounds.endMonth,
+        "EXPENSE",
+        "EUR",
+        "smoothed",
+        null,
+        bounds.startMonth
+    )
+    const actual = monthlyTrendSeries(
+        buckets,
+        bounds.endMonth,
+        "EXPENSE",
+        "EUR",
+        "actual",
+        null,
+        bounds.startMonth
+    )
+    assert.equal(smoothed.total, "100.01")
+    assert.equal(actual.total, "100.01")
+    assert.equal(smoothed.average, "25.00")
+    assert.deepEqual(
+        smoothed.points.map((p) => p.amount),
+        ["0.00", "33.34", "33.34", "33.33"]
+    )
+    assert.deepEqual(trendBounds([], "2026-11"), {
+        startMonth: "2026-11",
+        endMonth: "2026-11",
+    })
+    const gap = trendBounds(
+        [entry({ month: "2010-01" }), entry({ month: "2026-11" })],
+        "2026-11"
+    )
+    assert.equal(trendMonths(gap.endMonth, gap.startMonth).length, 203)
+})

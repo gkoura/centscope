@@ -4,8 +4,8 @@ import {
 } from "./transaction-filters.ts"
 import { resolveAccountPeriod, periodQuery } from "./account-period.ts"
 
-// Bump when persisted response shapes change (v2 adds income-category summaries).
-export const WORKSPACE_CACHE_VERSION = 2
+// v3 adds all-time periods and variable-length monthly trend ranges.
+export const WORKSPACE_CACHE_VERSION = 3
 export const WORKSPACE_CACHE_MAX_AGE = 24 * 60 * 60 * 1000
 export const WORKSPACE_CACHE_MAX_BYTES = 20 * 1024 * 1024
 export const WORKSPACE_CACHE_MAX_QUERIES = 60
@@ -54,6 +54,8 @@ export function canonicalWorkspaceRequest(
     } else if (resource === "pendingPayments") {
         values = { day: today }
     } else if (resource === "monthlyTrends") {
+        if (query.view === "all")
+            return { resource, accountId, query: { view: "all" } }
         const month = resolveAccountPeriod({ month: query.month }, today).month
         // Leave room for the 12-month window and maximum 120-month expense spread.
         values = {

@@ -9,6 +9,7 @@ import {
 } from "@/lib/expense-spread"
 import { formatWalletMoney } from "@/lib/wallet-input"
 import { normalizeDecimalInput } from "@/lib/decimal-input"
+import { MonthPicker } from "@/components/ui/month-picker"
 import { Input } from "@/components/ui/input"
 import {
     Field,
@@ -87,13 +88,12 @@ export function ExpenseSpreadFields({
                         <FieldLabel htmlFor="spread-start">
                             Start month
                         </FieldLabel>
-                        <Input
+                        <MonthPicker
                             id="spread-start"
+                            label="Spread start"
                             name="spreadStartMonth"
-                            type="month"
                             value={spread.startMonth}
-                            onChange={(event) => setStart(event.target.value)}
-                            required
+                            onChange={setStart}
                             aria-invalid={Boolean(error)}
                         />
                     </Field>

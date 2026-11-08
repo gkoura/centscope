@@ -2,7 +2,7 @@ import { validMonth, shiftMonth } from "./expense-spread.ts"
 import type { TransactionQuery } from "./transaction-filters.ts"
 
 export type AccountPeriod = {
-    view: "month" | "year" | "custom"
+    view: "month" | "year" | "custom" | "all"
     month: string
     year: string
     from: string
@@ -49,6 +49,8 @@ export function resolveAccountPeriod(
     const fallback = periodForMonth(today.slice(0, 7))
     const view =
         value("view") || (value("from") || value("to") ? "custom" : "month")
+    if (view === "all")
+        return { ...fallback, view, from: "", to: "", label: "All time" }
     if (view === "custom") {
         const from = value("from"),
             to = value("to")
@@ -98,6 +100,7 @@ export function resolveAccountPeriod(
     }
 }
 export function periodQuery(period: AccountPeriod): Record<string, string> {
+    if (period.view === "all") return { view: "all" }
     return period.view === "month"
         ? { view: "month", month: period.month }
         : period.view === "year"
@@ -108,7 +111,7 @@ export function adjacentPeriod(
     period: AccountPeriod,
     offset: number
 ): Record<string, string> | null {
-    if (period.view === "custom") return null
+    if (period.view === "custom" || period.view === "all") return null
     if (period.view === "month") {
         const month = shiftMonth(period.month, offset)
         return validMonth(month) && month >= "0002-01" && month <= "9998-12"
@@ -125,6 +128,7 @@ export function accountViewSearch(
     overview = false
 ) {
     const params = new URLSearchParams()
+    if (query.get("view") === "all") return "?view=all"
     if (overview) {
         const month =
             query.get("month") ||

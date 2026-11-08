@@ -5,6 +5,7 @@ import { moneyCents } from "./expense-spread.ts"
 export function analyticsPeriodInput(
     query: TransactionQuery
 ): TransactionQuery {
+    if (query.view === "all") return { view: "all" }
     return Object.fromEntries(
         ["view", "month", "year", "from", "to"]
             .filter((key) => typeof query[key] === "string")

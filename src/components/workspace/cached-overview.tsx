@@ -40,7 +40,10 @@ export function CachedOverviewBalances({
             />
         )
     const { account, wallets } = reference.data
-    const period = resolveAccountPeriod({ ...query, view: "month" }, today)
+    const period = resolveAccountPeriod(
+        { ...query, view: query.view === "all" ? "all" : "month" },
+        today
+    )
     const transactionsHref = `/dashboard/accounts/${id}/transactions?${new URLSearchParams(periodQuery(period))}`
     return (
         <>

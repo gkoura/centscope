@@ -21,6 +21,7 @@ export function transactionReturnPath(
         : base
 }
 export function periodEntryDate(period: AccountPeriod, today: string) {
+    if (period.view === "all") return today
     return today < period.from
         ? period.from
         : today > period.to

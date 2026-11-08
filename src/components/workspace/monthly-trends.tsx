@@ -21,11 +21,7 @@ import { Field, FieldLabel } from "@/components/ui/field"
 import { MonthlyTrendFilters } from "./monthly-trend-filters"
 import { useWorkspaceQuery } from "./use-workspace-query"
 import { WorkspaceQueryState } from "./workspace-query-state"
-import {
-    monthlyTrendSeries,
-    trendMonths,
-    trendEndMonth,
-} from "@/lib/monthly-trends"
+import { monthlyTrendSeries, trendEndMonth } from "@/lib/monthly-trends"
 import { appendCurrencySymbol, currencyLabel } from "@/lib/currency"
 import { formatWalletMoney } from "@/lib/wallet-input"
 
@@ -33,10 +29,10 @@ const chartConfig = {
     income: { label: "Income", color: "var(--income)" },
     expense: { label: "Expenses", color: "var(--expense)" },
 } satisfies ChartConfig
-const monthLabel = (month: string, short = false) =>
+const monthLabel = (month: string, short = false, withYear = !short) =>
     new Intl.DateTimeFormat("en", {
         month: short ? "short" : "long",
-        ...(short ? {} : { year: "numeric" }),
+        ...(withYear ? ({ year: short ? "2-digit" : "numeric" } as const) : {}),
         timeZone: "UTC",
     }).format(new Date(`${month}-01T00:00:00Z`))
 const selectClass =
@@ -58,11 +54,17 @@ export function MonthlyTrends({
     const [selections, setSelections] = useState<
         Record<"INCOME" | "EXPENSE", string[] | null>
     >({ INCOME: null, EXPENSE: null })
-    const endMonth = trendEndMonth(range, today)
+    const requestedEnd = trendEndMonth(
+        range === "all" ? "rolling" : range,
+        today
+    )
     const result = useWorkspaceQuery("monthlyTrends", accountId, {
-        month: endMonth,
+        ...(range === "all" ? { view: "all" } : { month: requestedEnd }),
     })
     const reference = useWorkspaceQuery("reference", accountId)
+    const endMonth = result.data?.endMonth ?? requestedEnd
+    const startMonth = result.data?.startMonth
+
     const currencies = [
         ...new Set([
             ...(reference.data?.wallets.map((wallet) => wallet.currency) ?? []),
@@ -83,7 +85,8 @@ export function MonthlyTrends({
         type,
         activeCurrency ?? "",
         mode,
-        selections[type]
+        selections[type],
+        startMonth
     )
     const points = data.points.map((point) => ({
         ...point,
@@ -91,13 +94,16 @@ export function MonthlyTrends({
     }))
     const years = [
         ...new Set([
-            ...(range === "rolling" ? [] : [Number(range)]),
+            ...(range === "rolling" || range === "all" ? [] : [Number(range)]),
             ...Array.from({ length: 31 }, (_, index) => thisYear - index),
         ]),
     ].sort((a, b) => b - a)
     const label = type === "INCOME" ? "Income" : "Expenses"
     const flow = type === "INCOME" ? "income" : "expense"
-    const rangeLabel = `${monthLabel(trendMonths(endMonth)[0])} – ${monthLabel(endMonth)}`
+    const rangeLabel =
+        range === "all" && !result.data?.buckets.length
+            ? "All time"
+            : `${range === "all" ? "All time · " : ""}${monthLabel(data.points[0]?.month ?? endMonth)} – ${monthLabel(endMonth)}`
     const hasAmount = points.some((point) => point.amount !== "0.00")
     const selectionCount = selections[type]?.length
 
@@ -137,7 +143,8 @@ export function MonthlyTrends({
                             className="size-11"
                             aria-label="Previous trend year"
                             disabled={
-                                range !== "rolling" && Number(range) <= 1901
+                                range === "all" ||
+                                (range !== "rolling" && Number(range) <= 1901)
                             }
                             onClick={() =>
                                 setRange(
@@ -167,6 +174,7 @@ export function MonthlyTrends({
                                 }
                             >
                                 <option value="rolling">Last 12 months</option>
+                                <option value="all">All time</option>
                                 {years.map((year) => (
                                     <option key={year} value={String(year)}>
                                         {year}
@@ -180,7 +188,9 @@ export function MonthlyTrends({
                             className="size-11"
                             aria-label="Next trend year"
                             disabled={
-                                range === "rolling" || Number(range) >= thisYear
+                                range === "all" ||
+                                range === "rolling" ||
+                                Number(range) >= thisYear
                             }
                             onClick={() => setRange(String(Number(range) + 1))}
                         >
@@ -296,7 +306,8 @@ export function MonthlyTrends({
                                     </div>
                                     <div>
                                         <p className="text-xs text-muted-foreground">
-                                            Monthly average · all 12 months
+                                            Monthly average ·{" "}
+                                            {data.points.length} months
                                         </p>
                                         <p className="mt-1 text-xl font-semibold wrap-break-word tabular-nums">
                                             {formatWalletMoney(
@@ -313,7 +324,7 @@ export function MonthlyTrends({
                                     >
                                         {selectionCount === 0
                                             ? "Select at least one category, or clear filters to include everything."
-                                            : `No posted ${type === "INCOME" ? "income" : "expenses"} match these filters in this range. Try another year or clear the category filters.`}
+                                            : `No posted ${type === "INCOME" ? "income" : "expenses"} match these filters in this range. Try another period or clear the category filters.`}
                                     </p>
                                 )}
                                 <ChartContainer
@@ -340,7 +351,11 @@ export function MonthlyTrends({
                                             tickMargin={10}
                                             minTickGap={8}
                                             tickFormatter={(value) =>
-                                                monthLabel(String(value), true)
+                                                monthLabel(
+                                                    String(value),
+                                                    true,
+                                                    range === "all"
+                                                )
                                             }
                                         />
                                         <YAxis

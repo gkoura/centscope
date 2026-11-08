@@ -1,9 +1,10 @@
 "use client"
 
+import { TransactionExportDialog } from "./transaction-export-dialog"
 import { currencySymbol } from "@/lib/currency"
 import { periodEntryDate } from "@/lib/transaction-return"
 import Link from "next/link"
-import { useState, useTransition } from "react"
+import { useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import {
     Search,
@@ -12,6 +13,7 @@ import {
     Plus,
     ArrowLeftRight,
     Upload,
+    Download,
 } from "lucide-react"
 import { periodQuery, type AccountPeriod } from "@/lib/account-period"
 import type { TransactionFilters } from "@/lib/transaction-filters"
@@ -63,8 +65,10 @@ export function TransactionControls({
     categories: { id: string; name: string }[]
 }) {
     const [open, setOpen] = useState(false),
+        [exportOpen, setExportOpen] = useState(false),
         [pending, startTransition] = useTransition(),
         router = useRouter()
+    const exportTrigger = useRef<HTMLButtonElement>(null)
     const selectedWallets = walletFilterIds(filters.wallet)
     const singleWallet =
         selectedWallets.length === 1 ? selectedWallets[0] : undefined
@@ -277,6 +281,7 @@ export function TransactionControls({
                 </Dialog>
                 <DropdownMenu>
                     <DropdownMenuTrigger
+                        ref={exportTrigger}
                         render={
                             <Button
                                 variant="outline"
@@ -290,6 +295,12 @@ export function TransactionControls({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-64">
                         <DropdownMenuGroup>
+                            <DropdownMenuItem
+                                onClick={() => setExportOpen(true)}
+                            >
+                                <Download />
+                                Export CSV
+                            </DropdownMenuItem>
                             {[
                                 {
                                     href: `${base}/transfer/new?${new URLSearchParams({ returnTo, date: periodEntryDate(period, new Date().toISOString().slice(0, 10)), ...(singleWallet ? { source: singleWallet } : {}) })}`,
@@ -314,6 +325,14 @@ export function TransactionControls({
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
+            {exportOpen && (
+                <TransactionExportDialog
+                    accountId={accountId}
+                    filters={filters}
+                    onOpenChange={setExportOpen}
+                    returnFocus={exportTrigger}
+                />
+            )}
             {(active > 0 || filters.q) && (
                 <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
                     <span>

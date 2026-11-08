@@ -2,6 +2,7 @@
 import { useState } from "react"
 import type { RepeatInput, EditScope } from "@/lib/recurrence-input"
 import { nextSlot } from "@/lib/recurrence-input"
+import { DatePicker } from "@/components/ui/date-picker"
 import { Input } from "@/components/ui/input"
 import {
     Field,
@@ -251,16 +252,13 @@ export function RecurrenceFields({
                             <FieldLabel htmlFor="repeat-ends-on">
                                 Last eligible date (inclusive)
                             </FieldLabel>
-                            <Input
+                            <DatePicker
                                 id="repeat-ends-on"
                                 name="repeatEndsOn"
-                                type="date"
                                 value={endsOn}
                                 required
                                 min={initial ? undefined : date}
-                                onChange={(event) =>
-                                    setEndsOn(event.target.value)
-                                }
+                                onChange={setEndsOn}
                             />
                         </Field>
                     )}

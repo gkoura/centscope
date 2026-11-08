@@ -30,8 +30,39 @@ export type TrendBucket = {
     smoothed: string
 }
 export const UNCATEGORIZED = "__uncategorized__"
-export const trendMonths = (endMonth: string) =>
-    Array.from({ length: 12 }, (_, index) => shiftMonth(endMonth, index - 11))
+export function trendMonths(
+    endMonth: string,
+    startMonth = shiftMonth(endMonth, -11)
+) {
+    const length =
+        (Number(endMonth.slice(0, 4)) - Number(startMonth.slice(0, 4))) * 12 +
+        Number(endMonth.slice(5)) -
+        Number(startMonth.slice(5)) +
+        1
+    return Array.from({ length: Math.max(0, length) }, (_, index) =>
+        shiftMonth(startMonth, index)
+    )
+}
+/** Both payment months and allocated months belong in an all-time comparison. */
+export function trendBounds(entries: TrendEntry[], fallback: string) {
+    let startMonth: string | undefined, endMonth: string | undefined
+    for (const entry of entries) {
+        const months = [entry.month]
+        if (entry.type === "EXPENSE" && entry.spread)
+            months.push(
+                entry.spread.startMonth,
+                shiftMonth(entry.spread.startMonth, entry.spread.monthCount - 1)
+            )
+        for (const month of months) {
+            if (!startMonth || month < startMonth) startMonth = month
+            if (!endMonth || month > endMonth) endMonth = month
+        }
+    }
+    return {
+        startMonth: startMonth ?? fallback,
+        endMonth: endMonth ?? fallback,
+    }
+}
 
 /** Rolling comparisons use complete months so a partial current month cannot distort the trend. */
 export function trendEndMonth(range: string, today: string) {
@@ -43,14 +74,21 @@ export function trendEndMonth(range: string, today: string) {
 /** Keep exact cents throughout allocation and aggregation; chart coordinates alone use numbers. */
 export function monthlyTrendBuckets(
     entries: TrendEntry[],
-    endMonth: string
+    endMonth: string,
+    startMonth = shiftMonth(endMonth, -11)
 ): TrendBucket[] {
-    const months = trendMonths(endMonth)
     const buckets = new Map<string, TrendBucket>()
     for (const entry of entries) {
         const amount = moneyCents(entry.amount)
         const absolute = centsMoney(amount < BigInt(0) ? -amount : amount)
+        // Visit only the payment and at most 120 allocated months per entry,
+        // rather than rescanning the entire account lifetime for every payment.
+        const months = new Set([entry.month])
+        if (entry.type === "EXPENSE" && entry.spread)
+            for (let index = 0; index < entry.spread.monthCount; index++)
+                months.add(shiftMonth(entry.spread.startMonth, index))
         for (const month of months) {
+            if (month < startMonth || month > endMonth) continue
             const actual =
                 entry.month === month ? moneyCents(absolute) : BigInt(0)
             const smoothed =
@@ -100,12 +138,15 @@ export function monthlyTrendSeries(
     type: "INCOME" | "EXPENSE",
     currency: string,
     mode: "actual" | "smoothed",
-    selectedIds: string[] | null
+    selectedIds: string[] | null,
+    startMonth = shiftMonth(endMonth, -11)
 ) {
     const selected = selectedIds === null ? null : new Set(selectedIds)
     const totals = new Map<string, bigint>()
     for (const bucket of buckets) {
         if (
+            bucket.month < startMonth ||
+            bucket.month > endMonth ||
             bucket.type !== type ||
             bucket.currency !== currency ||
             (selected && !selected.has(bucket.categoryId))
@@ -117,7 +158,7 @@ export function monthlyTrendSeries(
                 moneyCents(bucket[type === "INCOME" ? "actual" : mode])
         )
     }
-    const points = trendMonths(endMonth).map((month) => ({
+    const points = trendMonths(endMonth, startMonth).map((month) => ({
         month,
         amount: centsMoney(totals.get(month) ?? BigInt(0)),
     }))
@@ -128,6 +169,9 @@ export function monthlyTrendSeries(
     return {
         points,
         total: centsMoney(total),
-        average: centsMoney((total + BigInt(6)) / BigInt(12)),
+        average: centsMoney(
+            (total + BigInt(Math.floor(points.length / 2))) /
+                BigInt(Math.max(1, points.length))
+        ),
     }
 }

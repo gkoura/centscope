@@ -216,3 +216,34 @@ test("access/revision rejection cannot turn saved data back into success on relo
         source.clear()
     }
 })
+
+test("all-time workspace keys drop stale dates but retain transaction filters and pagination", () => {
+    const all = request({
+        view: "all",
+        from: "2000-01-01",
+        to: "2000-02-01",
+        month: "2000-01",
+        wallet: "b,a",
+        before: "cursor",
+    })
+    assert.deepEqual(all.query, {
+        before: "cursor",
+        view: "all",
+        wallet: "a,b",
+    })
+    assert.notDeepEqual(
+        all,
+        request({ view: "year", year: "2000", wallet: "a,b", before: "cursor" })
+    )
+    assert.deepEqual(
+        canonicalWorkspaceRequest(
+            {
+                resource: "monthlyTrends",
+                accountId: "a",
+                query: { view: "all", month: "2000-01" },
+            },
+            today
+        ),
+        { resource: "monthlyTrends", accountId: "a", query: { view: "all" } }
+    )
+})

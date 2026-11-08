@@ -16,7 +16,9 @@ function Calendar({
   className,
   classNames,
   showOutsideDays = true,
-  captionLayout = "label",
+  captionLayout = "dropdown",
+  startMonth,
+  endMonth,
   buttonVariant = "ghost",
   locale,
   formatters,
@@ -26,17 +28,26 @@ function Calendar({
   buttonVariant?: React.ComponentProps<typeof Button>["variant"]
 }) {
   const defaultClassNames = getDefaultClassNames()
+  const referenceYear = (props.month ?? props.defaultMonth ?? new Date()).getFullYear()
+  const firstYear = Math.min(1900, referenceYear)
+  const lastYear = Math.min(9999, Math.max(new Date().getUTCFullYear() + 20, referenceYear))
+  const yearStart = new Date(0)
+  yearStart.setFullYear(firstYear, 0, 1)
+  const yearEnd = new Date(0)
+  yearEnd.setFullYear(lastYear, 11, 1)
 
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn(
-        "group/calendar bg-background p-2 [--cell-radius:var(--radius-md)] [--cell-size:--spacing(7)] in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent",
+        "group/calendar bg-background p-2 [--cell-radius:var(--radius-md)] [--cell-size:--spacing(8)] in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent",
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
         String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
         className
       )}
       captionLayout={captionLayout}
+      startMonth={startMonth ?? yearStart}
+      endMonth={endMonth ?? yearEnd}
       locale={locale}
       formatters={{
         formatMonthDropdown: (date) =>
@@ -73,7 +84,7 @@ function Calendar({
           defaultClassNames.dropdowns
         ),
         dropdown_root: cn(
-          "relative rounded-(--cell-radius)",
+          "relative rounded-(--cell-radius) border border-input px-1.5 py-0.5 focus-within:ring-2 focus-within:ring-ring",
           defaultClassNames.dropdown_root
         ),
         dropdown: cn(

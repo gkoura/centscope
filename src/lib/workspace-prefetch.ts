@@ -39,7 +39,7 @@ export function workspacePrefetchPlan(
     }
     const period = resolveAccountPeriod(
         overview
-            ? { ...query, view: "month" }
+            ? { ...query, view: query.view === "all" ? "all" : "month" }
             : analytics
               ? analyticsPeriodInput(query)
               : query,

@@ -109,3 +109,27 @@ test("account view links preserve the period and leave filters behind", () => {
         "?month=2025-04"
     )
 })
+
+test("All time ignores stale date parameters and stays selected across account navigation", () => {
+    const period = resolveAccountPeriod(
+        { view: "all", from: "2000-01-01", to: "2000-02-01", month: "2000-01" },
+        today
+    )
+    assert.equal(period.label, "All time")
+    assert.equal(period.from, "")
+    assert.equal(period.to, "")
+    assert.deepEqual(periodQuery(period), { view: "all" })
+    assert.equal(adjacentPeriod(period, -1), null)
+    assert.equal(adjacentPeriod(period, 1), null)
+    assert.equal(periodEntryDate(period, today), today)
+    assert.equal(
+        accountViewSearch(
+            new URLSearchParams("view=all&month=2000-01&wallet=x")
+        ),
+        "?view=all"
+    )
+    assert.equal(
+        accountViewSearch(new URLSearchParams("view=all"), true),
+        "?view=all"
+    )
+})
