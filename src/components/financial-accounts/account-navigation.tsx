@@ -10,15 +10,21 @@ import {
     SelectItem,
 } from "@/components/ui/select"
 import { UserMenu } from "@/components/site/user-menu"
+import { AccountThemePicker } from "./account-theme-picker"
+import { accountTheme } from "@/lib/account-theme"
 import { ThemeToggle } from "@/components/site/theme-toggle"
 export function AccountNavigation({
     accountId,
     accounts,
     shared,
+    theme,
+    isOwner,
 }: {
     accountId: string
-    accounts: { id: string; name: string }[]
-    shared: { id: string; name: string }[]
+    theme: string
+    isOwner: boolean
+    accounts: { id: string; name: string; theme?: string }[]
+    shared: { id: string; name: string; theme?: string }[]
 }) {
     const pathname = usePathname(),
         query = useSearchParams(),
@@ -31,9 +37,14 @@ export function AccountNavigation({
         .map((account) => ({
             value: account.id,
             label: account.name,
+            theme: account.theme,
         }))
         .concat(
-            shared.map((a) => ({ value: a.id, label: a.name + " · Shared" }))
+            shared.map((a) => ({
+                value: a.id,
+                label: a.name + " · Shared",
+                theme: a.theme,
+            }))
         )
     function switchAccount(id: string | null) {
         if (!id || id === accountId) return
@@ -64,6 +75,10 @@ export function AccountNavigation({
                             aria-label="Switch account"
                             className="h-11 w-full min-w-0 border-0 bg-transparent px-3 shadow-none"
                         >
+                            <span
+                                className="size-3 shrink-0 rounded-full bg-primary"
+                                aria-hidden="true"
+                            />
                             <SelectValue className="truncate" />
                         </SelectTrigger>
                         <SelectContent alignItemWithTrigger={false}>
@@ -74,6 +89,15 @@ export function AccountNavigation({
                                         value={option.value}
                                         className="min-h-11 px-3 py-2"
                                     >
+                                        <span
+                                            className="size-3 shrink-0 rounded-full"
+                                            style={{
+                                                backgroundColor: accountTheme(
+                                                    option.theme
+                                                ).color,
+                                            }}
+                                            aria-hidden="true"
+                                        />
                                         {option.label}
                                     </SelectItem>
                                 ))}
@@ -86,6 +110,12 @@ export function AccountNavigation({
                     aria-label="Appearance and session"
                     className="ml-auto flex shrink-0 items-center gap-1 border-l pl-3 md:pl-5"
                 >
+                    <AccountThemePicker
+                        key={accountId}
+                        accountId={accountId}
+                        theme={theme}
+                        isOwner={isOwner}
+                    />
                     <ThemeToggle />
                     <UserMenu />
                 </div>

@@ -136,6 +136,8 @@ enum RecurrenceFrequency {
 }
 
 model FinancialAccount {
+  // Shared visual identity; supported palette keys are enforced by a database CHECK.
+  theme             String              @default("forest") @db.VarChar(16)
   sortOrder         Int                 @default(0)
   id                String              @id @default(cuid())
   name              String

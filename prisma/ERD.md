@@ -93,6 +93,7 @@ One wallet can fund several financial accounts through AccountWallet. Wallet cur
 erDiagram
     direction LR
     FinancialAccount {
+        String theme
         Int sortOrder
         String id PK
         String name

@@ -1,6 +1,8 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
 import { LayoutDashboard, Wallet, Users } from "lucide-react"
+import { AccountThemePicker } from "./account-theme-picker"
+import { accountTheme } from "@/lib/account-theme"
 import { currencySymbol } from "@/lib/currency"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,7 +21,12 @@ export function AccountCard({
     handle,
     extraAction,
 }: {
-    account: { id: string; name: string; reportingCurrency: string }
+    account: {
+        id: string
+        name: string
+        reportingCurrency: string
+        theme?: string
+    }
     isOwner: boolean
     status: ReactNode
     handle?: ReactNode
@@ -27,10 +34,23 @@ export function AccountCard({
 }) {
     const base = `/dashboard/accounts/${account.id}`
     return (
-        <Card className="h-full">
+        <Card
+            className="h-full border-t-[3px]"
+            style={{ borderTopColor: accountTheme(account.theme).color }}
+        >
             <CardHeader className={handle ? "relative pr-14" : undefined}>
                 <CardTitle>
-                    <h2 className="wrap-break-word">{account.name}</h2>
+                    <h2 className="flex items-center gap-2 wrap-break-word">
+                        <span
+                            className="size-3 shrink-0 rounded-full"
+                            style={{
+                                backgroundColor: accountTheme(account.theme)
+                                    .color,
+                            }}
+                            aria-hidden="true"
+                        />
+                        {account.name}
+                    </h2>
                 </CardTitle>
                 <CardDescription>
                     Reporting currency{" "}
@@ -42,7 +62,16 @@ export function AccountCard({
             </CardHeader>
             <CardContent className="flex flex-wrap items-center justify-between gap-3">
                 {status}
-                {extraAction}
+                <div className="flex flex-wrap items-center gap-2">
+                    {extraAction}
+                    <AccountThemePicker
+                        accountId={account.id}
+                        accountName={account.name}
+                        theme={account.theme ?? "forest"}
+                        isOwner={isOwner}
+                        showLabel
+                    />
+                </div>
             </CardContent>
             <CardFooter
                 className="mt-auto flex-wrap gap-2"

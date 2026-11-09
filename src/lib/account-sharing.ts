@@ -28,7 +28,12 @@ export async function listSharedAccounts() {
         select: {
             role: true,
             financialAccount: {
-                select: { id: true, name: true, reportingCurrency: true },
+                select: {
+                    id: true,
+                    name: true,
+                    reportingCurrency: true,
+                    theme: true,
+                },
             },
         },
         orderBy: [{ createdAt: "asc" }, { financialAccountId: "asc" }],

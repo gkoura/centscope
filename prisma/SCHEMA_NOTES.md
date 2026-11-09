@@ -219,3 +219,13 @@ Migration 20261109100000_account_sharing adds account memberships and single-use
 - Pending FX posting requires explicit actual sent/received amounts per transfer and a second confirmation. Both legs commit together; recurring estimated amounts remain unchanged. Posted balance previews sum integer cents with BigInt, including totals beyond Decimal's default arithmetic precision. No additional financial movements are created.
 - Every changed transaction receives a retained before/after audit with actor/shared-account context, original creation fingerprint/key, spread and scheduled slot. Broader deletions stop the template and mark selected slots skipped before deleting complete transactions. Unaffected occurrences survive. Audit inserts and FX writes use batches of 500 within one atomic database transaction.
 - BULK_COMPLETED is an audit receipt with actor, financialAccountId, bulkRequestId (UUID), canonical requestFingerprint and changed-row count; it intentionally has no live transaction reference. The account lock serializes duplicate requests. An identical retry returns the saved result even after deletion; reusing the UUID with different input is rejected. Existing per-transaction deletion tombstones remain compatible with creation replay checks.
+
+## Financial account themes
+
+`FinancialAccount.theme` stores the shared visual identity (default `forest`).
+The `financial_account_theme_check` constraint accepts only `forest`, `ocean`,
+`violet`, `rose`, `amber`, and `slate`; keep it aligned with `src/lib/account-theme.ts`.
+Only the current owner can change the theme, with ownership/archive conditions
+checked in the update itself. Shared members read the same palette. Light/dark
+mode remains an independent user preference. No financial semantics or amounts
+are affected by palette choices.

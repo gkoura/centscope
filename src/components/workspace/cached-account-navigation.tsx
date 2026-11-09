@@ -7,9 +7,13 @@ import { WorkspacePrefetch } from "./workspace-prefetch"
 export function CachedAccountNavigation({
     accountId,
     shared,
+    theme,
+    isOwner,
 }: {
     accountId: string
-    shared: { id: string; name: string }[]
+    theme: string
+    isOwner: boolean
+    shared: { id: string; name: string; theme?: string }[]
 }) {
     const result = useWorkspaceQuery("accounts")
     if (!result.data)
@@ -20,6 +24,8 @@ export function CachedAccountNavigation({
         <>
             <AccountNavigation
                 accountId={accountId}
+                theme={theme}
+                isOwner={isOwner}
                 accounts={result.data}
                 shared={shared}
             />

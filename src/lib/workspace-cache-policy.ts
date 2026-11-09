@@ -4,8 +4,8 @@ import {
 } from "./transaction-filters.ts"
 import { resolveAccountPeriod, periodQuery } from "./account-period.ts"
 
-// v3 adds all-time periods and variable-length monthly trend ranges.
-export const WORKSPACE_CACHE_VERSION = 3
+// v4 adds financial-account palette metadata.
+export const WORKSPACE_CACHE_VERSION = 4
 export const WORKSPACE_CACHE_MAX_AGE = 24 * 60 * 60 * 1000
 export const WORKSPACE_CACHE_MAX_BYTES = 20 * 1024 * 1024
 export const WORKSPACE_CACHE_MAX_QUERIES = 60

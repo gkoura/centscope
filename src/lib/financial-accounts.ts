@@ -11,7 +11,12 @@ import { requireVerifiedSession } from "@/lib/auth/session"
 import { prisma } from "@/lib/prisma"
 import { defaultCategories } from "@/lib/category-input"
 
-const accountSelect = { id: true, name: true, reportingCurrency: true } as const
+const accountSelect = {
+    id: true,
+    name: true,
+    reportingCurrency: true,
+    theme: true,
+} as const
 
 // Derive ownership from the server session, never client input.
 export async function listOwnedFinancialAccounts() {
