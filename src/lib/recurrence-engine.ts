@@ -1,4 +1,5 @@
 import "server-only"
+import { sharedAuditContext } from "@/lib/financial-access"
 import { randomUUID } from "node:crypto"
 import { Prisma, type RecurrenceRule } from "@/generated/prisma/client"
 import type { TransactionInput } from "@/lib/transaction-input"
@@ -83,16 +84,17 @@ export async function createRuleForTransaction(
             },
         },
     })
-    await generateRule(tx, rule.id, userId)
+    await generateRule(tx, rule.id, userId, input.financialAccountId)
 }
 export async function generateRule(
     tx: Prisma.TransactionClient,
     ruleId: string,
     userId: string,
+    accountId: string,
     now = new Date()
 ) {
     const rule = await tx.recurrenceRule.findFirst({
-        where: { id: ruleId, createdById: userId },
+        where: { id: ruleId, source: { financialAccountId: accountId } },
         include: {
             source: { include: { wallet: true, financialAccount: true } },
             destination: { include: { wallet: true, financialAccount: true } },
@@ -101,19 +103,19 @@ export async function generateRule(
     })
     if (!rule || rule.pausedAt || rule.stoppedAt || !rule.nextOccurrenceAt)
         return 0
+    const ownerId = rule.source.financialAccount.ownerId
     if (
         rule.source.archivedAt ||
         rule.source.wallet.archivedAt ||
-        rule.source.wallet.ownerId !== userId ||
+        rule.source.wallet.ownerId !== ownerId ||
         rule.source.financialAccount.archivedAt ||
-        rule.source.financialAccount.ownerId !== userId ||
         (rule.type === "TRANSFER"
             ? !rule.destination ||
               rule.destination.archivedAt ||
               rule.destination.wallet.archivedAt ||
               rule.destination.financialAccount.archivedAt ||
-              rule.destination.wallet.ownerId !== userId ||
-              rule.destination.financialAccount.ownerId !== userId ||
+              rule.destination.wallet.ownerId !== ownerId ||
+              rule.destination.financialAccount.ownerId !== ownerId ||
               rule.destinationId === rule.sourceId ||
               rule.destination.financialAccountId !==
                   rule.source.financialAccountId ||
@@ -220,6 +222,11 @@ export async function generateRule(
                 actorId: userId,
                 action: "CREATED",
                 snapshot: {
+                    ...sharedAuditContext(
+                        ownerId,
+                        userId,
+                        rule.source.financialAccountId
+                    ),
                     financialAccountId: rule.source.financialAccountId,
                     financialAccountIds: [
                         ...new Set([
@@ -288,10 +295,14 @@ export async function updateSeries(
     input: TransactionInput,
     transactionId: string,
     expectedVersion: number,
-    userId: string
+    userId: string,
+    ownerId: string
 ) {
     const selected = await tx.transaction.findFirst({
-        where: { id: transactionId },
+        where: {
+            id: transactionId,
+            entries: { some: { financialAccountId: input.financialAccountId } },
+        },
         include: { occurrence: { include: { rule: true } } },
     })
     const occurrence = selected?.occurrence,
@@ -300,7 +311,6 @@ export async function updateSeries(
         !selected ||
         !occurrence ||
         !rule ||
-        rule.createdById !== userId ||
         selected.version !== expectedVersion ||
         rule.version !== input.expectedRuleVersion
     )
@@ -321,7 +331,7 @@ export async function updateSeries(
                 id: input.accountWalletId,
                 financialAccountId: input.financialAccountId,
                 archivedAt: null,
-                wallet: { ownerId: userId, archivedAt: null },
+                wallet: { ownerId, archivedAt: null },
             },
             include: { wallet: true },
         }),
@@ -363,7 +373,7 @@ export async function updateSeries(
                     input.financialAccountId ||
                 row.entries[0].accountWallet.archivedAt ||
                 row.entries[0].accountWallet.wallet.archivedAt ||
-                row.entries[0].accountWallet.wallet.ownerId !== userId ||
+                row.entries[0].accountWallet.wallet.ownerId !== ownerId ||
                 row.entries[0].accountWallet.wallet.currency !==
                     wallet.wallet.currency
         )
@@ -407,6 +417,7 @@ export async function updateSeries(
         actorId: userId,
         action: "UPDATED",
         snapshot: {
+            ...sharedAuditContext(ownerId, userId, input.financialAccountId),
             financialAccountId: input.financialAccountId,
             ruleId: rule.id,
             scope: input.editScope!,
@@ -497,5 +508,5 @@ export async function updateSeries(
             version: { increment: 1 },
         },
     })
-    await generateRule(tx, rule.id, userId)
+    await generateRule(tx, rule.id, userId, input.financialAccountId)
 }

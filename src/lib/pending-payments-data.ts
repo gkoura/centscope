@@ -1,16 +1,16 @@
 import "server-only"
 import { prisma } from "@/lib/prisma"
-import { requireVerifiedSession } from "@/lib/auth/session"
+import { financialAccess } from "@/lib/financial-access"
 import { summarizePendingPayments } from "@/lib/pending-payments"
 
 export async function getOwnedPendingPayments(accountId: string) {
-    const { user } = await requireVerifiedSession()
+    const { ownerId } = await financialAccess(accountId)
     const entries = await prisma.ledgerEntry.findMany({
         where: {
             financialAccountId: accountId,
             accountWallet: {
-                financialAccount: { ownerId: user.id, archivedAt: null },
-                wallet: { ownerId: user.id },
+                financialAccount: { ownerId, archivedAt: null },
+                wallet: { ownerId: ownerId },
             },
             transaction: { type: "EXPENSE", status: "PENDING" },
         },

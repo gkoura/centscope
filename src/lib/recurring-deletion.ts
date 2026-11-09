@@ -1,4 +1,9 @@
 import "server-only"
+import {
+    accessibleAccount,
+    lockFinancialAccess,
+    sharedAuditContext,
+} from "@/lib/financial-access"
 import { createHash } from "node:crypto"
 import { Prisma } from "@/generated/prisma/client"
 import {
@@ -34,7 +39,6 @@ async function loadSelection(
         !selected ||
         (!occurrence &&
             (selected.type !== "TRANSFER" || input.scope !== "ONLY")) ||
-        (rule && rule.createdById !== userId) ||
         selected.version !== input.expectedVersion
     )
         throw new RecurrenceError(
@@ -71,6 +75,12 @@ async function loadSelection(
     if (!rows.length)
         throw new RecurrenceError("No affected transactions are available.")
     for (const row of rows) {
+        if (
+            row.entries.some(
+                (e) => e.financialAccountId !== input.financialAccountId
+            )
+        )
+            throw new RecurrenceError("An affected transaction is unavailable.")
         checkMovements(row.entries, userId)
         if (row.type === "TRANSFER") transferLegs(row.entries)
         else if (
@@ -114,17 +124,16 @@ export async function previewOwnedRecurringDeletion(
             const account = await tx.financialAccount.findFirst({
                 where: {
                     id: input.financialAccountId,
-                    ownerId: user.id,
-                    archivedAt: null,
+                    ...accessibleAccount(user.id),
                 },
-                select: { id: true },
+                select: { ownerId: true },
             })
             if (!account)
                 throw new RecurrenceError("This account is unavailable.")
             const { rows, occurrence, snapshot } = await loadSelection(
                 tx,
                 input,
-                user.id
+                account.ownerId
             )
             const totals = new Map<
                 string,
@@ -228,7 +237,12 @@ export async function deleteRecurringSelection(
         expectedVersion: input.expectedVersion,
         scope: input.scope,
     }
-    const { rows, rule, snapshot } = await loadSelection(tx, reference, userId)
+    const ownerId = await lockFinancialAccess(
+        tx,
+        input.financialAccountId,
+        userId
+    )
+    const { rows, rule, snapshot } = await loadSelection(tx, reference, ownerId)
     if (snapshot !== input.expectedSnapshot)
         throw new RecurrenceError(
             "The series changed after the preview. Close and reopen the confirmation. Nothing was deleted."
@@ -250,6 +264,11 @@ export async function deleteRecurringSelection(
             actorId: userId,
             action: "DELETED",
             snapshot: {
+                ...sharedAuditContext(
+                    ownerId,
+                    userId,
+                    input.financialAccountId
+                ),
                 financialAccountId: input.financialAccountId,
                 createdById: row.createdById,
                 idempotencyKey: row.idempotencyKey,

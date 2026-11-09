@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { getOwnedFinancialAccount } from "@/lib/financial-accounts"
+import { getAccessibleFinancialAccount } from "@/lib/financial-accounts"
 import { listOwnedAccountWallets } from "@/lib/wallets"
 import { listOwnedAccountCategories } from "@/lib/categories"
 import { TransactionImport } from "@/components/financial-accounts/transaction-import"
@@ -11,7 +11,7 @@ export async function ImportContent({
     params: Promise<{ id: string }>
 }) {
     const { id } = await params
-    const account = await getOwnedFinancialAccount(id)
+    const account = await getAccessibleFinancialAccount(id)
     if (!account) notFound()
     const [wallets, categories] = await Promise.all([
         listOwnedAccountWallets(id),

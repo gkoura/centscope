@@ -1,6 +1,6 @@
 import "server-only"
 import { prisma } from "@/lib/prisma"
-import { requireVerifiedSession } from "@/lib/auth/session"
+import { financialAccess } from "@/lib/financial-access"
 import { shiftMonth } from "@/lib/expense-spread"
 import {
     monthlyTrendBuckets,
@@ -12,7 +12,7 @@ export async function getOwnedMonthlyTrends(
     accountId: string,
     endMonth: string
 ) {
-    const { user } = await requireVerifiedSession()
+    const { ownerId } = await financialAccess(accountId)
     const allTime = endMonth === "all"
     const startMonth = allTime ? "" : shiftMonth(endMonth, -11)
     const [entries, categories] = await prisma.$transaction(
@@ -23,10 +23,10 @@ export async function getOwnedMonthlyTrends(
                     accountWallet: {
                         archivedAt: null,
                         financialAccount: {
-                            ownerId: user.id,
+                            ownerId,
                             archivedAt: null,
                         },
-                        wallet: { ownerId: user.id, archivedAt: null },
+                        wallet: { ownerId, archivedAt: null },
                     },
                     transaction: {
                         status: "POSTED",
@@ -82,7 +82,7 @@ export async function getOwnedMonthlyTrends(
             prisma.category.findMany({
                 where: {
                     financialAccountId: accountId,
-                    financialAccount: { ownerId: user.id, archivedAt: null },
+                    financialAccount: { ownerId, archivedAt: null },
                 },
                 select: {
                     id: true,

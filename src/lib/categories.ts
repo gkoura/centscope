@@ -1,4 +1,5 @@
 import "server-only"
+import { lockFinancialAccess, financialAccess } from "@/lib/financial-access"
 
 import { requireVerifiedSession } from "@/lib/auth/session"
 import { prisma } from "@/lib/prisma"
@@ -19,22 +20,16 @@ async function lockAccount(
     financialAccountId: string,
     userId: string
 ) {
-    const rows = await tx.$queryRaw<{ id: string }[]>`
-        SELECT id FROM financial_account
-        WHERE id = ${financialAccountId} AND "ownerId" = ${userId} AND "archivedAt" IS NULL
-        FOR UPDATE
-    `
-    if (!rows.length)
-        throw new CategoryWriteError("This account is unavailable.")
+    await lockFinancialAccess(tx, financialAccountId, userId)
 }
 
 export async function listOwnedAccountCategories(financialAccountId: string) {
-    const { user } = await requireVerifiedSession()
+    const { ownerId } = await financialAccess(financialAccountId)
     const categories = await prisma.category.findMany({
         where: {
             financialAccountId,
             archivedAt: null,
-            financialAccount: { ownerId: user.id, archivedAt: null },
+            financialAccount: { ownerId, archivedAt: null },
         },
         select: {
             id: true,

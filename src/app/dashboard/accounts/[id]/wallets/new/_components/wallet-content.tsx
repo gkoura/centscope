@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto"
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { getOwnedFinancialAccount } from "@/lib/financial-accounts"
+import { getAccessibleFinancialAccount } from "@/lib/financial-accounts"
 import { CreateWalletForm } from "@/components/financial-accounts/create-wallet-form"
 import {
     Card,
@@ -16,7 +16,7 @@ export async function WalletContent({
     params: Promise<{ id: string }>
 }) {
     const { id } = await params
-    const account = await getOwnedFinancialAccount(id)
+    const account = await getAccessibleFinancialAccount(id)
     if (!account) notFound()
     return (
         <>

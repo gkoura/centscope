@@ -26,20 +26,6 @@ export function checkMovements(
     )
         throw new TransferError("An affected account or wallet is unavailable.")
 }
-export async function lockAccounts(
-    tx: Prisma.TransactionClient,
-    ids: string[],
-    userId: string,
-    active = true
-) {
-    const sorted = [...new Set(ids)].sort()
-    if (!sorted.length) throw new TransferError("Choose available accounts.")
-    const rows = await tx.$queryRaw<
-        { id: string }[]
-    >`SELECT id FROM financial_account WHERE id IN (${Prisma.join(sorted)}) AND "ownerId"=${userId} ${active ? Prisma.sql`AND "archivedAt" IS NULL` : Prisma.empty} ORDER BY id FOR UPDATE`
-    if (rows.length !== sorted.length)
-        throw new TransferError("An affected account is unavailable.")
-}
 export async function lockAllocations(
     tx: Prisma.TransactionClient,
     ids: string[]

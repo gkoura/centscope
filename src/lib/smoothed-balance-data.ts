@@ -1,6 +1,6 @@
 import "server-only"
 import { prisma } from "@/lib/prisma"
-import { requireVerifiedSession } from "@/lib/auth/session"
+import { financialAccess } from "@/lib/financial-access"
 import { shiftMonth } from "@/lib/expense-spread"
 import { smoothedBalanceHistory } from "@/lib/smoothed-balance"
 
@@ -9,7 +9,7 @@ export async function getOwnedSmoothedBalanceHistory(
     endMonth: string,
     currencies: string[]
 ) {
-    const { user } = await requireVerifiedSession()
+    const { ownerId } = await financialAccess(accountId)
     const entries = await prisma.$transaction(
         (db) =>
             db.ledgerEntry.findMany({
@@ -18,10 +18,10 @@ export async function getOwnedSmoothedBalanceHistory(
                     accountWallet: {
                         archivedAt: null,
                         financialAccount: {
-                            ownerId: user.id,
+                            ownerId,
                             archivedAt: null,
                         },
-                        wallet: { ownerId: user.id, archivedAt: null },
+                        wallet: { ownerId, archivedAt: null },
                     },
                     transaction: {
                         status: "POSTED",

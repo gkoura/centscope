@@ -1,4 +1,5 @@
 import "server-only"
+import { financialAccess, sharedAuditContext } from "@/lib/financial-access"
 import { createHash, randomUUID } from "node:crypto"
 import { Prisma } from "@/generated/prisma/client"
 import {
@@ -7,7 +8,6 @@ import {
     transferLegs,
 } from "@/lib/transfer-core"
 import { prisma } from "@/lib/prisma"
-import { requireVerifiedSession } from "@/lib/auth/session"
 import type {
     WalletDeletionInput,
     WalletDeletionReference,
@@ -19,7 +19,8 @@ type Db = Pick<Prisma.TransactionClient, "accountWallet" | "transaction">
 async function resolveScope(
     db: Db,
     input: WalletDeletionReference,
-    userId: string
+    userId: string,
+    actorId: string
 ) {
     const allocation = await db.accountWallet.findFirst({
         where: {
@@ -32,7 +33,20 @@ async function resolveScope(
             wallet: {
                 include: {
                     allocations: {
-                        include: { financialAccount: true },
+                        include: {
+                            financialAccount: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    archivedAt: true,
+                                    ownerId: true,
+                                    memberships: {
+                                        where: { userId: actorId },
+                                        select: { userId: true },
+                                    },
+                                },
+                            },
+                        },
                         orderBy: { id: "asc" },
                     },
                 },
@@ -48,6 +62,17 @@ async function resolveScope(
     )
         throw new WalletDeletionError(
             "This wallet is also used by an account you do not own. It cannot be deleted here."
+        )
+    if (
+        actorId !== userId &&
+        allocation.wallet.allocations.some(
+            (a) =>
+                a.financialAccount.archivedAt ||
+                !a.financialAccount.memberships.length
+        )
+    )
+        throw new WalletDeletionError(
+            "Deleting this wallet requires access to every account that uses it."
         )
     return allocation
 }
@@ -175,16 +200,16 @@ function fingerprint(
 export async function getOwnedWalletDeletionPreview(
     input: WalletDeletionReference
 ): Promise<WalletDeletionPreview> {
-    const { user } = await requireVerifiedSession()
+    const { ownerId, actorId } = await financialAccess(input.financialAccountId)
     return prisma.$transaction(
         async (tx) => {
-            const scope = await resolveScope(tx, input, user.id)
+            const scope = await resolveScope(tx, input, ownerId, actorId)
             if (scope.archivedAt || scope.wallet.archivedAt)
                 throw new WalletDeletionError("This wallet is unavailable.")
             const transactions = await loadTransactions(
                 tx,
                 scope.wallet.id,
-                user.id
+                ownerId
             )
             return {
                 name: scope.wallet.name,
@@ -226,12 +251,12 @@ export async function getOwnedWalletDeletionPreview(
 }
 
 export async function deleteOwnedWallet(input: WalletDeletionInput) {
-    const { user } = await requireVerifiedSession()
-    const initial = await resolveScope(prisma, input, user.id)
+    const { ownerId, actorId } = await financialAccess(input.financialAccountId)
+    const initial = await resolveScope(prisma, input, ownerId, actorId)
     const initialTransactions = await loadTransactions(
         prisma,
         initial.wallet.id,
-        user.id
+        ownerId
     )
     const accountIds = affectedAccounts(initial, initialTransactions).map(
         (a) => a.id
@@ -256,19 +281,19 @@ export async function deleteOwnedWallet(input: WalletDeletionInput) {
         async (tx) => {
             // Match the account-before-wallet lock order used by financial mutations.
             const accounts = await tx.$queryRaw<{ id: string }[]>`
-            SELECT id FROM financial_account WHERE id IN (${Prisma.join(accountIds)}) AND "ownerId" = ${user.id} ORDER BY id FOR UPDATE
+            SELECT id FROM financial_account WHERE id IN (${Prisma.join(accountIds)}) AND "ownerId" = ${ownerId} ORDER BY id FOR UPDATE
         `
             if (accounts.length !== accountIds.length)
                 throw new WalletDeletionError(
                     "An affected account changed. Close and reopen the confirmation."
                 )
-            await tx.$queryRaw`SELECT id FROM wallet WHERE id IN (${Prisma.join(walletIds)}) AND "ownerId" = ${user.id} ORDER BY id FOR UPDATE`
+            await tx.$queryRaw`SELECT id FROM wallet WHERE id IN (${Prisma.join(walletIds)}) AND "ownerId" = ${ownerId} ORDER BY id FOR UPDATE`
             await tx.$queryRaw`SELECT id FROM account_wallet WHERE id IN (${Prisma.join(allocationIds)}) ORDER BY id FOR UPDATE`
-            const scope = await resolveScope(tx, input, user.id)
+            const scope = await resolveScope(tx, input, ownerId, actorId)
             const transactions = await loadTransactions(
                 tx,
                 scope.wallet.id,
-                user.id
+                ownerId
             )
             const currentAccounts = affectedAccounts(scope, transactions).map(
                 (a) => a.id
@@ -314,9 +339,14 @@ export async function deleteOwnedWallet(input: WalletDeletionInput) {
                     id: randomUUID(),
                     transactionId: transaction.id,
                     liveTransactionId: transaction.id,
-                    actorId: user.id,
+                    actorId,
                     action: "DELETED",
                     snapshot: {
+                        ...sharedAuditContext(
+                            ownerId,
+                            actorId,
+                            input.financialAccountId
+                        ),
                         financialAccountId: entry.financialAccountId,
                         financialAccountIds: transaction.entries.map(
                             (e) => e.financialAccountId

@@ -1,3 +1,4 @@
+import { listSharedAccounts } from "@/lib/account-sharing"
 import { redirect } from "next/navigation"
 import { listOwnedFinancialAccounts } from "@/lib/financial-accounts"
 export async function DefaultAccount({
@@ -7,9 +8,15 @@ export async function DefaultAccount({
 }) {
     const query = await searchParams
     const accounts = await listOwnedFinancialAccounts()
+    const id =
+        accounts[0]?.id ?? (await listSharedAccounts())[0]?.financialAccount.id
+    const section =
+        query.section === "transactions"
+            ? "/transactions"
+            : query.section === "analytics"
+              ? "/analytics"
+              : ""
     return redirect(
-        accounts.length
-            ? `/dashboard/accounts/${accounts[0].id}${query.section === "transactions" ? "/transactions" : query.section === "analytics" ? "/analytics" : ""}`
-            : "/dashboard/accounts"
+        id ? `/dashboard/accounts/${id}${section}` : "/dashboard/accounts"
     )
 }

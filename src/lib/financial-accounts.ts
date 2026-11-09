@@ -1,4 +1,5 @@
 import "server-only"
+import { accessibleAccount } from "@/lib/financial-access"
 import {
     validateListOrder,
     sameOrder,
@@ -22,10 +23,10 @@ export async function listOwnedFinancialAccounts() {
     })
 }
 
-export async function getOwnedFinancialAccount(id: string) {
+export async function getAccessibleFinancialAccount(id: string) {
     const { user } = await requireVerifiedSession()
     return prisma.financialAccount.findFirst({
-        where: { id, ownerId: user.id, archivedAt: null },
+        where: { id, ...accessibleAccount(user.id) },
         select: accountSelect,
     })
 }

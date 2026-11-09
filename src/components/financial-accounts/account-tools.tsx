@@ -1,6 +1,7 @@
 import Link from "next/link"
 import {
     Settings2,
+    Users,
     Plus,
     Tags,
     ChartNoAxesCombined,
@@ -17,7 +18,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 
-export function AccountTools({ accountId }: { accountId: string }) {
+export function AccountTools({
+    accountId,
+    isOwner,
+}: {
+    accountId: string
+    isOwner: boolean
+}) {
     const base = `/dashboard/accounts/${accountId}`
     return (
         <DropdownMenu>
@@ -32,6 +39,15 @@ export function AccountTools({ accountId }: { accountId: string }) {
                 <DropdownMenuGroup>
                     <DropdownMenuLabel>Account tools</DropdownMenuLabel>
                     {[
+                        ...(isOwner
+                            ? [
+                                  {
+                                      href: `/dashboard/sharing/${accountId}`,
+                                      label: "Account sharing",
+                                      icon: Users,
+                                  },
+                              ]
+                            : []),
                         {
                             href: `${base}/wallets/new`,
                             label: "Add wallet",

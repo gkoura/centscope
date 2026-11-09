@@ -1,3 +1,4 @@
+import { financialAccess } from "@/lib/financial-access"
 import { CachedRecurringSummary } from "@/components/workspace/cached-recurring-summary"
 import { CachedPendingPayments } from "@/components/workspace/cached-pending-payments"
 import { AccountTools } from "@/components/financial-accounts/account-tools"
@@ -30,7 +31,9 @@ export async function OverviewBalanceHistory({
 }
 
 export async function OverviewTools({ params }: Pick<Props, "params">) {
-    return <AccountTools accountId={(await params).id} />
+    const { id } = await params
+    const { isOwner } = await financialAccess(id)
+    return <AccountTools accountId={id} isOwner={isOwner} />
 }
 
 export async function OverviewRecurring({ params }: Pick<Props, "params">) {

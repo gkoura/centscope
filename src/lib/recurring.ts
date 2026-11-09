@@ -1,7 +1,11 @@
 import "server-only"
+import {
+    financialAccess,
+    lockFinancialAccess,
+    sharedAuditContext,
+} from "@/lib/financial-access"
 import type { RecurringSummaryItem } from "@/lib/recurring-summary"
 import {
-    lockAccounts,
     lockAllocations,
     movementInclude,
     checkMovements,
@@ -12,9 +16,12 @@ import { generateRule, RecurrenceError } from "@/lib/recurrence-engine"
 import { nextSlot, localToday, creationHorizon } from "@/lib/recurrence-input"
 import { ruleInput } from "@/lib/recurrence-engine"
 
-async function processRecurring(accountId: string, userId: string) {
+async function processRecurring(
+    accountId: string,
+    userId: string,
+    ownerId: string
+) {
     const where = {
-        createdById: userId,
         pausedAt: null,
         stoppedAt: null,
         nextOccurrenceAt: { not: null },
@@ -23,9 +30,9 @@ async function processRecurring(accountId: string, userId: string) {
             { destination: { financialAccountId: accountId } },
         ],
         source: {
-            financialAccount: { ownerId: userId, archivedAt: null },
+            financialAccount: { ownerId, archivedAt: null },
             archivedAt: null,
-            wallet: { ownerId: userId, archivedAt: null },
+            wallet: { ownerId, archivedAt: null },
         },
     }
     const eligible = (
@@ -72,7 +79,9 @@ async function processRecurring(accountId: string, userId: string) {
                     const accountIds = [
                         ...new Set(endpoints.map((e) => e.financialAccountId)),
                     ]
-                    await lockAccounts(tx, accountIds, userId)
+                    if (accountIds.some((id) => id !== accountId))
+                        throw new RecurrenceError("Schedule changed accounts.")
+                    await lockFinancialAccess(tx, accountId, userId)
                     await lockAllocations(
                         tx,
                         endpoints.map((e) => e.id)
@@ -86,7 +95,7 @@ async function processRecurring(accountId: string, userId: string) {
                         current.destinationId !== rule.destinationId
                     )
                         throw new Error("Schedule endpoints changed; retry")
-                    return generateRule(tx, rule.id, userId)
+                    return generateRule(tx, rule.id, userId, accountId)
                 },
                 { timeout: 20_000, maxWait: 10_000 }
             )
@@ -103,17 +112,12 @@ export async function syncOwnedRecurring(accountId: string) {
     const { user } = await requireVerifiedSession()
     if (typeof accountId !== "string" || !accountId || accountId.length > 128)
         throw new RecurrenceError("Choose a valid account.")
-    const account = await prisma.financialAccount.findFirst({
-        where: { id: accountId, ownerId: user.id, archivedAt: null },
-        select: { id: true },
-    })
-    if (!account) throw new RecurrenceError("This account is unavailable.")
-    return processRecurring(accountId, user.id)
+    const { ownerId } = await financialAccess(accountId)
+    return processRecurring(accountId, user.id, ownerId)
 }
 
-function ownedRecurringWhere(accountId: string, userId: string) {
+function ownedRecurringWhere(accountId: string, ownerId: string) {
     return {
-        createdById: userId,
         OR: [
             { source: { financialAccountId: accountId } },
             { destination: { financialAccountId: accountId } },
@@ -124,23 +128,23 @@ function ownedRecurringWhere(accountId: string, userId: string) {
                     { destinationId: null },
                     {
                         destination: {
-                            wallet: { ownerId: userId },
-                            financialAccount: { ownerId: userId },
+                            wallet: { ownerId },
+                            financialAccount: { ownerId },
                         },
                     },
                 ],
             },
         ],
         source: {
-            financialAccount: { ownerId: userId, archivedAt: null },
-            wallet: { ownerId: userId },
+            financialAccount: { ownerId, archivedAt: null },
+            wallet: { ownerId },
         },
     }
 }
 export async function listOwnedRecurring(accountId: string) {
-    const { user } = await requireVerifiedSession()
+    const { ownerId } = await financialAccess(accountId)
     const rules = await prisma.recurrenceRule.findMany({
-        where: ownedRecurringWhere(accountId, user.id),
+        where: ownedRecurringWhere(accountId, ownerId),
         include: {
             source: { include: { wallet: true } },
             destination: { include: { wallet: true } },
@@ -191,9 +195,9 @@ export async function listOwnedRecurring(accountId: string) {
 export async function listOwnedRecurringSummary(
     accountId: string
 ): Promise<RecurringSummaryItem[]> {
-    const { user } = await requireVerifiedSession()
+    const { ownerId } = await financialAccess(accountId)
     const rules = await prisma.recurrenceRule.findMany({
-        where: { ...ownedRecurringWhere(accountId, user.id), stoppedAt: null },
+        where: { ...ownedRecurringWhere(accountId, ownerId), stoppedAt: null },
         select: {
             id: true,
             name: true,
@@ -263,10 +267,10 @@ export async function commandOwnedRecurring(form: FormData) {
         version < 1
     )
         throw new RecurrenceError("Reload this schedule before making changes.")
+    const { ownerId } = await financialAccess(accountId)
     const initial = await prisma.recurrenceRule.findFirst({
         where: {
             id: ruleId,
-            createdById: user.id,
             OR: [
                 { source: { financialAccountId: accountId } },
                 { destination: { financialAccountId: accountId } },
@@ -297,11 +301,12 @@ export async function commandOwnedRecurring(form: FormData) {
     ]
     await prisma.$transaction(
         async (tx) => {
-            await lockAccounts(tx, accountIds, user.id)
+            if (accountIds.some((id) => id !== accountId))
+                throw new RecurrenceError("Schedule changed accounts.")
+            await lockFinancialAccess(tx, accountId, user.id)
             const rule = await tx.recurrenceRule.findFirst({
                 where: {
                     id: ruleId,
-                    createdById: user.id,
                     OR: [
                         { source: { financialAccountId: accountId } },
                         { destination: { financialAccountId: accountId } },
@@ -349,7 +354,7 @@ export async function commandOwnedRecurring(form: FormData) {
                         tx,
                         payment.entries.map((e) => e.accountWalletId)
                     )
-                    checkMovements(payment.entries, user.id)
+                    checkMovements(payment.entries, ownerId)
                     if (
                         payment.entries.some(
                             (e) => !accountIds.includes(e.financialAccountId)
@@ -368,6 +373,11 @@ export async function commandOwnedRecurring(form: FormData) {
                             actorId: user.id,
                             action: "DELETED",
                             snapshot: {
+                                ...sharedAuditContext(
+                                    ownerId,
+                                    user.id,
+                                    accountId
+                                ),
                                 financialAccountId: accountId,
                                 financialAccountIds: payment.entries.map(
                                     (e) => e.financialAccountId

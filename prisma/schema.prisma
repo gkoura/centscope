@@ -24,6 +24,7 @@ model User {
   accounts                 Account[]
   ownedFinancialAccounts   FinancialAccount[]  @relation("FinancialAccountOwner")
   createdFinancialAccounts FinancialAccount[]  @relation("FinancialAccountCreator")
+  sentAccountInvitations   AccountInvitation[]
   financialMemberships     AccountMembership[]
   wallets                  Wallet[]
   transactions             Transaction[]
@@ -148,6 +149,7 @@ model FinancialAccount {
   archivedAt        DateTime?           @db.Timestamptz(3)
   createdAt         DateTime            @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime            @updatedAt @db.Timestamptz(3)
+  invitations       AccountInvitation[]
   memberships       AccountMembership[]
   wallets           AccountWallet[]
   categories        Category[]
@@ -171,6 +173,22 @@ model AccountMembership {
   @@id([financialAccountId, userId])
   @@index([userId])
   @@map("account_membership")
+}
+
+model AccountInvitation {
+  id                 String           @id @default(cuid())
+  financialAccountId String
+  email              String
+  role               AccountRole
+  tokenHash          String           @unique
+  invitedById        String
+  expiresAt          DateTime         @db.Timestamptz(3)
+  createdAt          DateTime         @default(now()) @db.Timestamptz(3)
+  financialAccount   FinancialAccount @relation(fields: [financialAccountId], references: [id], onDelete: Cascade)
+  invitedBy          User             @relation(fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@unique([financialAccountId, email])
+  @@map("account_invitation")
 }
 
 model Wallet {

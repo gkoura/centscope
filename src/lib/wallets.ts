@@ -1,5 +1,10 @@
 import "server-only"
 import {
+    lockFinancialAccess,
+    financialAccess,
+    sharedAuditContext,
+} from "@/lib/financial-access"
+import {
     validateListOrder,
     sameOrder,
     type ListOrderInput,
@@ -22,14 +27,11 @@ export async function createOwnedWallet(input: WalletInput) {
     return prisma.$transaction(
         async (tx) => {
             // Serialize creation/retries against account archival or ownership changes.
-            const allowed = await tx.$queryRaw<{ id: string }[]>`
-            SELECT id FROM financial_account
-            WHERE id = ${input.financialAccountId} AND "ownerId" = ${user.id} AND "archivedAt" IS NULL
-            FOR UPDATE
-        `
-            if (!allowed.length)
-                throw new WalletCreationError("This account is unavailable.")
-
+            const ownerId = await lockFinancialAccess(
+                tx,
+                input.financialAccountId,
+                user.id
+            )
             const existing = await tx.wallet.findUnique({
                 where: { id: input.requestId },
                 select: {
@@ -74,7 +76,7 @@ export async function createOwnedWallet(input: WalletInput) {
                           existing.allocations[0]?.id &&
                       opening.entries[0].amount.equals(amount)
                 if (
-                    existing.ownerId !== user.id ||
+                    existing.ownerId !== ownerId ||
                     existing.archivedAt ||
                     existing.name !== input.name ||
                     existing.type !== input.type ||
@@ -92,7 +94,7 @@ export async function createOwnedWallet(input: WalletInput) {
             const wallet = await tx.wallet.create({
                 data: {
                     id: input.requestId,
-                    ownerId: user.id,
+                    ownerId,
                     name: input.name,
                     type: input.type,
                     currency: input.currency,
@@ -103,7 +105,7 @@ export async function createOwnedWallet(input: WalletInput) {
                 where: {
                     financialAccountId: input.financialAccountId,
                     archivedAt: null,
-                    wallet: { archivedAt: null, ownerId: user.id },
+                    wallet: { archivedAt: null, ownerId },
                 },
                 _max: { sortOrder: true },
             })
@@ -142,6 +144,11 @@ export async function createOwnedWallet(input: WalletInput) {
                         actorId: user.id,
                         action: "CREATED",
                         snapshot: {
+                            ...sharedAuditContext(
+                                ownerId,
+                                user.id,
+                                input.financialAccountId
+                            ),
                             type: "OPENING_BALANCE",
                             financialAccountId: input.financialAccountId,
                             sortOrder: (last._max.sortOrder ?? -1) + 1,
@@ -161,15 +168,15 @@ export async function createOwnedWallet(input: WalletInput) {
 }
 
 export async function listOwnedAccountWallets(financialAccountId: string) {
-    const { user } = await requireVerifiedSession()
+    const { ownerId } = await financialAccess(financialAccountId)
     return prisma.$transaction(
         async (db) => {
             const allocations = await db.accountWallet.findMany({
                 where: {
                     financialAccountId,
                     archivedAt: null,
-                    financialAccount: { ownerId: user.id, archivedAt: null },
-                    wallet: { archivedAt: null, ownerId: user.id },
+                    financialAccount: { ownerId, archivedAt: null },
+                    wallet: { archivedAt: null, ownerId },
                 },
                 select: {
                     id: true,
@@ -210,7 +217,7 @@ export async function listOwnedAccountWallets(financialAccountId: string) {
                     financialAccountId,
                     accountWallet: {
                         financialAccount: {
-                            ownerId: user.id,
+                            ownerId,
                             archivedAt: null,
                         },
                         archivedAt: null,
@@ -262,16 +269,16 @@ export async function reorderOwnedAccountWallets(
         throw new ListOrderError("Invalid wallet order. Cancel and try again.")
     await prisma.$transaction(
         async (tx) => {
-            const allowed = await tx.$queryRaw<
-                { id: string }[]
-            >`SELECT id FROM financial_account WHERE id = ${financialAccountId} AND "ownerId" = ${user.id} AND "archivedAt" IS NULL FOR UPDATE`
-            if (!allowed.length)
-                throw new ListOrderError("This account is unavailable.")
+            const ownerId = await lockFinancialAccess(
+                tx,
+                financialAccountId,
+                user.id
+            )
             const wallets = await tx.accountWallet.findMany({
                 where: {
                     financialAccountId,
                     archivedAt: null,
-                    wallet: { archivedAt: null, ownerId: user.id },
+                    wallet: { archivedAt: null, ownerId },
                 },
                 select: { id: true, sortOrder: true },
                 orderBy: [
@@ -307,11 +314,11 @@ export async function updateOwnedWallet(input: WalletDetailsInput) {
     const { user } = await requireVerifiedSession()
     await prisma.$transaction(
         async (tx) => {
-            const account = await tx.$queryRaw<{ id: string }[]>`
-            SELECT id FROM financial_account WHERE id = ${input.financialAccountId} AND "ownerId" = ${user.id} AND "archivedAt" IS NULL FOR UPDATE
-        `
-            if (!account.length)
-                throw new WalletCreationError("This account is unavailable.")
+            const ownerId = await lockFinancialAccess(
+                tx,
+                input.financialAccountId,
+                user.id
+            )
             const rows = await tx.$queryRaw<
                 {
                     id: string
@@ -323,7 +330,7 @@ export async function updateOwnedWallet(input: WalletDetailsInput) {
             >`
             SELECT w.id, w.name, w.type, w.currency, w."updatedAt" FROM account_wallet aw JOIN wallet w ON w.id = aw."walletId"
             WHERE aw.id = ${input.accountWalletId} AND aw."financialAccountId" = ${input.financialAccountId}
-                AND aw."archivedAt" IS NULL AND w."archivedAt" IS NULL AND w."ownerId" = ${user.id}
+                AND aw."archivedAt" IS NULL AND w."archivedAt" IS NULL AND w."ownerId" = ${ownerId}
             FOR UPDATE OF aw, w
         `
             const wallet = rows[0]
@@ -389,6 +396,11 @@ export async function updateOwnedWallet(input: WalletDetailsInput) {
                     status: string
                     version: number
                 }) => ({
+                    ...sharedAuditContext(
+                        ownerId,
+                        user.id,
+                        input.financialAccountId
+                    ),
                     financialAccountId: input.financialAccountId,
                     accountWalletId: input.accountWalletId,
                     walletId: wallet.id,
@@ -412,6 +424,11 @@ export async function updateOwnedWallet(input: WalletDetailsInput) {
                             actorId: user.id,
                             action: "OPENING_BALANCE_CLEARED",
                             snapshot: {
+                                ...sharedAuditContext(
+                                    ownerId,
+                                    user.id,
+                                    input.financialAccountId
+                                ),
                                 before,
                                 after: {
                                     financialAccountId:
@@ -445,6 +462,11 @@ export async function updateOwnedWallet(input: WalletDetailsInput) {
                             actorId: user.id,
                             action: "UPDATED",
                             snapshot: {
+                                ...sharedAuditContext(
+                                    ownerId,
+                                    user.id,
+                                    input.financialAccountId
+                                ),
                                 before,
                                 after: snapshot({
                                     amount: amount.toFixed(2),
@@ -491,6 +513,22 @@ export async function updateOwnedWallet(input: WalletDetailsInput) {
                     })
                 }
             }
+            if (
+                ownerId !== user.id &&
+                (wallet.name !== input.name || wallet.type !== input.type) &&
+                (await tx.accountWallet.count({
+                    where: {
+                        walletId: wallet.id,
+                        financialAccount: {
+                            ownerId: { not: user.id },
+                            memberships: { none: { userId: user.id } },
+                        },
+                    },
+                }))
+            )
+                throw new WalletCreationError(
+                    "This wallet also belongs to an account you cannot manage."
+                )
             await tx.wallet.update({
                 where: {
                     id: wallet.id,

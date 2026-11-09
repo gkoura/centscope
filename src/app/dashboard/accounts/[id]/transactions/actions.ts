@@ -5,7 +5,7 @@ import {
     verifyImportBatch,
     type ImportPlan,
 } from "@/lib/transaction-import-plan"
-import { getOwnedFinancialAccount } from "@/lib/financial-accounts"
+import { getAccessibleFinancialAccount } from "@/lib/financial-accounts"
 import { listOwnedAccountWallets } from "@/lib/wallets"
 import { listOwnedAccountCategories } from "@/lib/categories"
 import {
@@ -91,7 +91,10 @@ export async function changeTransactionStatus(
                     : "We couldn’t change the status. Please try again.",
         }
     }
-    await revalidateWorkspacePath(`/dashboard/accounts/${input.financialAccountId}`, "layout")
+    await revalidateWorkspacePath(
+        `/dashboard/accounts/${input.financialAccountId}`,
+        "layout"
+    )
     return {}
 }
 
@@ -189,9 +192,12 @@ export async function finishTransactionImport(financialAccountId: string) {
     if (
         typeof financialAccountId === "string" &&
         financialAccountId.length <= 128 &&
-        (await getOwnedFinancialAccount(financialAccountId))
+        (await getAccessibleFinancialAccount(financialAccountId))
     )
-        await revalidateWorkspacePath(`/dashboard/accounts/${financialAccountId}`, "layout")
+        await revalidateWorkspacePath(
+            `/dashboard/accounts/${financialAccountId}`,
+            "layout"
+        )
 }
 
 export async function updateTransaction(
@@ -264,7 +270,10 @@ export async function deleteTransaction(
                     : "We couldn’t confirm deletion. Retry safely or refresh to check the transaction.",
         }
     }
-    await revalidateWorkspacePath(`/dashboard/accounts/${input.financialAccountId}`, "layout")
+    await revalidateWorkspacePath(
+        `/dashboard/accounts/${input.financialAccountId}`,
+        "layout"
+    )
     return {}
 }
 

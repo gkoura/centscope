@@ -5,6 +5,16 @@ import VerifyEmail from "../../../emails/verify-email"
 import ResetPassword from "../../../emails/reset-password"
 import DeleteAccount from "../../../emails/delete-account"
 
+import AccountInvitation from "../../../emails/account-invitation"
+
+export async function sendAccountInviteEmail(to: string, url: string) {
+    await sendAuthEmail(
+        to,
+        "CentScope account invitation",
+        createElement(AccountInvitation, { url })
+    )
+}
+
 type AuthEmail = { to: string; url: string }
 
 export async function sendDeleteAccountEmail({ to, url }: AuthEmail) {

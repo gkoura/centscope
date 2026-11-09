@@ -1,4 +1,4 @@
-import { getOwnedFinancialAccount } from "@/lib/financial-accounts"
+import { getAccessibleFinancialAccount } from "@/lib/financial-accounts"
 import { listOwnedAccountTransactions } from "@/lib/transactions"
 import {
     parseTransactionFilters,
@@ -12,7 +12,7 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const { id } = await params
-    const account = await getOwnedFinancialAccount(id)
+    const account = await getAccessibleFinancialAccount(id)
     if (!account)
         return new Response("Account not found", {
             status: 404,

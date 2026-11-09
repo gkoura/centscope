@@ -206,3 +206,7 @@ transaction. Existing RESTRICT/CASCADE constraints remain intact. Any unsupporte
 foreign/shared reference aborts the entire purge. User deletion cascades to auth
 sessions and linked provider accounts. No draft budget/membership tables are
 assumed to exist. Ordinary transaction deletion continues to retain its audits.
+
+## Financial account sharing (2026-11-09)
+
+Migration 20261109100000_account_sharing adds account memberships and single-use invitations. Each verified member uses the standard account workspace and may manage its finances. Only FinancialAccount.ownerId can invite or revoke others. Both historical AccountRole values grant the same financial access; new records use COLLABORATOR. The account row lock serializes financial and membership changes. Audit actors and transaction creators identify the actual user. Physical wallet-wide changes require access to every affected account. Owned-account ordering stays personal, and shared financial queries stay out of IndexedDB.

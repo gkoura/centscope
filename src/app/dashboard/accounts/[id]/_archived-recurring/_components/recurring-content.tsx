@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
-import { getOwnedFinancialAccount } from "@/lib/financial-accounts"
+import { getAccessibleFinancialAccount } from "@/lib/financial-accounts"
 import { listOwnedRecurring } from "@/lib/recurring"
 import { formatWalletMoney } from "@/lib/wallet-input"
 import {
@@ -17,7 +17,7 @@ export async function RecurringContent({
 }) {
     const { id } = await params
     const [account, rules] = await Promise.all([
-        getOwnedFinancialAccount(id),
+        getAccessibleFinancialAccount(id),
         listOwnedRecurring(id),
     ])
     if (!account) notFound()
