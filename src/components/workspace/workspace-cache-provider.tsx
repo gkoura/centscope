@@ -12,6 +12,8 @@ import { dehydrate, hydrate, useQueryClient } from "@tanstack/react-query"
 import { authClient } from "@/lib/auth-client"
 import {
     belongsToWorkspace,
+    workspaceQueryKey,
+    type WorkspaceRequest,
     WORKSPACE_CACHE_VERSION,
 } from "@/lib/workspace-cache-policy"
 import {
@@ -98,6 +100,15 @@ export function WorkspaceCacheProvider({ children }: { children: ReactNode }) {
                     workspaceRevision() !== revision
                 )
                     return
+                // Only owned accounts may be restored offline. Shared access is checked live.
+                const owned = queryClient.getQueryData<{ id: string }[]>(
+                    workspaceQueryKey(userId, revision, {
+                        resource: "accounts",
+                        query: {},
+                    })
+                )
+                if (!owned) return
+                const ownedIds = new Set(owned?.map((account) => account.id))
                 const state = persistedWorkspaceState(
                     dehydrate(queryClient, {
                         shouldDehydrateMutation: () => false,
@@ -106,7 +117,14 @@ export function WorkspaceCacheProvider({ children }: { children: ReactNode }) {
                                 query.queryKey,
                                 userId,
                                 revision
-                            ) && query.state.data !== undefined,
+                            ) &&
+                            query.state.data !== undefined &&
+                            ((query.queryKey[4] as WorkspaceRequest)
+                                .resource === "accounts" ||
+                                ownedIds.has(
+                                    (query.queryKey[4] as WorkspaceRequest)
+                                        .accountId ?? ""
+                                )),
                     }),
                     userId,
                     revision

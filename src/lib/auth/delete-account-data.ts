@@ -1,4 +1,5 @@
 import "server-only"
+import { Prisma } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
 
 /** Called only after Better Auth verifies the signed-in user's deletion token. */
@@ -17,7 +18,35 @@ export async function deleteAccountData(userId: string) {
                 },
                 select: { id: true },
             })
-            if (foreignEntry) {
+            const ownedAccounts = await tx.financialAccount.findMany({
+                where: { ownerId: userId },
+                select: {
+                    id: true,
+                    memberships: { take: 1, select: { userId: true } },
+                },
+            })
+            const sharedAudit = await tx.transactionChange.findFirst({
+                where: {
+                    OR: [
+                        {
+                            actorId: userId,
+                            snapshot: {
+                                path: ["sharedAccountId"],
+                                not: Prisma.AnyNull,
+                            },
+                        },
+                        ...ownedAccounts.map(({ id }) => ({
+                            snapshot: { path: ["sharedAccountId"], equals: id },
+                        })),
+                    ],
+                },
+                select: { id: true },
+            })
+            if (
+                foreignEntry ||
+                sharedAudit ||
+                ownedAccounts.some((account) => account.memberships.length)
+            ) {
                 throw new Error(
                     "Account deletion requires resolving shared financial history first."
                 )

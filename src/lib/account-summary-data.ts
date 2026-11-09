@@ -1,7 +1,7 @@
 import "server-only"
 import { cache } from "react"
 import { prisma } from "@/lib/prisma"
-import { requireVerifiedSession } from "@/lib/auth/session"
+import { financialAccess } from "@/lib/financial-access"
 import { summarizeActivity } from "@/lib/account-summary"
 import { nextDay } from "@/lib/account-period"
 import {
@@ -11,14 +11,14 @@ import {
 
 export const getOwnedAccountActivity = cache(
     async (financialAccountId: string, filters: TransactionFilters) => {
-        const { user } = await requireVerifiedSession()
+        const { ownerId } = await financialAccess(financialAccountId)
         const selectedWallets = walletFilterIds(filters.wallet)
         const entries = await prisma.ledgerEntry.findMany({
             where: {
                 financialAccountId,
                 accountWallet: {
-                    financialAccount: { ownerId: user.id, archivedAt: null },
-                    wallet: { ownerId: user.id },
+                    financialAccount: { ownerId, archivedAt: null },
+                    wallet: { ownerId: ownerId },
                 },
                 ...(selectedWallets.length
                     ? { accountWalletId: { in: selectedWallets } }

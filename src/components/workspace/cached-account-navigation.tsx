@@ -4,7 +4,13 @@ import { WorkspaceQueryState } from "./workspace-query-state"
 import { AccountNavigation } from "@/components/financial-accounts/account-navigation"
 import { Suspense } from "react"
 import { WorkspacePrefetch } from "./workspace-prefetch"
-export function CachedAccountNavigation({ accountId }: { accountId: string }) {
+export function CachedAccountNavigation({
+    accountId,
+    shared,
+}: {
+    accountId: string
+    shared: { id: string; name: string }[]
+}) {
     const result = useWorkspaceQuery("accounts")
     if (!result.data)
         return (
@@ -12,7 +18,11 @@ export function CachedAccountNavigation({ accountId }: { accountId: string }) {
         )
     return (
         <>
-            <AccountNavigation accountId={accountId} accounts={result.data} />
+            <AccountNavigation
+                accountId={accountId}
+                accounts={result.data}
+                shared={shared}
+            />
             <Suspense fallback={null}>
                 <WorkspacePrefetch accountId={accountId} />
             </Suspense>

@@ -1,6 +1,6 @@
 import "server-only"
 import { prisma } from "@/lib/prisma"
-import { requireVerifiedSession } from "@/lib/auth/session"
+import { financialAccess } from "@/lib/financial-access"
 import { analyzeMonth, type AnalysisExpense } from "@/lib/monthly-analysis"
 import { shiftMonth } from "@/lib/expense-spread"
 
@@ -11,7 +11,7 @@ export async function getOwnedMonthlyAnalysis(
     currency: string,
     wallet?: string
 ) {
-    const { user } = await requireVerifiedSession()
+    const { ownerId } = await financialAccess(accountId)
     const previousMonth = shiftMonth(month, -1)
     const end = new Date(`${shiftMonth(month, 1)}-01T00:00:00.000Z`)
     const start = new Date(`${previousMonth}-01T00:00:00.000Z`)
@@ -23,10 +23,10 @@ export async function getOwnedMonthlyAnalysis(
                     ...(wallet ? { accountWalletId: wallet } : {}),
                     accountWallet: {
                         financialAccount: {
-                            ownerId: user.id,
+                            ownerId,
                             archivedAt: null,
                         },
-                        wallet: { currency, ownerId: user.id },
+                        wallet: { currency, ownerId: ownerId },
                     },
                     transaction: {
                         type: "EXPENSE",

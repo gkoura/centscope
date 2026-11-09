@@ -3,6 +3,7 @@ import { Suspense } from "react"
 import { PlusIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SectionLoading } from "@/components/site/section-loading"
+import { SharedAccounts } from "../_components/shared-accounts"
 import { AccountList } from "../_components/account-list"
 
 export default function DashboardPage() {
@@ -21,8 +22,8 @@ export default function DashboardPage() {
                             Your accounts
                         </h1>
                         <p className="text-sm text-muted-foreground">
-                            Your first account is your default. Drag to reorder,
-                            then save your changes.
+                            Open an overview, manage wallets, or share an
+                            account. Your first account is your default.
                         </p>
                     </div>
                     <Button
@@ -39,6 +40,11 @@ export default function DashboardPage() {
                     <AccountList />
                 </Suspense>
             </section>
+            <Suspense
+                fallback={<SectionLoading label="Loading shared accounts…" />}
+            >
+                <SharedAccounts />
+            </Suspense>
         </main>
     )
 }

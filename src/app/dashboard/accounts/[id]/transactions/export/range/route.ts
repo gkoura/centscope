@@ -1,4 +1,4 @@
-import { getOwnedFinancialAccount } from "@/lib/financial-accounts"
+import { getAccessibleFinancialAccount } from "@/lib/financial-accounts"
 import { getOwnedAccountTransactionRange } from "@/lib/transactions"
 
 export async function GET(
@@ -6,7 +6,7 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const { id } = await params
-    const account = await getOwnedFinancialAccount(id)
+    const account = await getAccessibleFinancialAccount(id)
     const headers = { "Cache-Control": "private, no-store" }
     if (!account)
         return Response.json(

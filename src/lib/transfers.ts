@@ -1,4 +1,10 @@
 import "server-only"
+import {
+    financialAccess,
+    lockFinancialAccess,
+    accessibleAccount,
+    sharedAuditContext,
+} from "@/lib/financial-access"
 import { createHash } from "node:crypto"
 import { Prisma } from "@/generated/prisma/client"
 import { prisma } from "@/lib/prisma"
@@ -12,7 +18,6 @@ import {
     TransferError,
     movementInclude,
     checkMovements,
-    lockAccounts,
     lockAllocations,
     transferLegs,
     transferEndpoints,
@@ -65,6 +70,7 @@ export async function withLockedTransfer<T>(
         scope: Awaited<ReturnType<typeof selection>>
     ) => Promise<T>
 ) {
+    const { ownerId } = await financialAccess(context)
     const initial = await selection(prisma, id, scope)
     if (
         initial.anchor &&
@@ -72,7 +78,7 @@ export async function withLockedTransfer<T>(
     )
         throw new TransferError("This transfer is unavailable in this account.")
     for (const row of initial.rows) {
-        checkMovements(row.entries, userId)
+        checkMovements(row.entries, ownerId)
         transferLegs(row.entries)
     }
     const templateIds = initial.anchor?.occurrence
@@ -103,7 +109,9 @@ export async function withLockedTransfer<T>(
     ].sort()
     return prisma.$transaction(
         async (tx) => {
-            await lockAccounts(tx, accountIds, userId)
+            if (accountIds.some((id) => id !== context))
+                throw new TransferError("Transfers must stay in this account.")
+            await lockFinancialAccess(tx, context, userId)
             await lockAllocations(tx, allocationIds)
             const fresh = await selection(tx, id, scope)
             const actualAllocations = await tx.accountWallet.findMany({
@@ -143,7 +151,7 @@ export async function withLockedTransfer<T>(
                     "Transfer endpoints changed. Reload before continuing."
                 )
             for (const row of fresh.rows) {
-                checkMovements(row.entries, userId)
+                checkMovements(row.entries, ownerId)
                 transferLegs(row.entries)
             }
             return work(tx, fresh)
@@ -152,13 +160,13 @@ export async function withLockedTransfer<T>(
     )
 }
 export async function listOwnedTransferWallets(financialAccountId: string) {
-    const { user } = await requireVerifiedSession()
+    const { ownerId } = await financialAccess(financialAccountId)
     return prisma.accountWallet.findMany({
         where: {
             archivedAt: null,
             financialAccountId,
-            financialAccount: { ownerId: user.id, archivedAt: null },
-            wallet: { ownerId: user.id, archivedAt: null },
+            financialAccount: { ownerId, archivedAt: null },
+            wallet: { ownerId, archivedAt: null },
         },
         select: {
             id: true,
@@ -181,20 +189,23 @@ export async function createOwnedTransfer(input: TransferInput) {
     })
     return prisma.$transaction(
         async (tx) => {
-            await lockAccounts(
+            const ownerId = await lockFinancialAccess(
                 tx,
-                [
-                    input.contextAccountId,
-                    ...allocations.map((a) => a.financialAccountId),
-                ],
+                input.contextAccountId,
                 user.id
             )
+            if (
+                allocations.some(
+                    (a) => a.financialAccountId !== input.contextAccountId
+                )
+            )
+                throw new TransferError("Transfers must stay in this account.")
             await lockAllocations(tx, [input.sourceId, input.destinationId])
             const endpoints = await transferEndpoints(
                 tx,
                 input.sourceId,
                 input.destinationId,
-                user.id,
+                ownerId,
                 input.amount,
                 input.destinationAmount,
                 input.contextAccountId
@@ -241,9 +252,21 @@ export async function createOwnedTransfer(input: TransferInput) {
             if (
                 await tx.transactionChange.findFirst({
                     where: {
-                        actorId: user.id,
                         action: "DELETED",
-                        snapshot: { path: ["idempotencyKey"], equals: key },
+                        AND: [
+                            {
+                                snapshot: {
+                                    path: ["createdById"],
+                                    equals: user.id,
+                                },
+                            },
+                            {
+                                snapshot: {
+                                    path: ["idempotencyKey"],
+                                    equals: key,
+                                },
+                            },
+                        ],
                     },
                 })
             )
@@ -287,6 +310,11 @@ export async function createOwnedTransfer(input: TransferInput) {
                     actorId: user.id,
                     action: "CREATED",
                     snapshot: {
+                        ...sharedAuditContext(
+                            ownerId,
+                            user.id,
+                            input.contextAccountId
+                        ),
                         ...transferSnapshot(row),
                         financialAccountId: input.contextAccountId,
                         requestFingerprint: fingerprint,
@@ -328,7 +356,7 @@ export async function createOwnedTransfer(input: TransferInput) {
                         },
                     },
                 })
-                await generateRule(tx, rule.id, user.id)
+                await generateRule(tx, rule.id, user.id, input.contextAccountId)
             }
             return row.id
         },
@@ -336,7 +364,7 @@ export async function createOwnedTransfer(input: TransferInput) {
     )
 }
 export async function getOwnedEditableTransfer(context: string, id: string) {
-    const { user } = await requireVerifiedSession()
+    const { ownerId } = await financialAccess(context)
     return prisma.$transaction(
         async (tx) => {
             const { anchor } = await selection(tx, id, "ONLY")
@@ -346,7 +374,7 @@ export async function getOwnedEditableTransfer(context: string, id: string) {
             )
                 return null
             try {
-                checkMovements(anchor.entries, user.id)
+                checkMovements(anchor.entries, ownerId)
             } catch {
                 return null
             }
@@ -392,6 +420,7 @@ export async function updateOwnedTransfer(
     version: number
 ) {
     const { user } = await requireVerifiedSession()
+    const { ownerId } = await financialAccess(input.contextAccountId)
     await withLockedTransfer(
         input.contextAccountId,
         id,
@@ -407,7 +436,6 @@ export async function updateOwnedTransfer(
             if (
                 input.editScope !== "ONLY" &&
                 (!rule ||
-                    rule.createdById !== user.id ||
                     rule.version !== input.expectedRuleVersion ||
                     !input.repeat)
             )
@@ -425,7 +453,7 @@ export async function updateOwnedTransfer(
                 tx,
                 input.sourceId,
                 input.destinationId,
-                user.id,
+                ownerId,
                 input.amount,
                 input.destinationAmount,
                 input.contextAccountId
@@ -498,6 +526,11 @@ export async function updateOwnedTransfer(
                         actorId: user.id,
                         action: "UPDATED",
                         snapshot: {
+                            ...sharedAuditContext(
+                                ownerId,
+                                user.id,
+                                input.contextAccountId
+                            ),
                             financialAccountId: input.contextAccountId,
                             financialAccountIds: transferSnapshot(
                                 changed.find((r) => r.id === row.id)!
@@ -553,7 +586,12 @@ export async function updateOwnedTransfer(
                             version: { increment: 1 },
                         },
                     })
-                    await generateRule(tx, rule.id, user.id)
+                    await generateRule(
+                        tx,
+                        rule.id,
+                        user.id,
+                        input.contextAccountId
+                    )
                 }
             } else if (input.repeat) {
                 const next = nextSlot(input.date, input.repeat, 1)
@@ -588,7 +626,12 @@ export async function updateOwnedTransfer(
                         },
                     },
                 })
-                await generateRule(tx, created.id, user.id)
+                await generateRule(
+                    tx,
+                    created.id,
+                    user.id,
+                    input.contextAccountId
+                )
             }
         }
     )
@@ -603,6 +646,7 @@ export async function changeOwnedTransferStatus(input: {
     confirmed: boolean
 }) {
     const { user } = await requireVerifiedSession()
+    const { ownerId } = await financialAccess(input.financialAccountId)
     await withLockedTransfer(
         input.financialAccountId,
         input.transactionId,
@@ -671,6 +715,11 @@ export async function changeOwnedTransferStatus(input: {
                     actorId: user.id,
                     action: "STATUS_CHANGED",
                     snapshot: {
+                        ...sharedAuditContext(
+                            ownerId,
+                            user.id,
+                            input.financialAccountId
+                        ),
                         financialAccountId: input.financialAccountId,
                         before,
                         after: transferSnapshot(row),
@@ -726,7 +775,7 @@ export async function isTransferReference(accountId: string, id: string) {
                     some: {
                         financialAccountId: accountId,
                         accountWallet: {
-                            financialAccount: { ownerId: user.id },
+                            financialAccount: accessibleAccount(user.id),
                         },
                     },
                 },

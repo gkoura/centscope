@@ -1,5 +1,10 @@
 import "server-only"
 
+import {
+    financialAccess,
+    lockFinancialAccess,
+    sharedAuditContext,
+} from "@/lib/financial-access"
 import { createHash, randomUUID } from "node:crypto"
 import { Prisma } from "@/generated/prisma/client"
 import { requireVerifiedSession } from "@/lib/auth/session"
@@ -32,22 +37,24 @@ function validateExpenseSpread(input: TransactionInput) {
         )
 }
 
-async function lockAccount(
-    tx: Prisma.TransactionClient,
-    accountId: string,
-    userId: string
-) {
-    const rows = await tx.$queryRaw<{ id: string }[]>`
-        SELECT id FROM financial_account WHERE id = ${accountId} AND "ownerId" = ${userId} AND "archivedAt" IS NULL FOR UPDATE
-    `
-    if (!rows.length)
-        throw new TransactionWriteError("This account is unavailable.")
+// Request keys belong to the original creator even when a different member deletes the entry.
+function deletedByCreator(userId: string): Prisma.TransactionChangeWhereInput {
+    return {
+        OR: [
+            { snapshot: { path: ["createdById"], equals: userId } },
+            {
+                actorId: userId,
+                snapshot: { path: ["createdById"], equals: Prisma.DbNull },
+            },
+        ],
+    }
 }
 
 async function insertTransaction(
     tx: Prisma.TransactionClient,
     input: TransactionInput,
-    userId: string
+    userId: string,
+    walletOwnerId: string
 ) {
     validateExpenseSpread(input)
     if (input.repeat && !validRepeat(input.repeat, input.date))
@@ -60,7 +67,7 @@ async function insertTransaction(
     const allocations = await tx.$queryRaw<{ id: string; currency: string }[]>`
             SELECT aw.id, w.currency FROM account_wallet aw JOIN wallet w ON w.id = aw."walletId"
             WHERE aw.id = ${input.accountWalletId} AND aw."financialAccountId" = ${input.financialAccountId}
-              AND aw."archivedAt" IS NULL AND w."archivedAt" IS NULL AND w."ownerId" = ${userId}
+              AND aw."archivedAt" IS NULL AND w."archivedAt" IS NULL AND w."ownerId" = ${walletOwnerId}
             FOR UPDATE OF aw, w
         `
     if (!allocations.length)
@@ -111,7 +118,7 @@ async function insertTransaction(
     }
     const deleted = await tx.transactionChange.findFirst({
         where: {
-            actorId: userId,
+            ...deletedByCreator(userId),
             action: "DELETED",
             snapshot: { path: ["idempotencyKey"], equals: idempotencyKey },
         },
@@ -153,6 +160,9 @@ async function insertTransaction(
             action: "CREATED",
             snapshot: {
                 ...payload,
+                ...(walletOwnerId !== userId && {
+                    sharedAccountId: input.financialAccountId,
+                }),
                 amount: signedAmount.toFixed(2),
                 currency: allocations[0].currency,
                 version: 1,
@@ -166,8 +176,12 @@ export async function createOwnedTransaction(input: TransactionInput) {
     const { user } = await requireVerifiedSession()
     await prisma.$transaction(
         async (tx) => {
-            await lockAccount(tx, input.financialAccountId, user.id)
-            await insertTransaction(tx, input, user.id)
+            const walletOwnerId = await lockFinancialAccess(
+                tx,
+                input.financialAccountId,
+                user.id
+            )
+            await insertTransaction(tx, input, user.id, walletOwnerId)
         },
         { timeout: 15_000 }
     )
@@ -190,7 +204,11 @@ export async function importOwnedTransactions(
         )
     return prisma.$transaction(
         async (tx) => {
-            await lockAccount(tx, inputs[0].financialAccountId, user.id)
+            const ownerId = await lockFinancialAccess(
+                tx,
+                inputs[0].financialAccountId,
+                user.id
+            )
             const prepared = inputs.map((input, index) => {
                 const { requestId, ...payload } = input
                 return {
@@ -226,7 +244,7 @@ export async function importOwnedTransactions(
             })
             const deleted = await tx.transactionChange.findMany({
                 where: {
-                    actorId: user.id,
+                    ...deletedByCreator(user.id),
                     action: "DELETED",
                     AND: [
                         {
@@ -286,7 +304,7 @@ export async function importOwnedTransactions(
             >`
             SELECT aw.id, w.currency FROM account_wallet aw JOIN wallet w ON w.id = aw."walletId"
             WHERE aw.id IN (${Prisma.join(walletIds)}) AND aw."financialAccountId" = ${inputs[0].financialAccountId}
-                AND aw."archivedAt" IS NULL AND w."archivedAt" IS NULL AND w."ownerId" = ${user.id}
+                AND aw."archivedAt" IS NULL AND w."archivedAt" IS NULL AND w."ownerId" = ${ownerId}
             ORDER BY aw.id FOR UPDATE OF aw, w
         `
             const wallets = new Map(
@@ -354,6 +372,11 @@ export async function importOwnedTransactions(
                     action: "CREATED",
                     snapshot: {
                         ...payload,
+                        ...sharedAuditContext(
+                            ownerId,
+                            user.id,
+                            input.financialAccountId
+                        ),
                         amount: amount(input).toFixed(2),
                         currency: wallets.get(input.accountWalletId)!,
                         version: 1,
@@ -379,7 +402,11 @@ export async function changeOwnedTransactionStatus(input: {
     const { user } = await requireVerifiedSession()
     await prisma.$transaction(
         async (tx) => {
-            await lockAccount(tx, input.financialAccountId, user.id)
+            const walletOwnerId = await lockFinancialAccess(
+                tx,
+                input.financialAccountId,
+                user.id
+            )
             const transaction = await tx.transaction.findFirst({
                 where: {
                     id: input.transactionId,
@@ -422,7 +449,7 @@ export async function changeOwnedTransactionStatus(input: {
                 entry.financialAccountId !== input.financialAccountId ||
                 entry.accountWallet.archivedAt ||
                 entry.accountWallet.wallet.archivedAt ||
-                entry.accountWallet.wallet.ownerId !== user.id
+                entry.accountWallet.wallet.ownerId !== walletOwnerId
             )
                 throw new TransactionWriteError(
                     "This transaction is unavailable."
@@ -462,6 +489,9 @@ export async function changeOwnedTransactionStatus(input: {
                     actorId: user.id,
                     action: "STATUS_CHANGED",
                     snapshot: {
+                        ...(walletOwnerId !== user.id && {
+                            sharedAccountId: input.financialAccountId,
+                        }),
                         financialAccountId: input.financialAccountId,
                         accountWalletId: entry.accountWalletId,
                         type: transaction.type,
@@ -509,7 +539,7 @@ export async function listOwnedAccountTransactions(
     filters: TransactionFilters = {},
     options: { unpaginated?: boolean; pageSize?: number; after?: string } = {}
 ) {
-    const { user } = await requireVerifiedSession(),
+    const { ownerId } = await financialAccess(financialAccountId),
         before = options.unpaginated ? null : decodeCursor(cursor)
     const after = options.unpaginated ? null : decodeCursor(options.after)
     const anchor = after ?? before
@@ -518,8 +548,8 @@ export async function listOwnedAccountTransactions(
     const qualifying: Prisma.LedgerEntryWhereInput = {
         financialAccountId,
         accountWallet: {
-            financialAccount: { ownerId: user.id, archivedAt: null },
-            wallet: { ownerId: user.id },
+            financialAccount: { ownerId, archivedAt: null },
+            wallet: { ownerId: ownerId },
         },
         ...(selectedWallets.length
             ? { accountWalletId: { in: selectedWallets } }
@@ -654,8 +684,8 @@ export async function listOwnedAccountTransactions(
                         selectedWallets.includes(e.accountWalletId))
             )!
             const owned = (e: typeof entry) =>
-                e.accountWallet.wallet.ownerId === user.id &&
-                e.accountWallet.financialAccount.ownerId === user.id
+                e.accountWallet.wallet.ownerId === ownerId &&
+                e.accountWallet.financialAccount.ownerId === ownerId
             const endpoint = (e: typeof entry) => ({
                 available: owned(e),
                 id: owned(e) ? e.accountWalletId : "",
@@ -739,13 +769,13 @@ export async function listOwnedAccountTransactions(
 export async function listOwnedTransactionSuggestions(
     financialAccountId: string
 ) {
-    const { user } = await requireVerifiedSession()
+    const { ownerId } = await financialAccess(financialAccountId)
     const entries = await prisma.ledgerEntry.findMany({
         where: {
             financialAccountId,
             accountWallet: {
-                financialAccount: { ownerId: user.id, archivedAt: null },
-                wallet: { ownerId: user.id },
+                financialAccount: { ownerId, archivedAt: null },
+                wallet: { ownerId: ownerId },
             },
             transaction: { type: { in: ["EXPENSE", "INCOME"] } },
             category: {
@@ -806,7 +836,7 @@ export async function getOwnedEditableTransaction(
     financialAccountId: string,
     transactionId: string
 ) {
-    const { user } = await requireVerifiedSession()
+    const { ownerId } = await financialAccess(financialAccountId)
     const row = await prisma.transaction.findFirst({
         where: {
             id: transactionId,
@@ -816,11 +846,11 @@ export async function getOwnedEditableTransaction(
                     financialAccountId,
                     accountWallet: {
                         financialAccount: {
-                            ownerId: user.id,
+                            ownerId,
                             archivedAt: null,
                         },
                         archivedAt: null,
-                        wallet: { ownerId: user.id, archivedAt: null },
+                        wallet: { ownerId, archivedAt: null },
                     },
                 },
             },
@@ -903,7 +933,11 @@ export async function updateOwnedTransaction(
     validateExpenseSpread(input)
     await prisma.$transaction(
         async (tx) => {
-            await lockAccount(tx, input.financialAccountId, user.id)
+            const walletOwnerId = await lockFinancialAccess(
+                tx,
+                input.financialAccountId,
+                user.id
+            )
             if (input.editScope && input.editScope !== "ONLY") {
                 if (input.repeat && !validRepeat(input.repeat, input.date))
                     throw new TransactionWriteError(
@@ -914,7 +948,8 @@ export async function updateOwnedTransaction(
                     input,
                     transactionId,
                     expectedVersion,
-                    user.id
+                    user.id,
+                    walletOwnerId
                 )
                 return
             }
@@ -942,7 +977,7 @@ export async function updateOwnedTransaction(
                 !entry ||
                 entry.accountWallet.archivedAt ||
                 entry.accountWallet.wallet.archivedAt ||
-                entry.accountWallet.wallet.ownerId !== user.id
+                entry.accountWallet.wallet.ownerId !== walletOwnerId
             )
                 throw new TransactionWriteError(
                     "This transaction is unavailable."
@@ -963,7 +998,7 @@ export async function updateOwnedTransaction(
                         id: input.accountWalletId,
                         financialAccountId: input.financialAccountId,
                         archivedAt: null,
-                        wallet: { ownerId: user.id, archivedAt: null },
+                        wallet: { ownerId: walletOwnerId, archivedAt: null },
                     },
                     include: { wallet: true },
                 }),
@@ -1062,6 +1097,9 @@ export async function updateOwnedTransaction(
                     actorId: user.id,
                     action: "UPDATED",
                     snapshot: {
+                        ...(walletOwnerId !== user.id && {
+                            sharedAccountId: input.financialAccountId,
+                        }),
                         recurrenceRuleId: occurrence?.ruleId ?? null,
                         repeatCreated: !occurrence
                             ? (input.repeat ?? null)
@@ -1134,7 +1172,11 @@ export async function deleteOwnedTransaction(input: {
     if (transferReceipt) return deleteOwnedTransfer(input)
     await prisma.$transaction(
         async (tx) => {
-            await lockAccount(tx, input.financialAccountId, user.id)
+            const walletOwnerId = await lockFinancialAccess(
+                tx,
+                input.financialAccountId,
+                user.id
+            )
             if (
                 input.expectedSnapshot ||
                 (input.scope && input.scope !== "ONLY")
@@ -1211,7 +1253,7 @@ export async function deleteOwnedTransaction(input: {
             if (
                 transaction.entries.length !== 1 ||
                 !entry ||
-                entry.accountWallet.wallet.ownerId !== user.id ||
+                entry.accountWallet.wallet.ownerId !== walletOwnerId ||
                 entry.accountWallet.archivedAt ||
                 entry.accountWallet.wallet.archivedAt
             )
@@ -1237,6 +1279,9 @@ export async function deleteOwnedTransaction(input: {
                     actorId: user.id,
                     action: "DELETED",
                     snapshot: {
+                        ...(walletOwnerId !== user.id && {
+                            sharedAccountId: input.financialAccountId,
+                        }),
                         financialAccountId: input.financialAccountId,
                         createdById: transaction.createdById,
                         idempotencyKey: transaction.idempotencyKey,
@@ -1289,7 +1334,7 @@ export async function deleteOwnedTransaction(input: {
 export async function getOwnedAccountTransactionRange(
     financialAccountId: string
 ) {
-    const { user } = await requireVerifiedSession()
+    const { ownerId } = await financialAccess(financialAccountId)
     const bounds = await prisma.transaction.aggregate({
         where: {
             entries: {
@@ -1297,10 +1342,10 @@ export async function getOwnedAccountTransactionRange(
                     financialAccountId,
                     accountWallet: {
                         financialAccount: {
-                            ownerId: user.id,
+                            ownerId,
                             archivedAt: null,
                         },
-                        wallet: { ownerId: user.id },
+                        wallet: { ownerId: ownerId },
                     },
                 },
             },

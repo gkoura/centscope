@@ -14,9 +14,11 @@ import { ThemeToggle } from "@/components/site/theme-toggle"
 export function AccountNavigation({
     accountId,
     accounts,
+    shared,
 }: {
     accountId: string
     accounts: { id: string; name: string }[]
+    shared: { id: string; name: string }[]
 }) {
     const pathname = usePathname(),
         query = useSearchParams(),
@@ -25,10 +27,14 @@ export function AccountNavigation({
     const base = `/dashboard/accounts/${accountId}`
     const inTransactions = pathname.startsWith(`${base}/transactions`)
     const inAnalytics = pathname.startsWith(`${base}/analytics`)
-    const options = accounts.map((account) => ({
-        value: account.id,
-        label: account.name,
-    }))
+    const options = accounts
+        .map((account) => ({
+            value: account.id,
+            label: account.name,
+        }))
+        .concat(
+            shared.map((a) => ({ value: a.id, label: a.name + " · Shared" }))
+        )
     function switchAccount(id: string | null) {
         if (!id || id === accountId) return
         const next = new URLSearchParams()

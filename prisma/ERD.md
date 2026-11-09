@@ -64,6 +64,16 @@ erDiagram
         DateTime createdAt
         DateTime updatedAt
     }
+    AccountInvitation {
+        String id PK
+        String financialAccountId FK
+        String email
+        AccountRole role
+        String tokenHash UK
+        String invitedById FK
+        DateTime expiresAt
+        DateTime createdAt
+    }
     FinancialAccount {
         String id PK
     }
@@ -71,6 +81,8 @@ erDiagram
     User ||..o{ Account : "user"
     FinancialAccount ||..o{ AccountMembership : "financialAccount"
     User ||..o{ AccountMembership : "user"
+    FinancialAccount ||..o{ AccountInvitation : "financialAccount"
+    User ||..o{ AccountInvitation : "invitedBy"
 ```
 
 ## Financial accounts and wallet allocations
@@ -325,6 +337,7 @@ erDiagram
 
 | Model | Fields |
 | --- | --- |
+| AccountInvitation | financialAccountId, email |
 | AccountWallet | id, financialAccountId |
 | AccountWallet | financialAccountId, walletId |
 | Category | id, financialAccountId |
