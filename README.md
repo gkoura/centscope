@@ -26,6 +26,14 @@ import { Button } from "@/components/ui/button"
 
 Unit tests live in [`tests/unit`](tests/unit). See the [testing guide](tests/README.md) for coverage, conventions, and commands to run when needed.
 
+### Bulk transaction actions
+
+In Transactions, choose **Select transactions**, tick individual rows or **Select shown**, then open **Bulk actions**. Mark entries Posted/Pending, change their category, move them to another wallet in the same currency, or delete them. Selection applies to the current page and filters, up to 2,000 rows; opening balances remain editable through their wallet. Category changes require all selected entries to be expenses or all income. Wallet moves support expenses/income in one currency; edit transfer endpoints individually.
+
+Recurring entries offer **Only selected occurrences**, **This and future occurrences**, and **All occurrences including past**. Future starts at the earliest selected original scheduled slot in each series. Broader scopes can affect entries outside the visible filters, up to 10,000 transactions. Category/wallet changes also update the template; status changes affect saved copies only, and generated copies remain Pending. Broader deletion stops the series, while individual deletion preserves its exclusion slot.
+
+Every action requires a fresh preview of the affected counts and exact Posted balance changes. Posting Pending FX transfers additionally requires actual sent/received amounts for each transfer. Changes commit together, reject stale previews, retain audits, and support identical retries after an interrupted response. Deletion is permanent and removes both transfer legs together.
+
 ### Recurring transactions
 
 Enable **Repeat** on an expense or income, or edit an existing transaction to start a series. Future copies are created **upfront as Pending**; they never post automatically. The original transaction keeps the date/status you select. Mark each Pending payment Posted when it happens. Dates alone do not affect balances.

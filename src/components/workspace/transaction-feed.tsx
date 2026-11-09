@@ -22,6 +22,7 @@ import {
     DialogTitle,
     DialogDescription,
 } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 
 type Transaction = Awaited<
@@ -31,10 +32,12 @@ export function TransactionFeed({
     accountId,
     transactions,
     returnTo,
+    selection,
 }: {
     accountId: string
     transactions: Transaction[]
     returnTo: string
+    selection?: { ids: string[]; toggle: (id: string) => void }
 }) {
     const [selectedId, setSelectedId] = useState<string | null>(null)
     const selected = transactions.find(
@@ -90,7 +93,23 @@ export function TransactionFeed({
                                             type="button"
                                             className="transaction-open-button absolute inset-0 size-full"
                                             onClick={() =>
-                                                setSelectedId(transaction.id)
+                                                selection
+                                                    ? selection.toggle(
+                                                          transaction.id
+                                                      )
+                                                    : setSelectedId(
+                                                          transaction.id
+                                                      )
+                                            }
+                                            disabled={Boolean(
+                                                selection &&
+                                                (transaction.type ===
+                                                    "OPENING_BALANCE" ||
+                                                    !transaction.canChangeStatus)
+                                            )}
+                                            tabIndex={selection ? -1 : 0}
+                                            aria-hidden={
+                                                selection ? true : undefined
                                             }
                                             aria-label={`View ${transaction.name}, ${transaction.status.toLowerCase()}, ${formatWalletMoney(transaction.amount, transaction.currency)}`}
                                             aria-describedby={
@@ -107,23 +126,44 @@ export function TransactionFeed({
                                             }
                                         />
                                         <div className="transaction-row pointer-events-none relative">
-                                            <span
-                                                className="transaction-icon"
-                                                data-flow={
-                                                    transaction.type ===
-                                                    "INCOME"
-                                                        ? "income"
-                                                        : transaction.type ===
-                                                            "EXPENSE"
-                                                          ? "expense"
-                                                          : undefined
-                                                }
-                                            >
-                                                <Icon
-                                                    className="size-4"
-                                                    aria-hidden="true"
-                                                />
-                                            </span>
+                                            {selection ? (
+                                                <span className="pointer-events-auto relative z-10 flex size-9 items-center justify-center">
+                                                    <Checkbox
+                                                        aria-label={`Select ${transaction.name}`}
+                                                        checked={selection.ids.includes(
+                                                            transaction.id
+                                                        )}
+                                                        disabled={
+                                                            transaction.type ===
+                                                                "OPENING_BALANCE" ||
+                                                            !transaction.canChangeStatus
+                                                        }
+                                                        onCheckedChange={() =>
+                                                            selection.toggle(
+                                                                transaction.id
+                                                            )
+                                                        }
+                                                    />
+                                                </span>
+                                            ) : (
+                                                <span
+                                                    className="transaction-icon"
+                                                    data-flow={
+                                                        transaction.type ===
+                                                        "INCOME"
+                                                            ? "income"
+                                                            : transaction.type ===
+                                                                "EXPENSE"
+                                                              ? "expense"
+                                                              : undefined
+                                                    }
+                                                >
+                                                    <Icon
+                                                        className="size-4"
+                                                        aria-hidden="true"
+                                                    />
+                                                </span>
+                                            )}
                                             <span className="min-w-0 flex-1 text-left">
                                                 <span className="block truncate text-sm font-medium">
                                                     {transaction.name}
@@ -198,7 +238,18 @@ export function TransactionFeed({
                                                 )}
                                             </div>
                                             <div className="pointer-events-auto relative ml-auto max-w-full">
-                                                {transaction.canChangeStatus ? (
+                                                {selection ? (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {transaction.status ===
+                                                        "POSTED"
+                                                            ? "Posted"
+                                                            : "Pending"}
+                                                        {transaction.type ===
+                                                        "OPENING_BALANCE"
+                                                            ? " · Edit in wallet"
+                                                            : ""}
+                                                    </span>
+                                                ) : transaction.canChangeStatus ? (
                                                     transaction.transfer ? (
                                                         <TransferStatusForm
                                                             compact

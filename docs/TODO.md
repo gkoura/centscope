@@ -1,5 +1,14 @@
 # App backlog
 
+## Transaction workflow
+
+- [x] Bulk selection: Posted/Pending, category, same-currency wallet moves and deletion, with recurring occurrence scopes and balance previews (2026-11-09).
+- [x] Pending payments on Overview: overdue, this month and upcoming groups, wallet totals and quick posting.
+- [x] Transfers between wallets within the same financial account.
+- [ ] Import review/undo: per-import counts/totals, possible duplicate flags and undo one import.
+- [ ] Bank reconciliation: compare a bank balance on a date with CentScope and investigate the difference.
+- [ ] Linked refunds: associate a refund with its original purchase and report net category spending.
+
 ## Account linking and empty duplicate recovery
 
 Planned on 2026-11-07; deferred, not implemented.

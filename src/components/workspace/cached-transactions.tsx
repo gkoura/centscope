@@ -8,7 +8,7 @@ import { type TransactionQuery } from "@/lib/transaction-filters"
 import { categorySelectOptions } from "@/lib/category-input"
 import { PeriodControls } from "@/components/workspace/period-controls"
 import { TransactionControls } from "@/components/workspace/transaction-controls"
-import { TransactionFeed } from "@/components/workspace/transaction-feed"
+import { BulkTransactionFeed } from "@/components/workspace/bulk-transaction-feed"
 import { ActivitySummary } from "@/components/workspace/activity-summary"
 import { BalanceSummary } from "@/components/workspace/balance-summary"
 import { Button } from "@/components/ui/button"
@@ -101,8 +101,13 @@ export function CachedTransactions({
                                 : `${history.transactions.length} shown · ${activity.count} total`}
                         </span>
                     </div>
-                    <TransactionFeed
-                        key={JSON.stringify(currentQuery)}
+                    <BulkTransactionFeed
+                        key={pageHref({
+                            ...(before ? { before } : {}),
+                            ...(after ? { after } : {}),
+                        })}
+                        wallets={wallets}
+                        categories={categories}
                         accountId={id}
                         transactions={history.transactions}
                         returnTo={pageHref({
