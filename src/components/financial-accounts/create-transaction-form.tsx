@@ -3,6 +3,13 @@
 import { currencySymbol } from "@/lib/currency"
 
 import Link from "next/link"
+import { ChevronDown } from "lucide-react"
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import { TransactionCategoryPicker } from "./transaction-category-picker"
 import { RecurrenceFields, type RecurrenceEditing } from "./recurrence-fields"
 import type { EditScope } from "@/lib/recurrence-input"
 import { ExpenseSpreadFields } from "./expense-spread-fields"
@@ -29,11 +36,11 @@ import {
 import type { TransactionSuggestion } from "@/lib/transaction-input"
 import { StatusSwitch } from "./status-switch"
 import { Button } from "@/components/ui/button"
+import { FieldLabelWithHelp } from "@/components/ui/field-help"
 import { MoneyInput } from "./money-input"
 import { Textarea } from "@/components/ui/textarea"
 import {
     Field,
-    FieldDescription,
     FieldError,
     FieldGroup,
     FieldLabel,
@@ -67,7 +74,13 @@ function TransactionSelect({
     const id = `transaction-${name}`
     return (
         <Field data-invalid={Boolean(error)}>
-            <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            {description ? (
+                <FieldLabelWithHelp htmlFor={id} label={label}>
+                    {description}
+                </FieldLabelWithHelp>
+            ) : (
+                <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            )}
             <Select
                 name={name}
                 value={value || null}
@@ -87,14 +100,7 @@ function TransactionSelect({
                     }
                     className="w-full"
                     aria-invalid={Boolean(error)}
-                    aria-describedby={
-                        [
-                            description ? `${id}-description` : "",
-                            error ? `${id}-error` : "",
-                        ]
-                            .filter(Boolean)
-                            .join(" ") || undefined
-                    }
+                    aria-describedby={error ? `${id}-error` : undefined}
                 >
                     <SelectValue placeholder="Choose an option" />
                 </SelectTrigger>
@@ -118,11 +124,6 @@ function TransactionSelect({
                     </SelectGroup>
                 </SelectContent>
             </Select>
-            {description ? (
-                <FieldDescription id={`${id}-description`}>
-                    {description}
-                </FieldDescription>
-            ) : null}
             {error ? <FieldError id={`${id}-error`}>{error}</FieldError> : null}
         </Field>
     )
@@ -170,9 +171,28 @@ export function CreateTransactionForm({
     }
     suggestions: TransactionSuggestion[]
 }) {
+    const [extrasOpen, setExtrasOpen] = useState(
+        Boolean(editing?.recurrence || editing?.spread || editing?.notes)
+    )
+    const [repeatEnabled, setRepeatEnabled] = useState(
+        Boolean(editing?.recurrence)
+    )
+    const [spreadEnabled, setSpreadEnabled] = useState(Boolean(editing?.spread))
     const [editScope, setEditScope] = useState<EditScope>("ONLY")
     const [state, action, pending] = useActionState(
-        editing ? updateTransaction : createTransaction,
+        async (previous: TransactionFormState, form: FormData) => {
+            const next = await (
+                editing ? updateTransaction : createTransaction
+            )(previous, form)
+            if (
+                next.errors?.repeat ||
+                next.errors?.editScope ||
+                next.errors?.spread ||
+                next.errors?.notes
+            )
+                setExtrasOpen(true)
+            return next
+        },
         initialState
     )
     const defaultCategory = (type: string) =>
@@ -211,16 +231,6 @@ export function CreateTransactionForm({
             (category) => category.type === values.type && !category.parentId
         )
         .map((category) => ({ value: category.id, label: category.name }))
-    const subcategoryOptions = [
-        { value: "none", label: "No specific subcategory" },
-        ...categories
-            .filter(
-                (category) =>
-                    category.type === values.type &&
-                    category.parentId === values.categoryId
-            )
-            .map((category) => ({ value: category.id, label: category.name })),
-    ]
     const matches = suggestions
         .filter(
             (suggestion) =>
@@ -235,7 +245,7 @@ export function CreateTransactionForm({
     const currency =
         wallets.find((wallet) => wallet.id === accountWalletId)?.currency ?? ""
     return (
-        <form action={action} className="flex flex-col gap-6">
+        <form action={action} className="flex flex-col gap-4">
             <input type="hidden" name="returnTo" value={returnTo ?? ""} />
             <input
                 type="hidden"
@@ -267,24 +277,53 @@ export function CreateTransactionForm({
                 }
             />
             <fieldset disabled={pending} className="contents">
-                <FieldGroup className="sm:grid sm:grid-cols-2">
-                    <TransactionSelect
-                        name="type"
-                        label="Type"
-                        value={values.type}
-                        options={transactionTypes}
-                        onChange={(type) =>
-                            setValues((previous) => ({
-                                ...previous,
-                                type,
-                                categoryId: defaultCategory(type),
-                                subcategoryId: "none",
-                            }))
-                        }
-                        error={state.errors?.type}
-                    />
+                <FieldGroup className="gap-4 [&_[data-slot=field-label]]:min-h-5 [&_[data-slot=field]]:gap-1.5 [&_[data-slot=select-trigger]]:h-11 [&_button[id=transaction-date]]:h-11">
+                    <div className="flex items-end justify-between gap-6">
+                        <div className="min-w-0 flex-1">
+                            <TransactionSelect
+                                name="type"
+                                label="Type"
+                                value={values.type}
+                                options={transactionTypes}
+                                onChange={(type) =>
+                                    setValues((previous) => ({
+                                        ...previous,
+                                        type,
+                                        categoryId: defaultCategory(type),
+                                        subcategoryId: "none",
+                                    }))
+                                }
+                                error={state.errors?.type}
+                            />
+                        </div>
+                        <div className="flex h-11 shrink-0 items-center gap-2">
+                            <span className="text-sm text-muted-foreground">
+                                {values.status === "POSTED"
+                                    ? "Posted"
+                                    : "Pending"}
+                            </span>
+                            <StatusSwitch
+                                compact
+                                name="status"
+                                label="Posted transaction"
+                                accessibleLabel="Posted transaction"
+                                value={values.status}
+                                onValueChange={(value) =>
+                                    update("status", value)
+                                }
+                                error={state.errors?.status}
+                                description="Posted affects your balance now. Pending does not. The date never changes the status automatically."
+                            />
+                        </div>
+                    </div>
                     <Field data-invalid={Boolean(state.errors?.name)}>
-                        <FieldLabel htmlFor="transaction-name">Name</FieldLabel>
+                        <FieldLabelWithHelp
+                            htmlFor="transaction-name"
+                            label="Name"
+                        >
+                            Type a name to reuse a previous transaction’s
+                            category details, or enter a new name.
+                        </FieldLabelWithHelp>
                         <input type="hidden" name="name" value={values.name} />
                         <Combobox<TransactionSuggestion>
                             key={values.type}
@@ -314,6 +353,7 @@ export function CreateTransactionForm({
                         >
                             <ComboboxInput
                                 id="transaction-name"
+                                className="h-11"
                                 showTrigger={false}
                                 required
                                 maxLength={120}
@@ -324,7 +364,11 @@ export function CreateTransactionForm({
                                         : "e.g. Monthly salary"
                                 }
                                 aria-invalid={Boolean(state.errors?.name)}
-                                aria-describedby="transaction-name-description transaction-name-error"
+                                aria-describedby={
+                                    state.errors?.name
+                                        ? "transaction-name-error"
+                                        : undefined
+                                }
                             />
                             {values.name.trim() && matches.length ? (
                                 <ComboboxContent>
@@ -355,10 +399,6 @@ export function CreateTransactionForm({
                                 </ComboboxContent>
                             ) : null}
                         </Combobox>
-                        <FieldDescription id="transaction-name-description">
-                            Type a name to reuse a previous transaction’s
-                            category details, or enter a new name.
-                        </FieldDescription>
                         {state.errors?.name ? (
                             <FieldError id="transaction-name-error">
                                 {state.errors.name}
@@ -366,9 +406,18 @@ export function CreateTransactionForm({
                         ) : null}
                     </Field>
                     <Field data-invalid={Boolean(state.errors?.amount)}>
-                        <FieldLabel htmlFor="transaction-amount">
-                            Amount ({currencySymbol(currency)})
-                        </FieldLabel>
+                        <FieldLabelWithHelp
+                            htmlFor="transaction-amount"
+                            label={`Amount (${currencySymbol(currency)})`}
+                        >
+                            Enter a positive amount.{" "}
+                            {values.type === "EXPENSE"
+                                ? "Expenses subtract from"
+                                : "Incomes add to"}{" "}
+                            this wallet when posted. Numbers are formatted for
+                            your locale. Tap the calculator to work out an
+                            amount.
+                        </FieldLabelWithHelp>
                         <MoneyInput
                             id="transaction-amount"
                             name="amount"
@@ -378,18 +427,10 @@ export function CreateTransactionForm({
                             aria-invalid={Boolean(state.errors?.amount)}
                             aria-describedby={
                                 state.errors?.amount
-                                    ? "transaction-amount-description transaction-amount-error"
-                                    : "transaction-amount-description"
+                                    ? "transaction-amount-error"
+                                    : undefined
                             }
                         />
-                        <FieldDescription id="transaction-amount-description">
-                            Enter a positive amount.{" "}
-                            {values.type === "EXPENSE"
-                                ? "Expenses subtract from"
-                                : "Incomes add to"}{" "}
-                            this wallet when posted. Numbers are formatted for
-                            your locale.
-                        </FieldDescription>
                         {state.errors?.amount ? (
                             <FieldError id="transaction-amount-error">
                                 {state.errors.amount}
@@ -436,98 +477,153 @@ export function CreateTransactionForm({
                         onChange={(value) => update("accountWalletId", value)}
                         error={state.errors?.accountWalletId}
                     />
-                    <TransactionSelect
-                        name="parentCategoryId"
-                        label="Category"
-                        value={values.categoryId}
-                        options={options}
-                        onChange={(categoryId) =>
+                    <TransactionCategoryPicker
+                        key={values.type}
+                        categories={categories.filter(
+                            (category) => category.type === values.type
+                        )}
+                        value={
+                            values.subcategoryId === "none"
+                                ? values.categoryId
+                                : values.subcategoryId
+                        }
+                        onChange={(id) => {
+                            const category = categories.find(
+                                (item) => item.id === id
+                            )
                             setValues((previous) => ({
                                 ...previous,
-                                categoryId,
-                                subcategoryId: "none",
+                                categoryId: category?.parentId ?? id,
+                                subcategoryId: category?.parentId ? id : "none",
                             }))
-                        }
-                        error={state.errors?.categoryId}
-                        description={
-                            options.length
-                                ? "Choose a category for this transaction."
-                                : "No active categories for this type. Add one using Manage categories below."
-                        }
-                    />
-                    <TransactionSelect
-                        name="subcategoryId"
-                        label="Subcategory (optional)"
-                        value={values.subcategoryId}
-                        options={subcategoryOptions}
-                        onChange={(value) => update("subcategoryId", value)}
-                    />
-                    <Link
-                        href={`/dashboard/accounts/${financialAccountId}/categories`}
-                        className="text-sm underline underline-offset-4"
-                    >
-                        Manage categories
-                    </Link>
-                    <RecurrenceFields
-                        initial={editing?.recurrence}
-                        date={values.date}
-                        error={state.errors?.repeat}
-                        scopeError={state.errors?.editScope}
-                        onScopeChange={(scope) => {
-                            setEditScope(scope)
-                            if (scope !== "ONLY" && editing)
-                                setValues((previous) => ({
-                                    ...previous,
-                                    date: editing.date,
-                                }))
                         }}
+                        error={state.errors?.categoryId}
                     />
-                    {editScope !== "ONLY" && (
-                        <p className="text-sm text-muted-foreground">
-                            Dates stay unchanged for series edits. Choose Only
-                            this occurrence to change its date.
-                        </p>
+                    {!options.length && (
+                        <Link
+                            href={`/dashboard/accounts/${financialAccountId}/categories`}
+                            className="text-sm underline underline-offset-4"
+                        >
+                            No categories available — add a category
+                        </Link>
                     )}
-                    <StatusSwitch
-                        name="status"
-                        value={values.status}
-                        onValueChange={(value) => update("status", value)}
-                        error={state.errors?.status}
-                        description="Posted affects your balance now. Pending does not. The date never changes the status automatically."
-                    />
-                    <ExpenseSpreadFields
-                        initial={editing?.spread}
-                        date={values.date}
-                        amount={values.amount}
-                        currency={currency}
-                        type={values.type}
-                        error={state.errors?.spread}
-                    />
-                    <Field data-invalid={Boolean(state.errors?.notes)}>
-                        <FieldLabel htmlFor="transaction-notes">
-                            Notes (optional)
-                        </FieldLabel>
-                        <Textarea
-                            id="transaction-notes"
-                            name="notes"
-                            value={values.notes}
-                            onChange={(event) =>
-                                update("notes", event.target.value)
+                    <Collapsible
+                        open={extrasOpen}
+                        onOpenChange={setExtrasOpen}
+                        className="border-t pt-2"
+                    >
+                        <CollapsibleTrigger
+                            render={
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="group h-11 w-full justify-between px-0"
+                                />
                             }
-                            maxLength={2000}
-                            aria-invalid={Boolean(state.errors?.notes)}
-                            aria-describedby={
-                                state.errors?.notes
-                                    ? "transaction-notes-error"
-                                    : undefined
-                            }
-                        />
-                        {state.errors?.notes ? (
-                            <FieldError id="transaction-notes-error">
-                                {state.errors.notes}
-                            </FieldError>
-                        ) : null}
-                    </Field>
+                        >
+                            <span>
+                                Extras
+                                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                    {[
+                                        repeatEnabled ? "Repeats" : "",
+                                        spreadEnabled &&
+                                        values.type === "EXPENSE"
+                                            ? "Spread"
+                                            : "",
+                                        values.notes.trim() ? "Note added" : "",
+                                    ]
+                                        .filter(Boolean)
+                                        .join(" · ") ||
+                                        "Repeat, spread & notes"}
+                                </span>
+                            </span>
+                            <ChevronDown className="transition-transform group-aria-expanded:rotate-180 motion-reduce:transition-none" />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent
+                            keepMounted
+                            className="pt-2"
+                            onInvalidCapture={(event) => {
+                                if (!extrasOpen) {
+                                    event.preventDefault()
+                                    const control = event.target as HTMLElement
+                                    setExtrasOpen(true)
+                                    requestAnimationFrame(() => control.focus())
+                                }
+                            }}
+                        >
+                            <FieldGroup className="gap-4">
+                                <RecurrenceFields
+                                    initial={editing?.recurrence}
+                                    onEnabledChange={setRepeatEnabled}
+                                    date={values.date}
+                                    error={state.errors?.repeat}
+                                    scopeError={state.errors?.editScope}
+                                    onScopeChange={(scope) => {
+                                        setEditScope(scope)
+                                        if (scope !== "ONLY" && editing)
+                                            setValues((previous) => ({
+                                                ...previous,
+                                                date: editing.date,
+                                            }))
+                                    }}
+                                />
+                                {editScope !== "ONLY" && (
+                                    <p className="text-sm text-muted-foreground">
+                                        Dates stay unchanged for series edits.
+                                        Choose Only this occurrence to change
+                                        its date.
+                                    </p>
+                                )}
+                                <ExpenseSpreadFields
+                                    initial={editing?.spread}
+                                    onEnabledChange={setSpreadEnabled}
+                                    date={values.date}
+                                    amount={values.amount}
+                                    currency={currency}
+                                    type={values.type}
+                                    error={state.errors?.spread}
+                                />
+                                <Field
+                                    data-invalid={Boolean(state.errors?.notes)}
+                                >
+                                    <FieldLabel htmlFor="transaction-notes">
+                                        Notes (optional)
+                                    </FieldLabel>
+                                    <Textarea
+                                        id="transaction-notes"
+                                        rows={1}
+                                        className="min-h-11 resize-y"
+                                        placeholder="Add a note…"
+                                        name="notes"
+                                        value={values.notes}
+                                        onChange={(event) =>
+                                            update("notes", event.target.value)
+                                        }
+                                        maxLength={2000}
+                                        aria-invalid={Boolean(
+                                            state.errors?.notes
+                                        )}
+                                        aria-describedby={
+                                            state.errors?.notes
+                                                ? "transaction-notes-error"
+                                                : undefined
+                                        }
+                                    />
+                                    {state.errors?.notes ? (
+                                        <FieldError id="transaction-notes-error">
+                                            {state.errors.notes}
+                                        </FieldError>
+                                    ) : null}
+                                </Field>
+                                <Link
+                                    href={`/dashboard/accounts/${financialAccountId}/categories`}
+                                    className="text-sm underline underline-offset-4"
+                                >
+                                    Manage categories
+                                </Link>
+                            </FieldGroup>
+                        </CollapsibleContent>
+                    </Collapsible>
                 </FieldGroup>
             </fieldset>
             {state.message ||
@@ -539,7 +635,11 @@ export function CreateTransactionForm({
                         state.errors?.financialAccountId}
                 </FieldError>
             ) : null}
-            <Button type="submit" disabled={pending || !values.categoryId}>
+            <Button
+                type="submit"
+                className="h-11"
+                disabled={pending || !values.categoryId}
+            >
                 {pending
                     ? "Saving…"
                     : editing

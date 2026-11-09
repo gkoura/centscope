@@ -10,11 +10,11 @@ import {
 import { Button } from "@/components/ui/button"
 import {
     Field,
-    FieldDescription,
     FieldError,
     FieldGroup,
     FieldLabel,
 } from "@/components/ui/field"
+import { FieldLabelWithHelp } from "@/components/ui/field-help"
 import { Input } from "@/components/ui/input"
 import {
     Select,
@@ -50,7 +50,13 @@ function WalletSelectField({
     const id = `wallet-${name}`
     return (
         <Field data-invalid={Boolean(error)}>
-            <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            {description ? (
+                <FieldLabelWithHelp htmlFor={id} label={label}>
+                    {description}
+                </FieldLabelWithHelp>
+            ) : (
+                <FieldLabel htmlFor={id}>{label}</FieldLabel>
+            )}
             <Select
                 name={name}
                 value={value}
@@ -63,14 +69,7 @@ function WalletSelectField({
                     id={id}
                     className="w-full"
                     aria-invalid={Boolean(error)}
-                    aria-describedby={
-                        [
-                            description ? `${id}-description` : "",
-                            error ? `${id}-error` : "",
-                        ]
-                            .filter(Boolean)
-                            .join(" ") || undefined
-                    }
+                    aria-describedby={error ? `${id}-error` : undefined}
                 >
                     <SelectValue />
                 </SelectTrigger>
@@ -84,11 +83,6 @@ function WalletSelectField({
                     </SelectGroup>
                 </SelectContent>
             </Select>
-            {description ? (
-                <FieldDescription id={`${id}-description`}>
-                    {description}
-                </FieldDescription>
-            ) : null}
             {error ? <FieldError id={`${id}-error`}>{error}</FieldError> : null}
         </Field>
     )
@@ -164,9 +158,14 @@ export function CreateWalletForm({
                     description="Balances stay in this currency. It can differ from your account’s reporting currency."
                 />
                 <Field data-invalid={Boolean(state.errors?.openingBalance)}>
-                    <FieldLabel htmlFor="wallet-opening-balance">
-                        Opening balance
-                    </FieldLabel>
+                    <FieldLabelWithHelp
+                        htmlFor="wallet-opening-balance"
+                        label="Opening balance"
+                    >
+                        How much this account has in the wallet on the date
+                        below. Use a decimal point; negative amounts are
+                        allowed. Leave blank to start at zero.
+                    </FieldLabelWithHelp>
                     <Input
                         id="wallet-opening-balance"
                         name="openingBalance"
@@ -178,13 +177,12 @@ export function CreateWalletForm({
                         placeholder="0.00"
                         maxLength={24}
                         aria-invalid={Boolean(state.errors?.openingBalance)}
-                        aria-describedby={`wallet-balance-description${state.errors?.openingBalance ? " wallet-balance-error" : ""}`}
+                        aria-describedby={
+                            state.errors?.openingBalance
+                                ? "wallet-balance-error"
+                                : undefined
+                        }
                     />
-                    <FieldDescription id="wallet-balance-description">
-                        How much this account has in the wallet on the date
-                        below. Use a decimal point; negative amounts are
-                        allowed. Leave blank to start at zero.
-                    </FieldDescription>
                     {state.errors?.openingBalance ? (
                         <FieldError id="wallet-balance-error">
                             {state.errors.openingBalance}

@@ -1,4 +1,5 @@
 "use client"
+import { FieldHelp, FieldLabelWithHelp } from "@/components/ui/field-help"
 import { useState } from "react"
 import type { RepeatInput, EditScope } from "@/lib/recurrence-input"
 import { nextSlot } from "@/lib/recurrence-input"
@@ -21,12 +22,14 @@ const selectClass =
     "h-9 w-full min-w-0 rounded-md border bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-ring"
 export function RecurrenceFields({
     initial,
+    onEnabledChange,
     date,
     error,
     scopeError,
     onScopeChange,
 }: {
     initial?: RecurrenceEditing | null
+    onEnabledChange?: (enabled: boolean) => void
     date: string
     error?: string
     scopeError?: string
@@ -65,7 +68,7 @@ export function RecurrenceFields({
             1
         )
     return (
-        <div className="flex flex-col gap-4 rounded-lg border p-4">
+        <div className="flex flex-col gap-3">
             {initial && (
                 <>
                     <input
@@ -134,30 +137,36 @@ export function RecurrenceFields({
                 </>
             )}
             <Field>
-                <FieldLabel htmlFor="repeat-enabled">
-                    <input
-                        id="repeat-enabled"
-                        name="repeatEnabled"
-                        type="checkbox"
-                        checked={enabled}
-                        disabled={Boolean(initial)}
-                        onChange={(event) => {
-                            setEnabled(event.target.checked)
-                            if (!initial)
-                                setTimezone(
-                                    Intl.DateTimeFormat().resolvedOptions()
-                                        .timeZone || "UTC"
-                                )
-                        }}
-                        className="mr-2"
-                    />
-                    Repeat
-                </FieldLabel>
-                <FieldDescription>
-                    {initial
-                        ? "Manage pause, skip, or stop from Recurring transactions. Select a series scope above to edit its schedule."
-                        : "Create future payments now as Pending. The original transaction uses the date and status you select."}
-                </FieldDescription>
+                <div className="flex items-center gap-1">
+                    <FieldLabel
+                        htmlFor="repeat-enabled"
+                        className="min-h-11 flex-1"
+                    >
+                        <input
+                            id="repeat-enabled"
+                            name="repeatEnabled"
+                            type="checkbox"
+                            checked={enabled}
+                            disabled={Boolean(initial)}
+                            onChange={(event) => {
+                                setEnabled(event.target.checked)
+                                onEnabledChange?.(event.target.checked)
+                                if (!initial)
+                                    setTimezone(
+                                        Intl.DateTimeFormat().resolvedOptions()
+                                            .timeZone || "UTC"
+                                    )
+                            }}
+                            className="mr-2"
+                        />
+                        Repeat
+                    </FieldLabel>
+                    <FieldHelp label="Repeat">
+                        {initial
+                            ? "Manage pause, skip, or stop from Recurring transactions. Select a series scope above to edit its schedule."
+                            : "Create future payments upfront as Pending. They never post automatically. Fixed schedules create all copies; open-ended schedules keep the next 12 months ready. The original transaction uses the date and status you select."}
+                    </FieldHelp>
+                </div>
             </Field>
             {enabled && (
                 <fieldset disabled={locked} className="flex flex-col gap-4">
@@ -206,16 +215,14 @@ export function RecurrenceFields({
                             />
                         </Field>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                        Additional occurrences are created upfront as Pending.
-                        They never post automatically. Fixed schedules create
-                        all copies; open-ended schedules keep the next 12 months
-                        ready.
-                    </p>
                     <Field>
-                        <FieldLabel htmlFor="repeat-timezone">
-                            Schedule timezone
-                        </FieldLabel>
+                        <FieldLabelWithHelp
+                            htmlFor="repeat-timezone"
+                            label="Schedule timezone"
+                        >
+                            Calendar dates are checked in this timezone.
+                            Payments have no time of day.
+                        </FieldLabelWithHelp>
                         <Input
                             id="repeat-timezone"
                             name="repeatTimezone"
@@ -226,10 +233,6 @@ export function RecurrenceFields({
                                 setTimezone(event.target.value)
                             }
                         />
-                        <FieldDescription>
-                            Calendar dates are checked in this timezone.
-                            Payments have no time of day.
-                        </FieldDescription>
                     </Field>
                     <Field>
                         <FieldLabel htmlFor="repeat-end">End</FieldLabel>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useId, type Ref } from "react"
+import { FieldLabelWithHelp } from "@/components/ui/field-help"
 import { Switch } from "@/components/ui/switch"
 import {
     Field,
@@ -38,23 +39,29 @@ export function StatusSwitch({
         posted = value === "POSTED"
     const describedBy =
         [
-            description || saving ? `${id}-description` : "",
+            saving || (compact && description) ? `${id}-description` : "",
             error ? `${id}-error` : "",
         ]
             .filter(Boolean)
             .join(" ") || undefined
     return (
         <Field
-            className={compact ? "w-auto gap-0" : undefined}
+            className={compact ? "relative w-auto gap-0" : undefined}
             data-invalid={Boolean(error)}
             data-disabled={disabled || saving}
         >
-            <FieldLabel
-                htmlFor={id}
-                className={compact ? "sr-only" : undefined}
-            >
-                {label}
-            </FieldLabel>
+            {description && !compact ? (
+                <FieldLabelWithHelp htmlFor={id} label={label}>
+                    {description}
+                </FieldLabelWithHelp>
+            ) : (
+                <FieldLabel
+                    htmlFor={id}
+                    className={compact ? "sr-only" : undefined}
+                >
+                    {label}
+                </FieldLabel>
+            )}
             {name && <input type="hidden" name={name} value={value} />}
             <div className="flex min-h-11 items-center gap-3">
                 {!compact && (
@@ -100,7 +107,7 @@ export function StatusSwitch({
                     </span>
                 )}
             </div>
-            {(description || saving) && (
+            {((compact && description) || saving) && (
                 <FieldDescription
                     id={`${id}-description`}
                     aria-live="polite"

@@ -20,6 +20,7 @@ import { StatusSwitch } from "./status-switch"
 import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/ui/date-picker"
 import { Input } from "@/components/ui/input"
+import { FieldLabelWithHelp } from "@/components/ui/field-help"
 import { MoneyInput } from "./money-input"
 import { Textarea } from "@/components/ui/textarea"
 const selectClass =
@@ -174,10 +175,14 @@ export function TransferForm({
                         Swap wallets
                     </Button>
                     <Field>
-                        <FieldLabel htmlFor="transfer-amount">
-                            {fx ? "Amount sent" : "Amount"} (
-                            {currencySymbol(source?.wallet.currency ?? "")})
-                        </FieldLabel>
+                        <FieldLabelWithHelp
+                            htmlFor="transfer-amount"
+                            label={`${fx ? "Amount sent" : "Amount"} (${currencySymbol(source?.wallet.currency ?? "")})`}
+                        >
+                            Transfers move money between wallets in this account
+                            without counting as income or spending. Record bank
+                            fees as a separate expense.
+                        </FieldLabelWithHelp>
                         <MoneyInput
                             id="transfer-amount"
                             name="amount"
@@ -213,11 +218,6 @@ export function TransferForm({
                             </FieldDescription>
                         </Field>
                     )}
-                    <p className="text-sm text-muted-foreground">
-                        Transfers move money between wallets in this account
-                        without counting as income or spending. Record bank fees
-                        as a separate expense.
-                    </p>
                     <Field>
                         <FieldLabel htmlFor="transfer-name">Name</FieldLabel>
                         <Input

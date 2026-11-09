@@ -9,17 +9,14 @@ import {
 } from "@/lib/expense-spread"
 import { formatWalletMoney } from "@/lib/wallet-input"
 import { normalizeDecimalInput } from "@/lib/decimal-input"
+import { FieldHelp } from "@/components/ui/field-help"
 import { MonthPicker } from "@/components/ui/month-picker"
 import { Input } from "@/components/ui/input"
-import {
-    Field,
-    FieldLabel,
-    FieldDescription,
-    FieldError,
-} from "@/components/ui/field"
+import { Field, FieldLabel, FieldError } from "@/components/ui/field"
 
 export function ExpenseSpreadFields({
     initial,
+    onEnabledChange,
     date,
     amount,
     currency,
@@ -27,6 +24,7 @@ export function ExpenseSpreadFields({
     error,
 }: {
     initial?: ExpenseSpread | null
+    onEnabledChange?: (enabled: boolean) => void
     date: string
     amount: string
     currency: string
@@ -58,29 +56,33 @@ export function ExpenseSpreadFields({
             </p>
         ) : null
     return (
-        <div className="flex flex-col gap-4 rounded-lg border p-4">
+        <div className="flex flex-col gap-3">
             <Field>
-                <FieldLabel
-                    htmlFor="spread-enabled"
-                    className="flex items-center gap-2"
-                >
-                    <input
-                        id="spread-enabled"
-                        type="checkbox"
-                        name="spreadEnabled"
-                        checked={enabled}
-                        onChange={(event) => {
-                            setEnabled(event.target.checked)
-                            if (event.target.checked && !start)
-                                setStart(date.slice(0, 7))
-                        }}
-                    />
-                    Spread over time
-                </FieldLabel>
-                <FieldDescription>
-                    Distribute this cost in monthly analysis. Your wallet still
-                    records the full payment once.
-                </FieldDescription>
+                <div className="flex items-center gap-1">
+                    <FieldLabel
+                        htmlFor="spread-enabled"
+                        className="min-h-11 flex-1 items-center gap-2"
+                    >
+                        <input
+                            id="spread-enabled"
+                            type="checkbox"
+                            name="spreadEnabled"
+                            checked={enabled}
+                            onChange={(event) => {
+                                setEnabled(event.target.checked)
+                                onEnabledChange?.(event.target.checked)
+                                if (event.target.checked && !start)
+                                    setStart(date.slice(0, 7))
+                            }}
+                        />
+                        Spread over time
+                    </FieldLabel>
+                    <FieldHelp label="Spread over time">
+                        Distribute this cost in monthly analysis. Your wallet
+                        still records the full payment once. Remainder cents go
+                        to the earliest months.
+                    </FieldHelp>
+                </div>
             </Field>
             {enabled && (
                 <>
@@ -119,8 +121,7 @@ export function ExpenseSpreadFields({
                         aria-live="polite"
                     >
                         {preview ||
-                            "Enter an amount and schedule to preview the split."}{" "}
-                        Remainder cents go to the earliest months.
+                            "Enter an amount and schedule to preview the split."}
                     </p>
                 </>
             )}
