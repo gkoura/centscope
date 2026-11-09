@@ -112,3 +112,18 @@ export function belongsToWorkspace(
         (revision === undefined || key[3] === revision)
     )
 }
+
+/** Ownership limits disk persistence and its eviction budget, not shared memory reads. */
+export function isOwnedWorkspaceQuery(
+    key: readonly unknown[],
+    userId: string,
+    revision: string,
+    ownedIds: ReadonlySet<string>
+) {
+    if (!belongsToWorkspace(key, userId, revision)) return false
+    const request = key[4] as WorkspaceRequest | undefined
+    return (
+        request?.resource === "accounts" ||
+        ownedIds.has(request?.accountId ?? "")
+    )
+}

@@ -8,6 +8,7 @@ import {
     WORKSPACE_CACHE_MAX_AGE,
     WORKSPACE_CACHE_MAX_BYTES,
     WORKSPACE_CACHE_MAX_QUERIES,
+    isOwnedWorkspaceQuery,
 } from "../../src/lib/workspace-cache-policy.ts"
 import {
     persistedWorkspaceState,
@@ -60,7 +61,11 @@ test("month caches share equivalent URLs but separate accounts, users, revisions
 
 test("only financial values for the verified user and revision can be persisted or restored", () => {
     const source = client()
-    source.setQueryData(key(), { name: "Alice private transaction" })
+    source.setQueryData(
+        key(),
+        { name: "Alice private transaction" },
+        { updatedAt: 10 }
+    )
     source.setQueryData(key("bob"), { name: "Bob private transaction" })
     source.setQueryData(key("alice", "old"), { name: "Outdated balance" })
     source.setQueryData(["auth", "session"], { token: "must-never-be-stored" })
@@ -245,5 +250,124 @@ test("all-time workspace keys drop stale dates but retain transaction filters an
             today
         ),
         { resource: "monthlyTrends", accountId: "a", query: { view: "all" } }
+    )
+})
+
+test("saving recent activity cannot extend the lifetime of an old financial response", () => {
+    const source = client(),
+        now = 3 * WORKSPACE_CACHE_MAX_AGE
+    source.setQueryData(
+        key(),
+        { balance: "stale" },
+        { updatedAt: now - WORKSPACE_CACHE_MAX_AGE }
+    )
+    source.setQueryData(
+        key("alice", "v1", { month: "2026-10" }),
+        { balance: "recent" },
+        { updatedAt: now - 1 }
+    )
+    source.setQueryData(
+        key("alice", "v1", { month: "2026-09" }),
+        { balance: "future" },
+        { updatedAt: now + 1 }
+    )
+    const state = persistedWorkspaceState(dehydrate(source), "alice", "v1")
+    const saved = {
+        version: WORKSPACE_CACHE_VERSION,
+        userId: "alice",
+        revision: "v1",
+        savedAt: now,
+        state,
+    }
+    const restored = restoredWorkspaceState(saved, "alice", "v1", now)
+    assert.deepEqual(
+        restored.queries.map((q) => q.state.data),
+        [{ balance: "recent" }]
+    )
+    source.clear()
+})
+
+test("owned persistence eviction preserves fresh shared queries in memory without saving them to disk", async () => {
+    const source = client(),
+        ownedIds = new Set(["owned"])
+    const ownedKey = workspaceQueryKey("alice", "v1", {
+        resource: "reference",
+        accountId: "owned",
+    })
+    const sharedKey = workspaceQueryKey("alice", "v1", {
+        resource: "transactions",
+        accountId: "shared",
+    })
+    source.setQueryData(ownedKey, { balance: "owned" })
+    source.setQueryData(sharedKey, { balance: "shared" })
+    const eligible = (q) =>
+        isOwnedWorkspaceQuery(q.queryKey, "alice", "v1", ownedIds)
+    const state = persistedWorkspaceState(
+        dehydrate(source, { shouldDehydrateQuery: eligible }),
+        "alice",
+        "v1"
+    )
+    assert.deepEqual(
+        state.queries.map((q) => q.state.data),
+        [{ balance: "owned" }]
+    )
+    // Simulate an owned response excluded by the disk budget while shared reads stay memory-only.
+    source.removeQueries({
+        predicate: (q) => eligible(q) && q.getObserversCount() === 0,
+    })
+    assert.equal(source.getQueryData(ownedKey), undefined)
+    let reads = 0
+    const shared = await source.query({
+        queryKey: sharedKey,
+        staleTime: 30_000,
+        queryFn: () => {
+            reads++
+            return {}
+        },
+    })
+    assert.deepEqual(shared, { balance: "shared" })
+    assert.equal(reads, 0)
+    assert.equal(
+        isOwnedWorkspaceQuery(sharedKey, "bob", "v1", new Set(["shared"])),
+        false
+    )
+    assert.equal(
+        isOwnedWorkspaceQuery(sharedKey, "alice", "old", new Set(["shared"])),
+        false
+    )
+    source.clear()
+})
+
+test("pending-payment caches roll over at UTC midnight while lifetime trends keep their independent key", () => {
+    const pending = (day) =>
+        canonicalWorkspaceRequest(
+            {
+                resource: "pendingPayments",
+                accountId: "account-a",
+                query: { day: "stale-url-day" },
+            },
+            day
+        )
+    assert.notDeepEqual(pending("2026-11-10"), pending("2026-11-11"))
+    assert.deepEqual(pending("2026-11-10").query, { day: "2026-11-10" })
+    const all = canonicalWorkspaceRequest(
+        {
+            resource: "monthlyTrends",
+            accountId: "account-a",
+            query: { view: "all", month: "2020-01", status: "PENDING" },
+        },
+        today
+    )
+    assert.deepEqual(all.query, { view: "all" })
+    assert.notDeepEqual(
+        all,
+        canonicalWorkspaceRequest(
+            {
+                resource: "monthlyTrends",
+                accountId: "account-a",
+                query: { month: "2020-01" },
+            },
+            today
+        )
     )
 })

@@ -57,3 +57,5 @@ This organization change did not execute any tests.
 `tests/unit/workspace-prefetch.test.mjs` verifies the bounded four-month plan, route/filter selection, foreground priority, fresh-query reuse, stale/invalidation refresh, navigation handoff before and after observer mounting, pause/resume, cancellation, failures and identity isolation. It uses deterministic fetch/idle mocks and runs without a database.
 
 The 2026-11-07 cache regressions additionally cover v1 response-snapshot rejection, exclusion of access-denied values from persistence, Analytics route/trends prefetch planning, transaction-summary reuse with cursor/filter/user/account isolation, delayed summary precedence and aborted-read suppression.
+
+The 2026-11-10 audit adds regressions for per-response snapshot expiry (including future timestamps), and for retaining shared memory queries during owned-only persistence/eviction. Shared join/leave revision invalidation is verified through disposable authenticated browser actions.

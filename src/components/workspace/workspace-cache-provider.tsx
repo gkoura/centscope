@@ -12,8 +12,8 @@ import { dehydrate, hydrate, useQueryClient } from "@tanstack/react-query"
 import { authClient } from "@/lib/auth-client"
 import {
     belongsToWorkspace,
+    isOwnedWorkspaceQuery,
     workspaceQueryKey,
-    type WorkspaceRequest,
     WORKSPACE_CACHE_VERSION,
 } from "@/lib/workspace-cache-policy"
 import {
@@ -113,18 +113,12 @@ export function WorkspaceCacheProvider({ children }: { children: ReactNode }) {
                     dehydrate(queryClient, {
                         shouldDehydrateMutation: () => false,
                         shouldDehydrateQuery: (query) =>
-                            belongsToWorkspace(
+                            isOwnedWorkspaceQuery(
                                 query.queryKey,
                                 userId,
-                                revision
-                            ) &&
-                            query.state.data !== undefined &&
-                            ((query.queryKey[4] as WorkspaceRequest)
-                                .resource === "accounts" ||
-                                ownedIds.has(
-                                    (query.queryKey[4] as WorkspaceRequest)
-                                        .accountId ?? ""
-                                )),
+                                revision,
+                                ownedIds
+                            ) && query.state.data !== undefined,
                     }),
                     userId,
                     revision
@@ -134,7 +128,12 @@ export function WorkspaceCacheProvider({ children }: { children: ReactNode }) {
                 )
                 queryClient.removeQueries({
                     predicate: (query) =>
-                        belongsToWorkspace(query.queryKey, userId, revision) &&
+                        isOwnedWorkspaceQuery(
+                            query.queryKey,
+                            userId,
+                            revision,
+                            ownedIds
+                        ) &&
                         query.getObserversCount() === 0 &&
                         query.state.data !== undefined &&
                         !retained.has(query.queryHash),

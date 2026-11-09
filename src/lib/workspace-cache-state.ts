@@ -46,6 +46,9 @@ export function restoredWorkspaceState(
         queries: saved.state.queries.filter(
             (query) =>
                 belongsToWorkspace(query.queryKey, userId, revision) &&
+                Number.isFinite(query.state.dataUpdatedAt) &&
+                query.state.dataUpdatedAt <= now &&
+                now - query.state.dataUpdatedAt < WORKSPACE_CACHE_MAX_AGE &&
                 query.state.status === "success" &&
                 !accessRejected(query.state.error)
         ),

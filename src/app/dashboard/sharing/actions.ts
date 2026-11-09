@@ -1,6 +1,7 @@
 "use server"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
+import { revalidateWorkspacePath } from "@/lib/workspace-cache-invalidation"
 import {
     acceptInvite,
     inviteMember,
@@ -24,6 +25,7 @@ export async function sharingAction(id: string, form: FormData) {
             await manageMember(id, target, action)
             if (action === "leave") destination = "/dashboard/accounts"
         } else throw new SharingError("Unknown action.")
+        await revalidateWorkspacePath("/dashboard", "layout")
     } catch (error) {
         if (!(error instanceof SharingError)) throw error
         destination += "?error=" + encodeURIComponent(error.message)
@@ -37,6 +39,7 @@ export async function acceptAction(token: string) {
     let destination: string
     try {
         destination = "/dashboard/accounts/" + (await acceptInvite(token))
+        await revalidateWorkspacePath("/dashboard", "layout")
     } catch (error) {
         if (!(error instanceof SharingError)) throw error
         destination = "/dashboard/sharing/invite?unavailable=1"

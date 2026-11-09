@@ -17,7 +17,6 @@ export async function AccountNavigationContent({
     const shared = memberships.map(({ financialAccount }) => financialAccount)
     return (
         <>
-            <span hidden data-account-theme={account.theme} />
             {shared.some((a) => a.id === id) && (
                 <MemberRefresh accountId={id} />
             )}

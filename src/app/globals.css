@@ -1052,3 +1052,102 @@ html:has(.app-shell) {
 .account-toolbar {
     box-shadow: inset 0 3px var(--primary);
 }
+
+/* The account's authorized palette streams independently of navigation. Keep its
+   public shell available, but reveal account content only with its palette. */
+.account-area {
+    position: relative;
+}
+.account-area > .account-theme-content {
+    visibility: hidden;
+}
+.account-theme-loading {
+    position: absolute;
+    inset: 0;
+    padding-block: 1.5rem;
+}
+.account-area:has(> [data-account-theme]) > .account-theme-content {
+    visibility: visible;
+}
+.account-area:has(> [data-account-theme]) > .account-theme-loading {
+    display: none;
+}
+
+/* Never flash Forest, or a retained account's colors, while the active account
+   is unresolved. This neutral palette also covers the sidebar and portals. */
+:root:has(
+    .account-area:not(
+        [hidden],
+        [hidden] *,
+        [style*="display: none"],
+        [style*="display: none"] *,
+        [style*="display:none"],
+        [style*="display:none"] *
+    )
+):not(
+    :has(
+        [data-account-theme]:not(
+            [hidden] *,
+            [style*="display: none"] *,
+            [style*="display:none"] *
+        )
+    )
+) {
+    --background: oklch(0.98 0 0);
+    --foreground: oklch(0.25 0 0);
+    --card: oklch(0.998 0 0);
+    --card-foreground: var(--foreground);
+    --popover: var(--card);
+    --popover-foreground: var(--foreground);
+    --primary: oklch(0.43 0 0);
+    --primary-foreground: #ffffff;
+    --secondary: oklch(0.94 0 0);
+    --secondary-foreground: oklch(0.35 0 0);
+    --muted: oklch(0.95 0 0);
+    --muted-foreground: oklch(0.46 0 0);
+    --accent: oklch(0.92 0 0);
+    --accent-foreground: var(--secondary-foreground);
+    --border: oklch(0.87 0 0);
+    --input: oklch(0.83 0 0);
+    --ring: var(--primary);
+    --sidebar: var(--muted);
+    --sidebar-foreground: var(--foreground);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: var(--accent);
+    --sidebar-accent-foreground: var(--accent-foreground);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--ring);
+}
+:root.dark:has(
+    .account-area:not(
+        [hidden],
+        [hidden] *,
+        [style*="display: none"],
+        [style*="display: none"] *,
+        [style*="display:none"],
+        [style*="display:none"] *
+    )
+):not(
+    :has(
+        [data-account-theme]:not(
+            [hidden] *,
+            [style*="display: none"] *,
+            [style*="display:none"] *
+        )
+    )
+) {
+    --background: oklch(0.18 0 0);
+    --foreground: oklch(0.94 0 0);
+    --card: oklch(0.23 0 0);
+    --primary: oklch(0.8 0 0);
+    --primary-foreground: oklch(0.2 0 0);
+    --secondary: oklch(0.29 0 0);
+    --secondary-foreground: oklch(0.91 0 0);
+    --muted: oklch(0.25 0 0);
+    --muted-foreground: oklch(0.76 0 0);
+    --accent: oklch(0.32 0 0);
+    --border: oklch(0.35 0 0);
+    --input: oklch(0.42 0 0);
+    --sidebar: oklch(0.21 0 0);
+}
