@@ -54,8 +54,11 @@ export function TransactionFeed({
             weekday: "long",
             day: "numeric",
             month: "short",
+            year: "numeric",
             timeZone: "UTC",
-        }).format(new Date(`${date}T00:00:00Z`))
+        })
+            .format(new Date(`${date}T00:00:00Z`))
+            .replace(/, (\d{4})$/, " $1")
     return (
         <>
             <div className="flex flex-col gap-6">
