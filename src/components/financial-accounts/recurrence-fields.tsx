@@ -1,4 +1,5 @@
 "use client"
+import { NativeSelect } from "@/components/ui/native-select"
 import { FieldHelp, FieldLabelWithHelp } from "@/components/ui/field-help"
 import { useState } from "react"
 import type { RepeatInput, EditScope } from "@/lib/recurrence-input"
@@ -18,8 +19,6 @@ export type RecurrenceEditing = RepeatInput & {
     totalCount?: number
     futureCount?: number
 }
-const selectClass =
-    "h-9 w-full min-w-0 rounded-md border bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-ring"
 export function RecurrenceFields({
     initial,
     onEnabledChange,
@@ -80,11 +79,11 @@ export function RecurrenceFields({
                         <FieldLabel htmlFor="edit-scope">
                             Apply changes to
                         </FieldLabel>
-                        <select
+                        <NativeSelect
                             id="edit-scope"
                             name="editScope"
                             value={scope}
-                            className={selectClass}
+                            className="w-full [&>select]:h-11"
                             onChange={(event) => {
                                 const value = event.target.value as EditScope
                                 setScope(value)
@@ -98,7 +97,7 @@ export function RecurrenceFields({
                             <option value="ALL">
                                 All occurrences, including past
                             </option>
-                        </select>
+                        </NativeSelect>
                         <FieldDescription>
                             This and future uses the original scheduled date{" "}
                             {initial.scheduledFor}. Series edits preserve each
@@ -178,7 +177,7 @@ export function RecurrenceFields({
                             <FieldLabel htmlFor="repeat-frequency">
                                 Frequency
                             </FieldLabel>
-                            <select
+                            <NativeSelect
                                 id="repeat-frequency"
                                 name="repeatFrequency"
                                 value={frequency}
@@ -188,13 +187,13 @@ export function RecurrenceFields({
                                             .value as RepeatInput["frequency"]
                                     )
                                 }
-                                className={selectClass}
+                                className="w-full [&>select]:h-11"
                             >
                                 <option value="DAILY">Daily</option>
                                 <option value="WEEKLY">Weekly</option>
                                 <option value="MONTHLY">Monthly</option>
                                 <option value="YEARLY">Yearly</option>
-                            </select>
+                            </NativeSelect>
                         </Field>
                         <Field>
                             <FieldLabel htmlFor="repeat-interval">
@@ -236,19 +235,19 @@ export function RecurrenceFields({
                     </Field>
                     <Field>
                         <FieldLabel htmlFor="repeat-end">End</FieldLabel>
-                        <select
+                        <NativeSelect
                             id="repeat-end"
                             name="repeatEnd"
                             value={end}
                             onChange={(event) => setEnd(event.target.value)}
-                            className={selectClass}
+                            className="w-full [&>select]:h-11"
                         >
                             <option value="never">Never</option>
                             <option value="date">On a date</option>
                             <option value="count">
                                 After a number of occurrences
                             </option>
-                        </select>
+                        </NativeSelect>
                     </Field>
                     {end === "date" && (
                         <Field>

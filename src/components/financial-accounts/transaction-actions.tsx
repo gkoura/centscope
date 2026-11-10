@@ -1,4 +1,5 @@
 "use client"
+import { NativeSelect } from "@/components/ui/native-select"
 
 import Link from "next/link"
 import { useActionState, useEffect, useState } from "react"
@@ -191,7 +192,7 @@ export function TransactionActions({
                                         >
                                             Delete occurrences
                                         </FieldLabel>
-                                        <select
+                                        <NativeSelect
                                             id={`delete-scope-${transaction.id}`}
                                             value={scope}
                                             onChange={(event) =>
@@ -201,7 +202,7 @@ export function TransactionActions({
                                                 )
                                             }
                                             disabled={pending}
-                                            className="h-9 w-full min-w-0 rounded-md border bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-ring"
+                                            className="w-full [&>select]:h-11"
                                         >
                                             <option value="ONLY">
                                                 Only this occurrence
@@ -212,7 +213,7 @@ export function TransactionActions({
                                             <option value="ALL">
                                                 All occurrences, including past
                                             </option>
-                                        </select>
+                                        </NativeSelect>
                                     </Field>
                                 )}
                                 {confirmation.loading && (

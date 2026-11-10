@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
-import { LayoutDashboard, Wallet, Users } from "lucide-react"
+import { LayoutDashboard, Tags, Wallet, Users } from "lucide-react"
 import { AccountThemePicker } from "./account-theme-picker"
 import { accountTheme } from "@/lib/account-theme"
 import { currencySymbol } from "@/lib/currency"
@@ -33,6 +33,34 @@ export function AccountCard({
     extraAction?: ReactNode
 }) {
     const base = `/dashboard/accounts/${account.id}`
+
+    const navigationItems = [
+        {
+            label: "Overview",
+            href: base,
+            icon: LayoutDashboard,
+            visible: true,
+        },
+        {
+            label: "Categories",
+            href: `${base}/categories`,
+            icon: Tags,
+            visible: true,
+        },
+        {
+            label: "Wallets",
+            href: `${base}/wallets`,
+            icon: Wallet,
+            visible: true,
+        },
+        {
+            label: "Sharing",
+            href: `/dashboard/sharing/${account.id}`,
+            icon: Users,
+            visible: isOwner,
+        },
+    ]
+
     return (
         <Card
             className="h-full border-t-[3px]"
@@ -78,34 +106,19 @@ export function AccountCard({
                 role="navigation"
                 aria-label={`Navigate ${account.name}`}
             >
-                <Button
-                    variant="outline"
-                    render={<Link href={base} />}
-                    nativeButton={false}
-                >
-                    <LayoutDashboard data-icon="inline-start" />
-                    Overview
-                </Button>
-                <Button
-                    variant="outline"
-                    render={<Link href={`${base}/wallets`} />}
-                    nativeButton={false}
-                >
-                    <Wallet data-icon="inline-start" />
-                    Wallets
-                </Button>
-                {isOwner && (
-                    <Button
-                        variant="outline"
-                        render={
-                            <Link href={`/dashboard/sharing/${account.id}`} />
-                        }
-                        nativeButton={false}
-                    >
-                        <Users data-icon="inline-start" />
-                        Sharing
-                    </Button>
-                )}
+                {navigationItems
+                    .filter((item) => item.visible)
+                    .map(({ label, href, icon: Icon }) => (
+                        <Button
+                            key={label}
+                            variant="outline"
+                            render={<Link href={href} />}
+                            nativeButton={false}
+                        >
+                            <Icon data-icon="inline-start" />
+                            {label}
+                        </Button>
+                    ))}
             </CardFooter>
         </Card>
     )

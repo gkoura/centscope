@@ -1,3 +1,4 @@
+import { categoryEntryWhere } from "@/lib/category-filter"
 import "server-only"
 
 import {
@@ -554,16 +555,7 @@ export async function listOwnedAccountTransactions(
         ...(selectedWallets.length
             ? { accountWalletId: { in: selectedWallets } }
             : {}),
-        ...(filters.category
-            ? {
-                  category: {
-                      OR: [
-                          { id: filters.category },
-                          { parentId: filters.category },
-                      ],
-                  },
-              }
-            : {}),
+        ...categoryEntryWhere(filters.category),
     }
     const rows = await prisma.$transaction(
         (tx) =>

@@ -21,6 +21,7 @@ export async function GET(
     const search = new URL(request.url).searchParams
     const query: TransactionQuery = Object.fromEntries(search)
     query.wallet = search.getAll("wallet")
+    query.category = search.getAll("category")
     const range = { from: search.get("from") ?? "", to: search.get("to") ?? "" }
     const allTime = search.get("period") === "all"
     const error = allTime ? null : exportRangeError(range)

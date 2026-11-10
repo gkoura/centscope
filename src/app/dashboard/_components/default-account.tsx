@@ -13,9 +13,11 @@ export async function DefaultAccount({
     const section =
         query.section === "transactions"
             ? "/transactions"
-            : query.section === "analytics"
-              ? "/analytics"
-              : ""
+            : query.section === "budgets"
+              ? "/budgets"
+              : query.section === "analytics"
+                ? "/analytics"
+                : ""
     return redirect(
         id ? `/dashboard/accounts/${id}${section}` : "/dashboard/accounts"
     )

@@ -7,6 +7,7 @@ import {
     ArrowLeftRight,
     ChartNoAxesCombined,
     Settings2,
+    Target,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { accountViewSearch } from "@/lib/account-period"
@@ -43,6 +44,14 @@ function useDestinations() {
                 label: "Analytics",
                 icon: ChartNoAxesCombined,
                 active: !!id && pathname.startsWith(`${base}/analytics`),
+            },
+            {
+                href: id
+                    ? `${base}/budgets${accountViewSearch(query, true)}`
+                    : "/dashboard?section=budgets",
+                label: "Budgets",
+                icon: Target,
+                active: !!id && pathname.startsWith(`${base}/budgets`),
             },
             {
                 href: "/dashboard/accounts",

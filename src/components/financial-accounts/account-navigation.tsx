@@ -32,6 +32,7 @@ export function AccountNavigation({
     const [pending, startTransition] = useTransition()
     const base = `/dashboard/accounts/${accountId}`
     const inTransactions = pathname.startsWith(`${base}/transactions`)
+    const inBudgets = pathname.startsWith(`${base}/budgets`)
     const inAnalytics = pathname.startsWith(`${base}/analytics`)
     const options = accounts
         .map((account) => ({
@@ -49,13 +50,23 @@ export function AccountNavigation({
     function switchAccount(id: string | null) {
         if (!id || id === accountId) return
         const next = new URLSearchParams()
-        for (const key of ["view", "month", "year", "from", "to"]) {
+        for (const key of [
+            "view",
+            "month",
+            "year",
+            "from",
+            "to",
+            "daily",
+            "weekly",
+            "monthly",
+            "yearly",
+        ]) {
             const value = query.get(key)
             if (value) next.set(key, value)
         }
         startTransition(() =>
             router.push(
-                `/dashboard/accounts/${id}${inTransactions ? "/transactions" : inAnalytics ? "/analytics" : ""}${next.size ? `?${next}` : ""}`
+                `/dashboard/accounts/${id}${inTransactions ? "/transactions" : inAnalytics ? "/analytics" : inBudgets ? "/budgets" : ""}${next.size ? `?${next}` : ""}`
             )
         )
     }

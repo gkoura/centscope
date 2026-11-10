@@ -67,6 +67,9 @@ export async function deleteAccountData(userId: string) {
             await tx.accountWallet.deleteMany({
                 where: { financialAccount: { ownerId: userId } },
             })
+            await tx.recurringBudget.deleteMany({
+                where: { financialAccount: { ownerId: userId } },
+            })
             // The category self-reference is RESTRICT, so remove children first.
             await tx.category.deleteMany({
                 where: {

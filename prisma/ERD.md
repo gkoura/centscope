@@ -247,58 +247,31 @@ erDiagram
     User ||..o{ TransactionChange : "actor"
 ```
 
-## Budgets and sharing
+## Recurring budgets
 
-Budgets span accounts through BudgetAccount, optionally filtered through BudgetCategory. Budget membership does not grant account membership. BudgetValuation stores reporting conversions, not financial balances.
+Account-scoped spending plans repeat daily, weekly, monthly or yearly. Each selected calendar period is calculated from posted expenses. Account membership governs access.
 
 ```mermaid
 erDiagram
     direction LR
-    Budget {
+    RecurringBudget {
         String id PK
-        String ownerId FK
+        String financialAccountId FK
+        Boolean allCategories
+        Boolean includeUncategorized
         String name
+        RecurrenceFrequency recurrence
         String currency
-        String timezone
-        DateTime archivedAt "nullable"
-        DateTime createdAt
-        DateTime updatedAt
-    }
-    BudgetMembership {
-        String budgetId PK, FK
-        String userId PK, FK
-        BudgetRole role
-        BudgetVisibility visibility
-        DateTime createdAt
-        DateTime updatedAt
-    }
-    BudgetAccount {
-        String budgetId PK, FK
-        String financialAccountId PK, FK
-    }
-    BudgetCategory {
-        String budgetId PK, FK
-        String financialAccountId PK, FK
-        String categoryId PK, FK
-    }
-    BudgetPeriod {
-        String id PK
-        String budgetId FK
-        DateTime startsAt
-        DateTime endsAt
         Decimal spendingLimit
-    }
-    BudgetValuation {
-        String periodId PK, FK
-        String transactionId PK, FK
-        Decimal amount
-        Decimal exchangeRate
-        DateTime rateAsOf
-        String rateSource
+        Int version
         DateTime createdAt
+        DateTime updatedAt
     }
-    User {
-        String id PK
+    RecurringBudgetCategory {
+        String budgetId PK, FK
+        String financialAccountId FK
+        String categoryId PK, FK
+        Boolean includeChildren
     }
     FinancialAccount {
         String id PK
@@ -306,19 +279,9 @@ erDiagram
     Category {
         String id PK
     }
-    Transaction {
-        String id PK
-    }
-    User ||..o{ Budget : "owner"
-    Budget ||..o{ BudgetMembership : "budget"
-    User ||..o{ BudgetMembership : "user"
-    Budget ||..o{ BudgetAccount : "budget"
-    FinancialAccount ||..o{ BudgetAccount : "financialAccount"
-    BudgetAccount ||..o{ BudgetCategory : "scope"
-    Category ||..o{ BudgetCategory : "category"
-    Budget ||..o{ BudgetPeriod : "budget"
-    BudgetPeriod ||..o{ BudgetValuation : "period"
-    Transaction ||..o{ BudgetValuation : "transaction"
+    FinancialAccount ||..o{ RecurringBudget : "financialAccount"
+    RecurringBudget ||..o{ RecurringBudgetCategory : "budget"
+    Category ||..o{ RecurringBudgetCategory : "category"
 ```
 
 ## Enums
@@ -330,8 +293,6 @@ erDiagram
 | TransactionStatus | PENDING, POSTED |
 | TransactionType | EXPENSE, INCOME, TRANSFER, OPENING_BALANCE, ADJUSTMENT |
 | CategoryType | EXPENSE, INCOME |
-| BudgetRole | COLLABORATOR, VIEWER |
-| BudgetVisibility | FULL, SUMMARY |
 | RecurrenceFrequency | DAILY, WEEKLY, MONTHLY, YEARLY |
 
 ## Composite unique constraints
@@ -345,7 +306,7 @@ erDiagram
 | Transaction | createdById, idempotencyKey |
 | LedgerEntry | transactionId, accountWalletId |
 | RecurrenceOccurrence | ruleId, scheduledFor |
-| BudgetPeriod | budgetId, startsAt |
+| RecurringBudget | id, financialAccountId |
 
 ## Maintenance
 

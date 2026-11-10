@@ -200,6 +200,14 @@ export async function deleteOwnedCategory(input: {
                 where: { categoryId: { in: subtree.map(({ id }) => id) } },
                 select: { id: true },
             })
+            const budgetUse = await tx.recurringBudgetCategory.findFirst({
+                where: { categoryId: { in: subtree.map(({ id }) => id) } },
+                select: { budgetId: true },
+            })
+            if (budgetUse)
+                throw new CategoryWriteError(
+                    "This category is used by a budget. Change or remove that budget first, or archive the category."
+                )
             if (used || recurringUse)
                 throw new CategoryWriteError(
                     "This category or one of its subcategories is used by a transaction or recurring schedule and cannot be deleted."

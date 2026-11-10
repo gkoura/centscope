@@ -5,7 +5,6 @@ import { periodQuery } from "@/lib/account-period"
 import Link from "next/link"
 import { RecurringSync } from "@/components/financial-accounts/recurring-sync"
 import { type TransactionQuery } from "@/lib/transaction-filters"
-import { categorySelectOptions } from "@/lib/category-input"
 import { PeriodControls } from "@/components/workspace/period-controls"
 import { TransactionControls } from "@/components/workspace/transaction-controls"
 import { BulkTransactionFeed } from "@/components/workspace/bulk-transaction-feed"
@@ -60,10 +59,6 @@ export function CachedTransactions({
         filters.type ||
         filters.status
     )
-    const categoryOptions = [
-        ...categorySelectOptions(categories, "EXPENSE"),
-        ...categorySelectOptions(categories, "INCOME"),
-    ].map((item) => ({ id: item.value, name: item.label }))
     return (
         <div className="flex min-w-0 flex-col gap-5">
             <RecurringSync accountId={id} />
@@ -85,7 +80,7 @@ export function CachedTransactions({
                 period={period}
                 filters={filters}
                 wallets={wallets}
-                categories={categoryOptions}
+                categories={categories}
             />
             {history.transactions.length ? (
                 <section aria-label="Transaction history">

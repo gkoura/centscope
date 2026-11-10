@@ -1,4 +1,5 @@
 "use client"
+import { NativeSelect } from "@/components/ui/native-select"
 
 import { currencySymbol } from "@/lib/currency"
 import { useActionState, useState } from "react"
@@ -23,8 +24,6 @@ import { Input } from "@/components/ui/input"
 import { FieldLabelWithHelp } from "@/components/ui/field-help"
 import { MoneyInput } from "./money-input"
 import { Textarea } from "@/components/ui/textarea"
-const selectClass =
-    "h-10 w-full min-w-0 rounded-md border bg-background px-3 text-base focus-visible:outline-2 focus-visible:outline-ring sm:text-sm"
 type Editing = NonNullable<Awaited<ReturnType<typeof getOwnedEditableTransfer>>>
 export function TransferForm({
     returnTo,
@@ -102,10 +101,10 @@ export function TransferForm({
                 <FieldLabel htmlFor={`${side}-wallet`}>
                     {label} wallet
                 </FieldLabel>
-                <select
+                <NativeSelect
                     id={`${side}-wallet`}
                     name={idKey}
-                    className={selectClass}
+                    className="w-full [&>select]:h-11"
                     value={values[idKey]}
                     required
                     onChange={(event) => update(idKey, event.target.value)}
@@ -116,7 +115,7 @@ export function TransferForm({
                             )
                         </option>
                     ))}
-                </select>
+                </NativeSelect>
             </Field>
         )
     }

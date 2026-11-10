@@ -1,3 +1,4 @@
+import { canonicalCategoryFilter } from "./category-filter.ts"
 export type TransactionQuery = Record<string, string | string[] | undefined>
 export type TransactionFilters = {
     q?: string
@@ -40,7 +41,7 @@ export function parseTransactionFilters(
         status:
             status === "POSTED" || status === "PENDING" ? status : undefined,
         wallet: walletFilterIds(query.wallet).join(",") || undefined,
-        category: get("category"),
+        category: canonicalCategoryFilter(query.category),
         from: date("from"),
         to: date("to"),
     }

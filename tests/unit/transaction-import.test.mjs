@@ -89,7 +89,7 @@ test("filters accept valid server-side constraints and reject malformed query va
     assert.equal(filters.from, undefined)
     assert.equal(filters.to, "2026-11-03")
     assert.equal(filters.wallet, "bad")
-    assert.equal(filters.category, "food")
+    assert.equal(filters.category, "tree:food")
     assert.equal(
         parseTransactionFilters({ type: "ADJUSTMENT", status: "whatever" })
             .type,

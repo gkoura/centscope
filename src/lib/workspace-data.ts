@@ -1,4 +1,5 @@
 import "server-only"
+import { getRecurringBudgets } from "@/lib/budgets"
 import { getOwnedPendingPayments } from "@/lib/pending-payments-data"
 import { listOwnedRecurringSummary } from "@/lib/recurring"
 import {
@@ -108,6 +109,7 @@ export type WorkspaceData = {
     analysis: Awaited<ReturnType<typeof analysis>>
     transferWallets: Awaited<ReturnType<typeof listOwnedTransferWallets>>
     recurring: Awaited<ReturnType<typeof listOwnedRecurringSummary>>
+    budgets: Awaited<ReturnType<typeof getRecurringBudgets>>
     pendingPayments: Awaited<ReturnType<typeof getOwnedPendingPayments>>
 }
 
@@ -152,6 +154,12 @@ export async function readWorkspaceData(
             return listOwnedTransferWallets(id)
         case "recurring":
             return listOwnedRecurringSummary(id)
+        case "budgets":
+            return getRecurringBudgets(
+                id,
+                query.cadence as import("@/lib/budget-period").BudgetCadence,
+                String(query.date)
+            )
         case "pendingPayments":
             return getOwnedPendingPayments(id)
     }

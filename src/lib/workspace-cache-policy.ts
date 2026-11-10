@@ -1,11 +1,16 @@
 import {
+    budgetPeriod,
+    isBudgetCadence,
+    validBudgetDay,
+} from "./budget-period.ts"
+import {
     parseTransactionFilters,
     type TransactionQuery,
 } from "./transaction-filters.ts"
 import { resolveAccountPeriod, periodQuery } from "./account-period.ts"
 
-// v4 adds financial-account palette metadata.
-export const WORKSPACE_CACHE_VERSION = 4
+// v7 adds exact/subtree multi-category transaction filtering.
+export const WORKSPACE_CACHE_VERSION = 7
 export const WORKSPACE_CACHE_MAX_AGE = 24 * 60 * 60 * 1000
 export const WORKSPACE_CACHE_MAX_BYTES = 20 * 1024 * 1024
 export const WORKSPACE_CACHE_MAX_QUERIES = 60
@@ -22,6 +27,7 @@ export const workspaceResources = [
     "transferWallets",
     "recurring",
     "pendingPayments",
+    "budgets",
 ] as const
 export type WorkspaceResource = (typeof workspaceResources)[number]
 export type WorkspaceRequest = {
@@ -64,6 +70,15 @@ export function canonicalWorkspaceRequest(
                     ? month
                     : today.slice(0, 7),
         }
+    } else if (resource === "budgets") {
+        const cadence = isBudgetCadence(query.cadence)
+            ? query.cadence
+            : "MONTHLY"
+        const date =
+            typeof query.date === "string" && validBudgetDay(query.date)
+                ? query.date
+                : today
+        values = { cadence, date: budgetPeriod(cadence, date).from }
     } else if (resource === "balanceHistory" || resource === "analysis") {
         values = {
             month: resolveAccountPeriod({ month: query.month }, today).month,

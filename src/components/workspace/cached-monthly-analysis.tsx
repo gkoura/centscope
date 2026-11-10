@@ -13,16 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { PeriodControls } from "@/components/workspace/period-controls"
 import { periodForMonth } from "@/lib/account-period"
-import type { SelectHTMLAttributes } from "react"
-function NativeSelect(props: SelectHTMLAttributes<HTMLSelectElement>) {
-    return (
-        <select
-            {...props}
-            className="h-9 w-full min-w-0 rounded-md border bg-background px-3 text-sm focus-visible:outline-2 focus-visible:outline-ring"
-        />
-    )
-}
-const NativeSelectOption = "option"
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 
 export function CachedMonthlyAnalysis({
     accountId: id,
@@ -81,6 +72,7 @@ export function CachedMonthlyAnalysis({
                     <Field>
                         <FieldLabel htmlFor="analysis-mode">View</FieldLabel>
                         <NativeSelect
+                            className="w-full [&>select]:h-11"
                             id="analysis-mode"
                             name="mode"
                             defaultValue={mode}
@@ -98,6 +90,7 @@ export function CachedMonthlyAnalysis({
                             Currency
                         </FieldLabel>
                         <NativeSelect
+                            className="w-full [&>select]:h-11"
                             id="analysis-currency"
                             name="currency"
                             defaultValue={currency}
@@ -114,6 +107,7 @@ export function CachedMonthlyAnalysis({
                             Wallet
                         </FieldLabel>
                         <NativeSelect
+                            className="w-full [&>select]:h-11"
                             id="analysis-wallet"
                             name="wallet"
                             defaultValue={wallet}

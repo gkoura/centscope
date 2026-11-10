@@ -29,8 +29,6 @@ model User {
   wallets                  Wallet[]
   transactions             Transaction[]
   recurrenceRules          RecurrenceRule[]
-  ownedBudgets             Budget[]
-  budgetMemberships        BudgetMembership[]
   transactionChanges       TransactionChange[]
 
   @@unique([email])
@@ -85,7 +83,7 @@ model Verification {
   @@map("verification")
 }
 
-// DOMAIN DRAFT: see prisma/SCHEMA_NOTES.md before generating a migration.
+// See prisma/SCHEMA_NOTES.md for database checks and activated features.
 // Domain money uses exact Decimal values. Round to each currency's minor units.
 // No balance cache: sum LedgerEntry.amount where transaction.status = POSTED.
 
@@ -118,16 +116,6 @@ enum CategoryType {
   INCOME
 }
 
-enum BudgetRole {
-  COLLABORATOR
-  VIEWER
-}
-
-enum BudgetVisibility {
-  FULL
-  SUMMARY
-}
-
 enum RecurrenceFrequency {
   DAILY
   WEEKLY
@@ -155,7 +143,7 @@ model FinancialAccount {
   memberships       AccountMembership[]
   wallets           AccountWallet[]
   categories        Category[]
-  budgetScopes      BudgetAccount[]
+  recurringBudgets  RecurringBudget[]
 
   @@index([ownerId])
   @@index([createdById])
@@ -231,22 +219,22 @@ model AccountWallet {
 }
 
 model Category {
-  sortOrder          Int              @default(0)
-  id                 String           @id @default(cuid())
+  sortOrder          Int                       @default(0)
+  id                 String                    @id @default(cuid())
   financialAccountId String
-  financialAccount   FinancialAccount @relation(fields: [financialAccountId], references: [id], onDelete: Restrict)
+  financialAccount   FinancialAccount          @relation(fields: [financialAccountId], references: [id], onDelete: Restrict)
   name               String
   type               CategoryType
   parentId           String?
   // Composite FK prevents a subcategory from belonging to another account.
-  parent             Category?        @relation("CategoryHierarchy", fields: [parentId, financialAccountId], references: [id, financialAccountId], onDelete: Restrict, onUpdate: NoAction)
-  children           Category[]       @relation("CategoryHierarchy")
-  archivedAt         DateTime?        @db.Timestamptz(3)
-  createdAt          DateTime         @default(now()) @db.Timestamptz(3)
-  updatedAt          DateTime         @updatedAt @db.Timestamptz(3)
+  parent             Category?                 @relation("CategoryHierarchy", fields: [parentId, financialAccountId], references: [id, financialAccountId], onDelete: Restrict, onUpdate: NoAction)
+  children           Category[]                @relation("CategoryHierarchy")
+  archivedAt         DateTime?                 @db.Timestamptz(3)
+  createdAt          DateTime                  @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime                  @updatedAt @db.Timestamptz(3)
   entries            LedgerEntry[]
   recurrenceRules    RecurrenceRule[]
-  budgetFilters      BudgetCategory[]
+  budgetSelections   RecurringBudgetCategory[]
 
   @@unique([id, financialAccountId])
   @@index([financialAccountId, type])
@@ -256,25 +244,24 @@ model Category {
 }
 
 model Transaction {
-  id               String                @id @default(cuid())
-  type             TransactionType
+  id             String                @id @default(cuid())
+  type           TransactionType
   // Explicit choice, never inferred or automatically changed from date.
-  status           TransactionStatus
-  name             String
-  notes            String?               @db.Text
-  occurredAt       DateTime              @db.Timestamptz(3)
-  createdById      String
-  createdBy        User                  @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  status         TransactionStatus
+  name           String
+  notes          String?               @db.Text
+  occurredAt     DateTime              @db.Timestamptz(3)
+  createdById    String
+  createdBy      User                  @relation(fields: [createdById], references: [id], onDelete: Restrict)
   // Scoped to creator; optional for manually created transactions.
-  idempotencyKey   String?
-  version          Int                   @default(1)
-  createdAt        DateTime              @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime              @updatedAt @db.Timestamptz(3)
-  expenseSpread    ExpenseSpread?
-  entries          LedgerEntry[]
-  occurrence       RecurrenceOccurrence?
-  changes          TransactionChange[]
-  budgetValuations BudgetValuation[]
+  idempotencyKey String?
+  version        Int                   @default(1)
+  createdAt      DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime              @updatedAt @db.Timestamptz(3)
+  expenseSpread  ExpenseSpread?
+  entries        LedgerEntry[]
+  occurrence     RecurrenceOccurrence?
+  changes        TransactionChange[]
 
   @@unique([createdById, idempotencyKey])
   @@index([status, occurredAt])
@@ -371,97 +358,6 @@ model RecurrenceOccurrence {
   @@map("recurrence_occurrence")
 }
 
-model Budget {
-  id          String             @id @default(cuid())
-  ownerId     String
-  owner       User               @relation(fields: [ownerId], references: [id], onDelete: Restrict)
-  name        String
-  currency    String             @db.VarChar(3)
-  timezone    String
-  archivedAt  DateTime?          @db.Timestamptz(3)
-  createdAt   DateTime           @default(now()) @db.Timestamptz(3)
-  updatedAt   DateTime           @updatedAt @db.Timestamptz(3)
-  memberships BudgetMembership[]
-  accounts    BudgetAccount[]
-  periods     BudgetPeriod[]
-
-  @@index([ownerId])
-  @@map("budget")
-}
-
-model BudgetMembership {
-  budgetId   String
-  userId     String
-  role       BudgetRole
-  // Collaborators must use FULL; viewers may use FULL or SUMMARY.
-  visibility BudgetVisibility
-  budget     Budget           @relation(fields: [budgetId], references: [id], onDelete: Cascade)
-  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt  DateTime         @default(now()) @db.Timestamptz(3)
-  updatedAt  DateTime         @updatedAt @db.Timestamptz(3)
-
-  @@id([budgetId, userId])
-  @@index([userId])
-  @@map("budget_membership")
-}
-
-model BudgetAccount {
-  budgetId           String
-  financialAccountId String
-  budget             Budget           @relation(fields: [budgetId], references: [id], onDelete: Cascade)
-  financialAccount   FinancialAccount @relation(fields: [financialAccountId], references: [id], onDelete: Restrict)
-  // Empty category list means all expense categories in this account.
-  categories         BudgetCategory[]
-
-  @@id([budgetId, financialAccountId])
-  @@index([financialAccountId])
-  @@map("budget_account")
-}
-
-model BudgetCategory {
-  budgetId           String
-  financialAccountId String
-  categoryId         String
-  scope              BudgetAccount @relation(fields: [budgetId, financialAccountId], references: [budgetId, financialAccountId], onDelete: Cascade)
-  category           Category      @relation(fields: [categoryId, financialAccountId], references: [id, financialAccountId], onDelete: Restrict, onUpdate: NoAction)
-
-  @@id([budgetId, financialAccountId, categoryId])
-  @@index([categoryId, financialAccountId])
-  @@map("budget_category")
-}
-
-model BudgetPeriod {
-  id            String            @id @default(cuid())
-  budgetId      String
-  budget        Budget            @relation(fields: [budgetId], references: [id], onDelete: Restrict)
-  // Half-open interval [startsAt, endsAt), in the budget's configured timezone.
-  startsAt      DateTime          @db.Timestamptz(3)
-  endsAt        DateTime          @db.Timestamptz(3)
-  spendingLimit Decimal           @db.Decimal(24, 8)
-  valuations    BudgetValuation[]
-
-  @@unique([budgetId, startsAt])
-  @@index([budgetId, endsAt])
-  @@map("budget_period")
-}
-
-// Snapshot for stable historical budget conversion; not a second balance ledger.
-model BudgetValuation {
-  periodId      String
-  transactionId String
-  period        BudgetPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
-  transaction   Transaction  @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  amount        Decimal      @db.Decimal(24, 8)
-  exchangeRate  Decimal      @db.Decimal(30, 15)
-  rateAsOf      DateTime     @db.Timestamptz(3)
-  rateSource    String
-  createdAt     DateTime     @default(now()) @db.Timestamptz(3)
-
-  @@id([periodId, transactionId])
-  @@index([transactionId])
-  @@map("budget_valuation")
-}
-
 // Append-only service policy; snapshot contains domain data only, never auth secrets.
 // Intentionally survives transaction deletion; transactionId is an audit identifier.
 model TransactionChange {
@@ -480,4 +376,38 @@ model TransactionChange {
   @@index([liveTransactionId])
   @@index([actorId])
   @@map("transaction_change")
+}
+
+// One account-scoped plan, evaluated independently in each calendar recurrence period.
+model RecurringBudget {
+  id                   String                    @id @default(cuid())
+  financialAccountId   String
+  financialAccount     FinancialAccount          @relation(fields: [financialAccountId], references: [id], onDelete: Cascade)
+  allCategories        Boolean                   @default(true)
+  includeUncategorized Boolean                   @default(false)
+  categorySelections   RecurringBudgetCategory[]
+  name                 String                    @db.VarChar(80)
+  recurrence           RecurrenceFrequency       @default(MONTHLY)
+  currency             String                    @db.VarChar(3)
+  spendingLimit        Decimal                   @db.Decimal(24, 8)
+  version              Int                       @default(1)
+  createdAt            DateTime                  @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime                  @updatedAt @db.Timestamptz(3)
+
+  @@unique([id, financialAccountId])
+  @@index([financialAccountId, recurrence])
+  @@map("recurring_budget")
+}
+
+model RecurringBudgetCategory {
+  budgetId           String
+  financialAccountId String
+  categoryId         String
+  includeChildren    Boolean         @default(false)
+  budget             RecurringBudget @relation(fields: [budgetId, financialAccountId], references: [id, financialAccountId], onDelete: Cascade)
+  category           Category        @relation(fields: [categoryId, financialAccountId], references: [id, financialAccountId], onDelete: Restrict, onUpdate: NoAction)
+
+  @@id([budgetId, categoryId])
+  @@index([categoryId, financialAccountId])
+  @@map("recurring_budget_category")
 }

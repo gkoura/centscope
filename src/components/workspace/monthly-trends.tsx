@@ -1,4 +1,5 @@
 "use client"
+import { NativeSelect } from "@/components/ui/native-select"
 
 import { useId, useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
@@ -35,8 +36,6 @@ const monthLabel = (month: string, short = false, withYear = !short) =>
         ...(withYear ? ({ year: short ? "2-digit" : "numeric" } as const) : {}),
         timeZone: "UTC",
     }).format(new Date(`${month}-01T00:00:00Z`))
-const selectClass =
-    "min-h-11 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-base sm:text-sm focus-visible:outline-2 focus-visible:outline-ring"
 
 export function MonthlyTrends({
     accountId,
@@ -165,9 +164,9 @@ export function MonthlyTrends({
                             >
                                 Monthly trend range
                             </FieldLabel>
-                            <select
+                            <NativeSelect
                                 id={`${headingId}-range`}
-                                className={selectClass}
+                                className="w-full [&>select]:h-11"
                                 value={range}
                                 onChange={(event) =>
                                     setRange(event.target.value)
@@ -180,7 +179,7 @@ export function MonthlyTrends({
                                         {year}
                                     </option>
                                 ))}
-                            </select>
+                            </NativeSelect>
                         </Field>
                         <Button
                             variant="outline"
@@ -262,9 +261,9 @@ export function MonthlyTrends({
                                     >
                                         Currency
                                     </FieldLabel>
-                                    <select
+                                    <NativeSelect
                                         id={`${headingId}-currency`}
-                                        className={selectClass}
+                                        className="w-full [&>select]:h-11"
                                         value={activeCurrency}
                                         onChange={(event) =>
                                             setCurrency(event.target.value)
@@ -275,7 +274,7 @@ export function MonthlyTrends({
                                                 {currencyLabel(item)}
                                             </option>
                                         ))}
-                                    </select>
+                                    </NativeSelect>
                                 </Field>
                             )}
                         </div>

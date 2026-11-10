@@ -1,5 +1,13 @@
 "use client"
 
+import { TransactionCategoryFilter } from "./transaction-category-filter"
+import { ALL_CATEGORIES } from "@/lib/category-selection"
+import { NativeSelect } from "@/components/ui/native-select"
+import {
+    categoryFilterSelection,
+    categoryFilterValue,
+} from "@/lib/category-filter"
+import type { CategoryChoice } from "@/lib/category-selection"
 import { TransactionExportDialog } from "./transaction-export-dialog"
 import { currencySymbol } from "@/lib/currency"
 import { periodEntryDate } from "@/lib/transaction-return"
@@ -62,12 +70,16 @@ export function TransactionControls({
     period: AccountPeriod
     filters: TransactionFilters
     wallets: { id: string; name: string; currency: string }[]
-    categories: { id: string; name: string }[]
+    categories: CategoryChoice[]
 }) {
     const [open, setOpen] = useState(false),
         [exportOpen, setExportOpen] = useState(false),
         [pending, startTransition] = useTransition(),
         router = useRouter()
+    const [typeDraft, setTypeDraft] = useState(filters.type ?? "")
+    const [categoryDraft, setCategoryDraft] = useState(() =>
+        categoryFilterSelection(filters.category)
+    )
     const exportTrigger = useRef<HTMLButtonElement>(null)
     const selectedWallets = walletFilterIds(filters.wallet)
     const singleWallet =
@@ -145,7 +157,21 @@ export function TransactionControls({
                         </InputGroupAddon>
                     </InputGroup>
                 </form>
-                <Dialog open={open} onOpenChange={setOpen}>
+                <Dialog
+                    open={open}
+                    onOpenChange={(value) => {
+                        if (value) {
+                            setTypeDraft(filters.type ?? "")
+                            setCategoryDraft(
+                                filters.type === "TRANSFER" ||
+                                    filters.type === "OPENING_BALANCE"
+                                    ? ALL_CATEGORIES
+                                    : categoryFilterSelection(filters.category)
+                            )
+                        }
+                        setOpen(value)
+                    }}
+                >
                     <DialogTrigger
                         render={<Button variant="outline" className="h-11" />}
                         aria-label={`Filter transactions${active ? `, ${active} active` : ""}`}
@@ -201,11 +227,6 @@ export function TransactionControls({
                                             { id: "PENDING", name: "Pending" },
                                         ],
                                     },
-                                    {
-                                        name: "category",
-                                        label: "Category",
-                                        options: categories,
-                                    },
                                 ].map((field) => (
                                     <Field key={field.name}>
                                         <FieldLabel
@@ -213,15 +234,29 @@ export function TransactionControls({
                                         >
                                             {field.label}
                                         </FieldLabel>
-                                        <select
+                                        <NativeSelect
                                             id={`filter-${field.name}`}
                                             name={field.name}
-                                            defaultValue={
-                                                filters[
-                                                    field.name as keyof TransactionFilters
-                                                ] ?? ""
-                                            }
-                                            className="h-11 w-full rounded-lg border bg-background px-3 text-base sm:text-sm"
+                                            {...(field.name === "type"
+                                                ? {
+                                                      value: typeDraft,
+                                                      onChange: (
+                                                          event: React.ChangeEvent<HTMLSelectElement>
+                                                      ) => {
+                                                          setTypeDraft(
+                                                              event.target
+                                                                  .value as typeof typeDraft
+                                                          )
+                                                          setCategoryDraft(
+                                                              ALL_CATEGORIES
+                                                          )
+                                                      },
+                                                  }
+                                                : {
+                                                      defaultValue:
+                                                          filters.status ?? "",
+                                                  })}
+                                            className="w-full [&>select]:h-11"
                                         >
                                             <option value="">All</option>
                                             {field.options.map((option) => (
@@ -232,9 +267,30 @@ export function TransactionControls({
                                                     {option.name}
                                                 </option>
                                             ))}
-                                        </select>
+                                        </NativeSelect>
                                     </Field>
                                 ))}
+                                <Field>
+                                    <FieldLabel htmlFor="filter-category">
+                                        Categories
+                                    </FieldLabel>
+                                    <TransactionCategoryFilter
+                                        id="filter-category"
+                                        categories={categories}
+                                        value={categoryDraft}
+                                        onChange={setCategoryDraft}
+                                        transactionType={typeDraft}
+                                    />
+                                    <input
+                                        type="hidden"
+                                        name="category"
+                                        value={
+                                            categoryFilterValue(
+                                                categoryDraft
+                                            ) ?? ""
+                                        }
+                                    />
+                                </Field>
                                 <FieldSet>
                                     <FieldLegend>Wallets</FieldLegend>
                                     <FieldDescription>
