@@ -1,140 +1,16 @@
 import {
-    categorySelectionLabels,
-    type CategorySelection,
-} from "@/lib/category-selection"
+    budgetCadences,
+    isBudgetCadence,
+    type BudgetCadence,
+} from "@/lib/budget-period"
+import { sameOrder, validateListOrder } from "@/lib/list-order"
 import "server-only"
 import { prisma } from "@/lib/prisma"
-import { financialAccess, lockFinancialAccess } from "@/lib/financial-access"
+import { lockFinancialAccess } from "@/lib/financial-access"
 import { requireVerifiedSession } from "@/lib/auth/session"
 import { type BudgetInput } from "@/lib/budget-input"
-import { budgetProgress } from "@/lib/budget-progress"
-import { budgetPeriod, type BudgetCadence } from "@/lib/budget-period"
 
 export class BudgetWriteError extends Error {}
-
-export async function getRecurringBudgets(
-    financialAccountId: string,
-    recurrence: BudgetCadence,
-    date: string
-) {
-    await financialAccess(financialAccountId)
-    const period = budgetPeriod(recurrence, date)
-    const [budgets, groups] = await Promise.all([
-        prisma.recurringBudget.findMany({
-            where: { financialAccountId },
-            include: {
-                categorySelections: {
-                    include: {
-                        category: {
-                            select: {
-                                id: true,
-                                name: true,
-                                parentId: true,
-                                archivedAt: true,
-                                parent: {
-                                    select: {
-                                        id: true,
-                                        name: true,
-                                        parentId: true,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-        }),
-        prisma.ledgerEntry.groupBy({
-            by: ["accountWalletId", "categoryId"],
-            where: {
-                financialAccountId,
-                transaction: {
-                    type: "EXPENSE",
-                    status: "POSTED",
-                    occurredAt: {
-                        gte: new Date(`${period.from}T00:00:00Z`),
-                        lt: new Date(`${period.until}T00:00:00Z`),
-                    },
-                },
-            },
-            _sum: { amount: true },
-        }),
-    ])
-    // Include archived wallets/categories: archival never removes historical spending.
-    const [wallets, categories] = await Promise.all([
-        prisma.accountWallet.findMany({
-            where: { financialAccountId },
-            select: { id: true, wallet: { select: { currency: true } } },
-        }),
-        prisma.category.findMany({
-            where: { financialAccountId },
-            select: { id: true, parentId: true },
-        }),
-    ])
-    const currencies = new Map(wallets.map((w) => [w.id, w.wallet.currency]))
-    const parents = new Map(categories.map((c) => [c.id, c.parentId]))
-    const spending = groups.map((entry) => ({
-        currency: currencies.get(entry.accountWalletId) ?? "",
-        categoryId: entry.categoryId,
-        parentId: entry.categoryId
-            ? (parents.get(entry.categoryId) ?? null)
-            : null,
-        amount: entry._sum.amount?.toFixed(2) ?? "0.00",
-    }))
-    const rows = budgets
-        .filter((budget) => budget.recurrence === recurrence)
-        .map((budget) => {
-            const categorySelection: CategorySelection = {
-                all: budget.allCategories,
-                uncategorized: budget.includeUncategorized,
-                categories: budget.categorySelections.map((item) => ({
-                    categoryId: item.categoryId,
-                    includeChildren: item.includeChildren,
-                })),
-            }
-            const categoryChoices = budget.categorySelections.flatMap(
-                (item) => [
-                    {
-                        id: item.category.id,
-                        name:
-                            item.category.name +
-                            (item.category.archivedAt ? " (archived)" : ""),
-                        parentId: item.category.parentId,
-                    },
-                    ...(item.category.parent ? [item.category.parent] : []),
-                ]
-            )
-            const labels = categorySelectionLabels(
-                categorySelection,
-                categoryChoices
-            )
-            const progress = budgetProgress(
-                budget.spendingLimit.toFixed(2),
-                budget.currency,
-                categorySelection,
-                spending
-            )
-            return {
-                id: budget.id,
-                version: budget.version,
-                name: budget.name,
-                recurrence: budget.recurrence,
-                currency: budget.currency,
-                categorySelection,
-                selectedCategories: categoryChoices,
-                categoryLabel: categorySelection.all
-                    ? "All expenses"
-                    : `${labels.slice(0, 2).join(", ")}${labels.length > 2 ? ` +${labels.length - 2}` : ""}`,
-                spendingLimit: budget.spendingLimit.toFixed(2),
-                ...progress,
-            }
-        })
-    return {
-        budgets: rows,
-        cadences: [...new Set(budgets.map((b) => b.recurrence))],
-    }
-}
 
 export async function saveRecurringBudget(input: BudgetInput) {
     const { user } = await requireVerifiedSession()
@@ -148,6 +24,7 @@ export async function saveRecurringBudget(input: BudgetInput) {
                       financialAccountId: input.financialAccountId,
                   },
                   select: {
+                      recurrence: true,
                       categorySelections: { select: { categoryId: true } },
                   },
               })
@@ -187,6 +64,17 @@ export async function saveRecurringBudget(input: BudgetInput) {
             spendingLimit: input.spendingLimit,
             recurrence: input.recurrence,
         }
+        const last =
+            !input.id || existing?.recurrence !== input.recurrence
+                ? await tx.recurringBudget.aggregate({
+                      where: {
+                          financialAccountId: input.financialAccountId,
+                          recurrence: input.recurrence,
+                      },
+                      _max: { sortOrder: true },
+                  })
+                : null
+        const sortOrder = last ? (last._max.sortOrder ?? -1) + 1 : undefined
         let budgetId = input.id
         if (input.id) {
             const result = await tx.recurringBudget.updateMany({
@@ -195,7 +83,7 @@ export async function saveRecurringBudget(input: BudgetInput) {
                     financialAccountId: input.financialAccountId,
                     version: input.version,
                 },
-                data: { ...data, version: { increment: 1 } },
+                data: { ...data, sortOrder, version: { increment: 1 } },
             })
             if (!result.count)
                 throw new BudgetWriteError(
@@ -214,6 +102,7 @@ export async function saveRecurringBudget(input: BudgetInput) {
             const created = await tx.recurringBudget.create({
                 data: {
                     ...data,
+                    sortOrder,
                     financialAccountId: input.financialAccountId,
                 },
                 select: { id: true },
@@ -248,4 +137,84 @@ export async function removeRecurringBudget(
                 "This budget changed or was removed. Refresh and try again."
             )
     })
+}
+
+export async function reorderBudgetItems(
+    accountId: string,
+    cadence: BudgetCadence | null,
+    raw: unknown
+) {
+    const input = validateListOrder(raw)
+    if (!input)
+        throw new BudgetWriteError("Invalid order. Reload and try again.")
+    const { user } = await requireVerifiedSession()
+    await prisma.$transaction(
+        async (tx) => {
+            await lockFinancialAccess(tx, accountId, user.id)
+            if (cadence === null) {
+                if (!input.orderedIds.every(isBudgetCadence))
+                    throw new BudgetWriteError("Invalid budget periods.")
+                const account = await tx.financialAccount.findUniqueOrThrow({
+                    where: { id: accountId },
+                    select: { budgetCadenceOrder: true },
+                })
+                const plans = await tx.recurringBudget.findMany({
+                    where: { financialAccountId: accountId },
+                    select: { recurrence: true },
+                })
+                const present = new Set(plans.map((p) => p.recurrence))
+                const order =
+                    account.budgetCadenceOrder.length === 4
+                        ? account.budgetCadenceOrder
+                        : [...budgetCadences]
+                const visible = order.filter((c) =>
+                    present.has(c as BudgetCadence)
+                )
+                if (!sameOrder(visible, input.previousIds))
+                    throw new BudgetWriteError(
+                        "Budget periods changed. Cancel your draft and reload."
+                    )
+                let index = 0
+                await tx.financialAccount.update({
+                    where: { id: accountId },
+                    data: {
+                        budgetCadenceOrder: order.map((c) =>
+                            present.has(c as BudgetCadence)
+                                ? input.orderedIds[index++]
+                                : c
+                        ),
+                    },
+                })
+            } else {
+                const plans = await tx.recurringBudget.findMany({
+                    where: {
+                        financialAccountId: accountId,
+                        recurrence: cadence,
+                    },
+                    orderBy: [
+                        { sortOrder: "asc" },
+                        { createdAt: "asc" },
+                        { id: "asc" },
+                    ],
+                    select: { id: true, sortOrder: true },
+                })
+                if (
+                    !sameOrder(
+                        plans.map((p) => p.id),
+                        input.previousIds
+                    )
+                )
+                    throw new BudgetWriteError(
+                        "Budgets changed. Cancel your draft and reload."
+                    )
+                for (const [sortOrder, id] of input.orderedIds.entries())
+                    if (plans.find((p) => p.id === id)?.sortOrder !== sortOrder)
+                        await tx.recurringBudget.update({
+                            where: { id },
+                            data: { sortOrder, version: { increment: 1 } },
+                        })
+            }
+        },
+        { timeout: 15_000 }
+    )
 }

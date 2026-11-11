@@ -2,13 +2,14 @@
 import { CategoryMultiSelect } from "./category-multi-select"
 import { ALL_CATEGORIES } from "@/lib/category-selection"
 
-import { useActionState, useEffect, useState } from "react"
+import { useActionState, useEffect, useState, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Plus, Target } from "lucide-react"
+import { ChevronDown, Plus, Target } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { FieldHelp } from "@/components/ui/field-help"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import {
     Dialog,
@@ -18,6 +19,21 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog"
 import { BudgetPeriodPicker } from "./budget-period-picker"
+import { ReorderableList } from "@/components/sortable/reorderable-list"
+import { SortableHandle } from "@/components/sortable/sortable-item"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+    reorderBudgetCadences,
+    reorderBudgets,
+} from "@/app/dashboard/accounts/[id]/budgets/actions"
+import {
+    Collapsible,
+    CollapsibleTrigger,
+    CollapsibleContent,
+} from "@/components/ui/collapsible"
+import { BudgetTransactionsDialog } from "./budget-transactions-dialog"
+import { useBudgetPrefetch } from "./budget-prefetch"
+import type { BudgetMode } from "@/lib/budget-contribution"
 import { BudgetCard, type Budget } from "./budget-card"
 import {
     budgetCadences,
@@ -231,70 +247,157 @@ function BudgetSection({
     accountId,
     cadence,
     date,
+    mode,
     onChange,
     onEdit,
     onDelete,
     onAdd,
+    disabled,
+    onOrderDirty,
+    dragging,
+    expanded,
+    onExpandedChange,
 }: {
     accountId: string
     cadence: BudgetCadence
     date: string
+    mode: BudgetMode
     onChange: (date: string) => void
     onEdit: (budget: Budget) => void
     onDelete: (budget: Budget) => void
     onAdd: () => void
+    disabled: boolean
+    dragging: boolean
+    expanded: boolean
+    onExpandedChange: (cadence: BudgetCadence, expanded: boolean) => void
+    onOrderDirty: (cadence: BudgetCadence, dirty: boolean) => void
 }) {
-    const result = useWorkspaceQuery("budgets", accountId, { cadence, date })
+    const result = useWorkspaceQuery("budgets", accountId, {
+        cadence,
+        date,
+        mode,
+    })
+    const open = expanded && !dragging
+    const [selected, setSelected] = useState<Budget | null>(null)
+    const [orderDirty, setOrderDirty] = useState(false)
+    const changed = useCallback(
+        (dirty: boolean) => {
+            setOrderDirty(dirty)
+            onOrderDirty(cadence, dirty)
+        },
+        [onOrderDirty, cadence]
+    )
+    const prefetch = useBudgetPrefetch(
+        accountId,
+        result.data?.budgets.map((b) => b.id) ?? [],
+        cadence,
+        date,
+        mode
+    )
     return (
-        <section
-            className="grid min-w-0 gap-4"
-            aria-labelledby={`budgets-${cadence}`}
+        <Collapsible
+            open={open}
+            onOpenChange={(next) => {
+                if (!dragging) onExpandedChange(cadence, next)
+            }}
+            render={<section aria-labelledby={`budgets-${cadence}`} />}
+            className="min-w-0"
         >
-            <div className="flex items-center justify-between gap-3">
-                <h2 id={`budgets-${cadence}`} className="text-lg font-semibold">
-                    {budgetCadenceLabels[cadence]} budgets
+            <div className="flex items-center gap-2 rounded-xl border border-s-4 border-primary/20 border-s-primary bg-primary/10 p-2 shadow-sm sm:px-3">
+                <SortableHandle />
+                <h2 id={`budgets-${cadence}`} className="min-w-0 flex-1">
+                    <CollapsibleTrigger
+                        disabled={dragging}
+                        className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg px-2 text-left text-base font-bold tracking-tight text-primary outline-none hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-ring sm:text-lg"
+                    >
+                        <span>{budgetCadenceLabels[cadence]} budgets</span>
+                        <ChevronDown
+                            aria-hidden="true"
+                            className={`size-4 shrink-0 transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
+                        />
+                    </CollapsibleTrigger>
                 </h2>
                 <Button
                     variant="ghost"
                     size="icon"
                     className="size-11"
+                    disabled={disabled || orderDirty}
                     aria-label={`Add ${cadence.toLowerCase()} budget`}
                     onClick={onAdd}
                 >
                     <Plus className="size-4" />
                 </Button>
             </div>
-            <BudgetPeriodPicker
-                cadence={cadence}
-                value={date}
-                onChange={onChange}
-            />
-            {!result.data ? (
-                <WorkspaceQueryState
-                    queries={[result]}
-                    label={`Loading ${cadence.toLowerCase()} budgets…`}
-                />
-            ) : (
-                <>
-                    {result.error && (
-                        <p role="alert" className="text-sm text-destructive">
-                            Couldn’t refresh this period. Showing the last
-                            loaded values.
-                        </p>
-                    )}
-                    <div className="grid gap-4">
-                        {result.data.budgets.map((budget) => (
-                            <BudgetCard
-                                key={budget.id}
-                                budget={budget}
-                                onEdit={onEdit}
-                                onDelete={onDelete}
+            <CollapsibleContent keepMounted className="data-closed:hidden">
+                <div className="grid min-w-0 gap-4 pt-4">
+                    <fieldset disabled={disabled || orderDirty}>
+                        <BudgetPeriodPicker
+                            cadence={cadence}
+                            value={date}
+                            onChange={onChange}
+                        />
+                    </fieldset>
+                    {!result.data ? (
+                        <WorkspaceQueryState
+                            queries={[result]}
+                            label={`Loading ${cadence.toLowerCase()} budgets…`}
+                        />
+                    ) : (
+                        <>
+                            {result.error && (
+                                <p
+                                    role="alert"
+                                    className="text-sm text-destructive"
+                                >
+                                    Couldn’t refresh this period. Showing the
+                                    last loaded values.
+                                </p>
+                            )}
+                            <ReorderableList
+                                key={`${accountId}-${cadence}-${budgetPeriod(cadence, date).from}-${mode}`}
+                                disabled={disabled}
+                                label={`${budgetCadenceLabels[cadence].toLowerCase()} budgets`}
+                                layout="list"
+                                showInstructions={false}
+                                items={result.data.budgets}
+                                onDirtyChange={changed}
+                                onSave={(input) =>
+                                    reorderBudgets(
+                                        accountId,
+                                        cadence,
+                                        date,
+                                        mode,
+                                        input
+                                    )
+                                }
+                                renderItem={(budget, state) => (
+                                    <BudgetCard
+                                        budget={budget}
+                                        onEdit={onEdit}
+                                        onDelete={onDelete}
+                                        onView={setSelected}
+                                        onPrefetch={() => prefetch(budget.id)}
+                                        handle={<SortableHandle />}
+                                        disabled={disabled || state.disabled}
+                                    />
+                                )}
                             />
-                        ))}
-                    </div>
-                </>
+                        </>
+                    )}
+                </div>
+            </CollapsibleContent>
+            {selected && (
+                <BudgetTransactionsDialog
+                    key={`${selected.id}-${date}-${mode}`}
+                    accountId={accountId}
+                    budgetId={selected.id}
+                    cadence={cadence}
+                    date={date}
+                    mode={mode}
+                    onClose={() => setSelected(null)}
+                />
             )}
-        </section>
+        </Collapsible>
     )
 }
 export function BudgetManager({
@@ -306,10 +409,7 @@ export function BudgetManager({
 }) {
     const today = useWorkspaceDay() || "2000-01-01"
     const reference = useWorkspaceQuery("reference", accountId)
-    const inventory = useWorkspaceQuery("budgets", accountId, {
-        cadence: "MONTHLY",
-        date: today,
-    })
+    const inventory = useWorkspaceQuery("budgetInventory", accountId)
     const router = useRouter(),
         query = useSearchParams()
     const [editor, setEditor] = useState<{
@@ -317,6 +417,34 @@ export function BudgetManager({
         cadence: BudgetCadence
     } | null>(null)
     const [deleting, setDeleting] = useState<Budget | null>(null)
+    const [collapsedSections, setCollapsedSections] = useState<
+        Record<string, boolean>
+    >({})
+    const onExpandedChange = useCallback(
+        (cadence: BudgetCadence, expanded: boolean) => {
+            setCollapsedSections((previous) => ({
+                ...previous,
+                [`${accountId}-${cadence}`]: !expanded,
+            }))
+        },
+        [accountId]
+    )
+    const [rootDirty, setRootDirty] = useState(false)
+    const [sectionDirty, setSectionDirty] = useState<Record<string, boolean>>(
+        {}
+    )
+    const onOrderDirty = useCallback(
+        (cadence: BudgetCadence, dirty: boolean) =>
+            setSectionDirty((previous) =>
+                previous[cadence] === dirty
+                    ? previous
+                    : { ...previous, [cadence]: dirty }
+            ),
+        []
+    )
+    const mode: BudgetMode =
+        requestedPeriods.mode === "smoothed" ? "smoothed" : "actual"
+    const dirty = rootDirty || Object.values(sectionDirty).some(Boolean)
     if (!reference.data || !inventory.data)
         return (
             <WorkspaceQueryState
@@ -324,8 +452,7 @@ export function BudgetManager({
                 label="Loading budgets…"
             />
         )
-    const availableCadences = inventory.data.cadences
-    const cadences = budgetCadences.filter((c) => availableCadences.includes(c))
+    const groups = inventory.data.groups
     function changePeriod(cadence: BudgetCadence, date: string) {
         const next = new URLSearchParams(query.toString())
         next.set(budgetPeriodKey(cadence), budgetPeriod(cadence, date).from)
@@ -335,20 +462,58 @@ export function BudgetManager({
     }
     return (
         <>
-            <div className="flex justify-end">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                    <fieldset disabled={dirty}>
+                        <Tabs
+                            value={mode}
+                            onValueChange={(value) => {
+                                if (value !== "actual" && value !== "smoothed")
+                                    return
+                                const next = new URLSearchParams(
+                                    query.toString()
+                                )
+                                next.set("mode", value)
+                                router.replace(
+                                    `/dashboard/accounts/${accountId}/budgets?${next}`,
+                                    { scroll: false }
+                                )
+                            }}
+                        >
+                            <TabsList>
+                                <TabsTrigger value="actual">Actual</TabsTrigger>
+                                <TabsTrigger value="smoothed">
+                                    Smoothed
+                                </TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                    </fieldset>
+                    <FieldHelp label="Budgets">
+                        <span className="block">
+                            Posted expenses only · Currencies tracked separately
+                            · Each budget is evaluated independently.
+                        </span>
+                        <span className="mt-3 block">
+                            {mode === "smoothed"
+                                ? "Spread expenses count in their allocated periods; partial months are shared by day."
+                                : "Expenses count on their payment date."}
+                        </span>
+                        <span className="mt-3 block">
+                            Drag the grip to reorder your budget periods, then
+                            save your changes.
+                        </span>
+                    </FieldHelp>
+                </div>
                 <Button
                     className="min-h-11 w-full sm:w-auto"
+                    disabled={dirty}
                     onClick={() => setEditor({ cadence: "MONTHLY" })}
                 >
                     <Plus className="size-4" />
                     Add budget
                 </Button>
             </div>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-                Posted expenses only · Currencies tracked separately · Each
-                budget is evaluated independently.
-            </p>
-            {!cadences.length ? (
+            {!groups.length ? (
                 <div className="grid justify-items-center gap-4 rounded-2xl border border-dashed px-5 py-10 text-center">
                     <Target
                         className="size-8 text-primary"
@@ -370,28 +535,51 @@ export function BudgetManager({
                     </Button>
                 </div>
             ) : (
-                cadences.map((cadence) => {
-                    const value = requestedPeriods[budgetPeriodKey(cadence)]
-                    const date = validBudgetDay(value ?? "") ? value : today
-                    return (
-                        <BudgetSection
-                            key={cadence}
-                            accountId={accountId}
-                            cadence={cadence}
-                            date={date}
-                            onChange={(value) => changePeriod(cadence, value)}
-                            onAdd={() => setEditor({ cadence })}
-                            onEdit={(budget) =>
-                                setEditor({
-                                    budget,
-                                    cadence: budget.recurrence,
-                                })
-                            }
-                            onDelete={setDeleting}
-                        />
-                    )
-                })
+                <ReorderableList
+                    key={accountId}
+                    items={groups}
+                    disabled={Object.values(sectionDirty).some(Boolean)}
+                    label="budget periods"
+                    layout="list"
+                    showInstructions={false}
+                    onDirtyChange={setRootDirty}
+                    onSave={(input) => reorderBudgetCadences(accountId, input)}
+                    renderItem={(group, state) => {
+                        const cadence = group.id
+                        const value = requestedPeriods[budgetPeriodKey(cadence)]
+                        const date = validBudgetDay(value ?? "") ? value : today
+                        return (
+                            <BudgetSection
+                                accountId={accountId}
+                                cadence={cadence}
+                                date={date}
+                                mode={mode}
+                                disabled={state.disabled}
+                                dragging={state.dragging}
+                                expanded={
+                                    !collapsedSections[
+                                        `${accountId}-${cadence}`
+                                    ]
+                                }
+                                onExpandedChange={onExpandedChange}
+                                onOrderDirty={onOrderDirty}
+                                onChange={(value) =>
+                                    changePeriod(cadence, value)
+                                }
+                                onAdd={() => setEditor({ cadence })}
+                                onEdit={(budget) =>
+                                    setEditor({
+                                        budget,
+                                        cadence: budget.recurrence,
+                                    })
+                                }
+                                onDelete={setDeleting}
+                            />
+                        )
+                    }}
+                />
             )}
+
             <Dialog
                 open={!!editor}
                 onOpenChange={(open) => {

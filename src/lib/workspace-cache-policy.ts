@@ -9,8 +9,8 @@ import {
 } from "./transaction-filters.ts"
 import { resolveAccountPeriod, periodQuery } from "./account-period.ts"
 
-// v7 adds exact/subtree multi-category transaction filtering.
-export const WORKSPACE_CACHE_VERSION = 7
+// v9 removes budget history and health payloads while charts are deferred.
+export const WORKSPACE_CACHE_VERSION = 9
 export const WORKSPACE_CACHE_MAX_AGE = 24 * 60 * 60 * 1000
 export const WORKSPACE_CACHE_MAX_BYTES = 20 * 1024 * 1024
 export const WORKSPACE_CACHE_MAX_QUERIES = 60
@@ -28,6 +28,8 @@ export const workspaceResources = [
     "recurring",
     "pendingPayments",
     "budgets",
+    "budgetInventory",
+    "budgetTransactions",
 ] as const
 export type WorkspaceResource = (typeof workspaceResources)[number]
 export type WorkspaceRequest = {
@@ -70,7 +72,7 @@ export function canonicalWorkspaceRequest(
                     ? month
                     : today.slice(0, 7),
         }
-    } else if (resource === "budgets") {
+    } else if (resource === "budgets" || resource === "budgetTransactions") {
         const cadence = isBudgetCadence(query.cadence)
             ? query.cadence
             : "MONTHLY"
@@ -78,7 +80,23 @@ export function canonicalWorkspaceRequest(
             typeof query.date === "string" && validBudgetDay(query.date)
                 ? query.date
                 : today
-        values = { cadence, date: budgetPeriod(cadence, date).from }
+        values = {
+            cadence,
+            date: budgetPeriod(cadence, date).from,
+            mode: query.mode === "smoothed" ? "smoothed" : "actual",
+        }
+        if (resource === "budgetTransactions") {
+            values.budgetId =
+                typeof query.budgetId === "string"
+                    ? query.budgetId.slice(0, 128)
+                    : ""
+            const page = Number(query.page ?? 0)
+            values.page = String(
+                Number.isSafeInteger(page) && page >= 0 && page <= 10000
+                    ? page
+                    : 0
+            )
+        }
     } else if (resource === "balanceHistory" || resource === "analysis") {
         values = {
             month: resolveAccountPeriod({ month: query.month }, today).month,

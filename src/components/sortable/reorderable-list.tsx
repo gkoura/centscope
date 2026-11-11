@@ -1,6 +1,6 @@
 "use client"
 
-import { useId, useRef, useState, type ReactNode } from "react"
+import { useId, useRef, useState, useEffect, type ReactNode } from "react"
 import { flushSync } from "react-dom"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -29,11 +29,22 @@ export function ReorderableList<T extends { id: string; name: string }>({
     label,
     onSave,
     renderItem,
+    layout = "grid",
+    showInstructions = true,
+    onDirtyChange,
+    disabled = false,
 }: {
     items: T[]
     label: string
+    disabled?: boolean
+    layout?: "grid" | "list"
+    showInstructions?: boolean
+    onDirtyChange?: (dirty: boolean) => void
     onSave: (input: ListOrderInput) => Promise<OrderSaveResult<T>>
-    renderItem: (item: T, state: { disabled: boolean }) => ReactNode
+    renderItem: (
+        item: T,
+        state: { disabled: boolean; dragging: boolean }
+    ) => ReactNode
 }) {
     const router = useRouter()
     const listRef = useRef<HTMLDivElement>(null)
@@ -61,7 +72,17 @@ export function ReorderableList<T extends { id: string; name: string }>({
     const [status, setStatus] = useState("")
     const [revision, setRevision] = useState(0)
     const [keyboard, setKeyboard] = useState(false)
+    const [dragging, setDragging] = useState(false)
     const dirty = draft !== null
+    useEffect(() => {
+        onDirtyChange?.(dirty)
+    }, [dirty, onDirtyChange])
+    useEffect(
+        () => () => {
+            onDirtyChange?.(false)
+        },
+        [onDirtyChange]
+    )
     function finishDrag(event: DragEndEvent) {
         const source = event.operation.source
         if (
@@ -134,7 +155,14 @@ export function ReorderableList<T extends { id: string; name: string }>({
     return (
         <DragDropProvider
             key={revision}
-            onDragEnd={finishDrag}
+            onBeforeDragStart={() => {
+                // Collapse large sortable sections before the drag geometry is measured.
+                flushSync(() => setDragging(true))
+            }}
+            onDragEnd={(event) => {
+                finishDrag(event)
+                flushSync(() => setDragging(false))
+            }}
             sensors={[
                 PointerSensor.configure({
                     activationConstraints: (event) =>
@@ -182,7 +210,14 @@ export function ReorderableList<T extends { id: string; name: string }>({
                 onPointerDownCapture={() => setKeyboard(false)}
             >
                 {items.length > 1 && (
-                    <p id={helpId} className="text-xs text-muted-foreground">
+                    <p
+                        id={helpId}
+                        className={
+                            showInstructions
+                                ? "text-xs text-muted-foreground"
+                                : "sr-only"
+                        }
+                    >
                         Drag the grip to reorder your {label}, then save your
                         changes.
                     </p>
@@ -222,7 +257,7 @@ export function ReorderableList<T extends { id: string; name: string }>({
                 </p>
                 <ul
                     aria-label={label}
-                    className="grid min-w-0 gap-4 sm:grid-cols-2"
+                    className={`grid min-w-0 gap-4 ${layout === "grid" ? "sm:grid-cols-2" : ""}`}
                 >
                     {items.map((item, index) => (
                         <SortableItem
@@ -232,11 +267,14 @@ export function ReorderableList<T extends { id: string; name: string }>({
                             index={index}
                             group={helpId}
                             helpId={items.length > 1 ? helpId : undefined}
-                            disabled={saving || items.length < 2}
+                            disabled={disabled || saving || items.length < 2}
                             keyboard={keyboard}
                             className="min-w-0"
                         >
-                            {renderItem(item, { disabled: dirty || saving })}
+                            {renderItem(item, {
+                                disabled: disabled || dirty || saving,
+                                dragging,
+                            })}
                         </SortableItem>
                     ))}
                 </ul>

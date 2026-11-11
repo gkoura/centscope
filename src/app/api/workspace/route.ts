@@ -1,3 +1,4 @@
+import { BudgetUnavailableError } from "@/lib/budget-reading"
 import { cookies } from "next/headers"
 import { getCurrentSession } from "@/lib/auth/session"
 import { workspaceAccountOrNull } from "@/lib/account-workspace"
@@ -53,7 +54,13 @@ export async function GET(request: Request) {
                 : await workspaceAccountOrNull(accountId!)
         if (resource !== "accounts" && !account)
             return json({ message: "This account is unavailable." }, 404)
-        const data = await readWorkspaceData(input, account ?? undefined)
-        return json({ userId: session.user.id, revision, data })
+        try {
+            const data = await readWorkspaceData(input, account ?? undefined)
+            return json({ userId: session.user.id, revision, data })
+        } catch (error) {
+            if (error instanceof BudgetUnavailableError)
+                return json({ message: error.message }, 410)
+            throw error
+        }
     })
 }

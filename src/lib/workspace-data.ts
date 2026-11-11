@@ -1,5 +1,9 @@
 import "server-only"
-import { getRecurringBudgets } from "@/lib/budgets"
+import {
+    getRecurringBudgets,
+    getBudgetInventory,
+    getBudgetTransactions,
+} from "@/lib/budget-reading"
 import { getOwnedPendingPayments } from "@/lib/pending-payments-data"
 import { listOwnedRecurringSummary } from "@/lib/recurring"
 import {
@@ -109,6 +113,8 @@ export type WorkspaceData = {
     analysis: Awaited<ReturnType<typeof analysis>>
     transferWallets: Awaited<ReturnType<typeof listOwnedTransferWallets>>
     recurring: Awaited<ReturnType<typeof listOwnedRecurringSummary>>
+    budgetInventory: Awaited<ReturnType<typeof getBudgetInventory>>
+    budgetTransactions: Awaited<ReturnType<typeof getBudgetTransactions>>
     budgets: Awaited<ReturnType<typeof getRecurringBudgets>>
     pendingPayments: Awaited<ReturnType<typeof getOwnedPendingPayments>>
 }
@@ -154,11 +160,22 @@ export async function readWorkspaceData(
             return listOwnedTransferWallets(id)
         case "recurring":
             return listOwnedRecurringSummary(id)
+        case "budgetInventory":
+            return getBudgetInventory(id)
+        case "budgetTransactions":
+            return getBudgetTransactions(
+                id,
+                String(query.budgetId),
+                String(query.date),
+                query.mode === "smoothed" ? "smoothed" : "actual",
+                Number(query.page ?? 0)
+            )
         case "budgets":
             return getRecurringBudgets(
                 id,
                 query.cadence as import("@/lib/budget-period").BudgetCadence,
-                String(query.date)
+                String(query.date),
+                query.mode === "smoothed" ? "smoothed" : "actual"
             )
         case "pendingPayments":
             return getOwnedPendingPayments(id)

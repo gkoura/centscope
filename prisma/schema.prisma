@@ -125,25 +125,26 @@ enum RecurrenceFrequency {
 
 model FinancialAccount {
   // Shared visual identity; supported palette keys are enforced by a database CHECK.
-  theme             String              @default("forest") @db.VarChar(16)
-  sortOrder         Int                 @default(0)
-  id                String              @id @default(cuid())
-  name              String
+  theme              String              @default("forest") @db.VarChar(16)
+  sortOrder          Int                 @default(0)
+  id                 String              @id @default(cuid())
+  name               String
   // Owner is stored once, separate from non-owner memberships.
-  ownerId           String
-  owner             User                @relation("FinancialAccountOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  createdById       String
-  createdBy         User                @relation("FinancialAccountCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  ownerId            String
+  owner              User                @relation("FinancialAccountOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  createdById        String
+  createdBy          User                @relation("FinancialAccountCreator", fields: [createdById], references: [id], onDelete: Restrict)
   // Conversion/display currency only; wallets can use other currencies.
-  reportingCurrency String              @db.VarChar(3)
-  archivedAt        DateTime?           @db.Timestamptz(3)
-  createdAt         DateTime            @default(now()) @db.Timestamptz(3)
-  updatedAt         DateTime            @updatedAt @db.Timestamptz(3)
-  invitations       AccountInvitation[]
-  memberships       AccountMembership[]
-  wallets           AccountWallet[]
-  categories        Category[]
-  recurringBudgets  RecurringBudget[]
+  reportingCurrency  String              @db.VarChar(3)
+  archivedAt         DateTime?           @db.Timestamptz(3)
+  createdAt          DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime            @updatedAt @db.Timestamptz(3)
+  invitations        AccountInvitation[]
+  memberships        AccountMembership[]
+  wallets            AccountWallet[]
+  categories         Category[]
+  budgetCadenceOrder String[]            @default(["DAILY", "WEEKLY", "MONTHLY", "YEARLY"])
+  recurringBudgets   RecurringBudget[]
 
   @@index([ownerId])
   @@index([createdById])
@@ -380,6 +381,7 @@ model TransactionChange {
 
 // One account-scoped plan, evaluated independently in each calendar recurrence period.
 model RecurringBudget {
+  sortOrder            Int                       @default(0)
   id                   String                    @id @default(cuid())
   financialAccountId   String
   financialAccount     FinancialAccount          @relation(fields: [financialAccountId], references: [id], onDelete: Cascade)
@@ -395,7 +397,7 @@ model RecurringBudget {
   updatedAt            DateTime                  @updatedAt @db.Timestamptz(3)
 
   @@unique([id, financialAccountId])
-  @@index([financialAccountId, recurrence])
+  @@index([financialAccountId, recurrence, sortOrder])
   @@map("recurring_budget")
 }
 

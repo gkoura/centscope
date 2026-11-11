@@ -103,6 +103,7 @@ erDiagram
         DateTime archivedAt "nullable"
         DateTime createdAt
         DateTime updatedAt
+        String budgetCadenceOrder
     }
     Wallet {
         String id PK
@@ -255,6 +256,7 @@ Account-scoped spending plans repeat daily, weekly, monthly or yearly. Each sele
 erDiagram
     direction LR
     RecurringBudget {
+        Int sortOrder
         String id PK
         String financialAccountId FK
         Boolean allCategories
