@@ -1,5 +1,5 @@
 "use client"
-import { Pencil, Trash2 } from "lucide-react"
+import { ArrowUpRight, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { ReactNode } from "react"
 import { currencySymbol } from "@/lib/currency"
@@ -30,11 +30,11 @@ export function BudgetCard({
     return (
         <article
             key={budget.id}
-            className="relative min-w-0 rounded-2xl border bg-card p-5"
+            className="relative min-w-0 rounded-xl border bg-card p-3"
         >
             <button
                 type="button"
-                className="absolute inset-0 rounded-2xl outline-none hover:ring-1 hover:ring-primary/40 focus-visible:ring-2 focus-visible:ring-ring"
+                className="absolute inset-0 rounded-xl outline-none hover:ring-1 hover:ring-primary/40 focus-visible:ring-2 focus-visible:ring-ring"
                 disabled={disabled}
                 aria-label={`View transactions for ${budget.name}, ${money(budget.spent, budget.currency)} spent`}
                 onClick={() => onView(budget)}
@@ -42,14 +42,11 @@ export function BudgetCard({
                 onFocus={onPrefetch}
             />
             <div className="pointer-events-none relative">
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
                         <h2 className="font-semibold wrap-break-word">
                             {budget.name}
                         </h2>
-                        <p className="mt-1 text-xs wrap-break-word text-muted-foreground">
-                            {budget.categoryLabel} · {budget.currency}
-                        </p>
                     </div>
                     <div className="pointer-events-auto relative z-10 flex shrink-0">
                         {handle}
@@ -75,8 +72,8 @@ export function BudgetCard({
                         </Button>
                     </div>
                 </div>
-                <div className="mt-5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                    <p className="text-xl font-semibold tabular-nums">
+                <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                    <p className="text-lg font-semibold tabular-nums">
                         {money(budget.spent, budget.currency)}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -93,7 +90,7 @@ export function BudgetCard({
                         Math.max(0, Math.round(budget.percentage))
                     )}
                     aria-valuetext={`${money(budget.spent, budget.currency)} spent of ${money(budget.spendingLimit, budget.currency)}`}
-                    className="mt-3 h-2 overflow-hidden rounded-full bg-muted"
+                    className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
                 >
                     <div
                         className={`h-full rounded-full ${over ? "bg-destructive" : near ? "bg-amber-500" : "bg-primary"}`}
@@ -102,17 +99,20 @@ export function BudgetCard({
                         }}
                     />
                 </div>
-                <p
-                    className={`mt-3 text-sm font-medium tabular-nums ${over ? "text-destructive" : "text-muted-foreground"}`}
-                >
-                    {over
-                        ? `${money(budget.remaining.replace("-", ""), budget.currency)} over budget`
-                        : `${money(budget.remaining, budget.currency)} left`}
-                    {!over && near ? " · Near your limit" : ""}
-                </p>
-                <p className="mt-3 text-xs text-primary">
-                    View contributing transactions →
-                </p>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                    <p
+                        className={`text-xs font-medium tabular-nums ${over ? "text-destructive" : "text-muted-foreground"}`}
+                    >
+                        {over
+                            ? `${money(budget.remaining.replace("-", ""), budget.currency)} over budget`
+                            : `${money(budget.remaining, budget.currency)} left`}
+                        {!over && near ? " · Near your limit" : ""}
+                    </p>
+                    <ArrowUpRight
+                        aria-hidden="true"
+                        className="size-3.5 shrink-0 text-muted-foreground"
+                    />
+                </div>
             </div>
         </article>
     )
