@@ -6,6 +6,7 @@ import type {
     WorkspaceRequest,
     WorkspaceResource,
 } from "@/lib/workspace-cache-policy"
+import { workspaceReadRejected } from "@/lib/workspace-cache-policy"
 import { workspaceQueryOptions } from "@/lib/workspace-query-options"
 export { WorkspaceReadError } from "@/lib/workspace-query-options"
 import {
@@ -53,8 +54,7 @@ export function useWorkspaceQuery<R extends WorkspaceResource>(
                 ? previous
                 : undefined,
     })
-    const denied =
-        !!result.error && [401, 403, 404, 409].includes(result.error.status)
+    const denied = workspaceReadRejected(result.error)
     useEffect(() => {
         if (result.error?.status === 409)
             publishWorkspaceEvent({ type: "changed" })

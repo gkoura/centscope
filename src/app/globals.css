@@ -1151,3 +1151,27 @@ html:has(.app-shell) {
     --input: oklch(0.42 0 0);
     --sidebar: oklch(0.21 0 0);
 }
+
+/* Only the controls dock; titles and summaries scroll out of view. */
+.sticky-filter-bar {
+    position: sticky;
+    top: var(--account-toolbar-height, 80px);
+    z-index: 21;
+    padding-block: 8px;
+    background: var(--background);
+    box-shadow: 0 1px 0 var(--border);
+}
+.sticky-filter-bar .sticky-filter-bar {
+    position: static;
+    padding-block: 0;
+    box-shadow: none;
+}
+/* Section controls replace the page controls while that section is in view. */
+[data-slot="card-content"] > .sticky-filter-bar {
+    z-index: 22;
+    background: var(--card);
+}
+
+.transaction-selection-bar {
+    top: calc(var(--account-toolbar-height, 80px) + var(--transaction-filters-height, 0px));
+}

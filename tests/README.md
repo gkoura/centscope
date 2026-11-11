@@ -59,3 +59,5 @@ This organization change did not execute any tests.
 The 2026-11-07 cache regressions additionally cover v1 response-snapshot rejection, exclusion of access-denied values from persistence, Analytics route/trends prefetch planning, transaction-summary reuse with cursor/filter/user/account isolation, delayed summary precedence and aborted-read suppression.
 
 The 2026-11-10 audit adds regressions for per-response snapshot expiry (including future timestamps), and for retaining shared memory queries during owned-only persistence/eviction. Shared join/leave revision invalidation is verified through disposable authenticated browser actions.
+
+`tests/unit/budget-prefetch.test.mjs` checks bounded adjacent-cadence summaries, four-popup limits, canonical keys, scope/mode separation and date boundaries. Workspace-cache regressions also verify summary retention when popup prefetches exceed the snapshot budget and exclude 410 responses. Preference persistence, browser storage denial/corruption, scope isolation, native-history navigation and budget-edit invalidation were exercised with disposable authenticated browser fixtures (see `docs/CACHING.md`).

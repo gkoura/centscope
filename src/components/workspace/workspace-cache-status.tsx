@@ -1,7 +1,10 @@
 "use client"
 import { useCallback, useSyncExternalStore } from "react"
 import { useIsFetching, useQueryClient } from "@tanstack/react-query"
-import { belongsToWorkspace } from "@/lib/workspace-cache-policy"
+import {
+    belongsToWorkspace,
+    workspaceReadRejected,
+} from "@/lib/workspace-cache-policy"
 import { useWorkspaceScope } from "./workspace-cache-provider"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertAction } from "@/components/ui/alert"
@@ -25,6 +28,7 @@ export function WorkspaceCacheStatus() {
                     belongsToWorkspace(query.queryKey, userId, revision) &&
                     query.getObserversCount() > 0 &&
                     query.state.status === "error" &&
+                    !workspaceReadRejected(query.state.error) &&
                     query.state.data !== undefined,
             }).length > 0,
         () => false

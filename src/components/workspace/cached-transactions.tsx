@@ -1,4 +1,5 @@
 "use client"
+import { useEffect, useRef } from "react"
 import { useWorkspaceQuery } from "./use-workspace-query"
 import { WorkspaceQueryState } from "./workspace-query-state"
 import { periodQuery } from "@/lib/account-period"
@@ -30,6 +31,25 @@ export function CachedTransactions({
 }) {
     const reference = useWorkspaceQuery("reference", id)
     const result = useWorkspaceQuery("transactions", id, query)
+    const filterBar = useRef<HTMLDivElement>(null)
+    const ready = Boolean(reference.data && result.data)
+    useEffect(() => {
+        const element = filterBar.current
+        const area = element?.closest<HTMLElement>(".account-area")
+        if (!element || !area) return
+        const update = () =>
+            area.style.setProperty(
+                "--transaction-filters-height",
+                `${element.getBoundingClientRect().height}px`
+            )
+        update()
+        const observer = new ResizeObserver(update)
+        observer.observe(element)
+        return () => {
+            observer.disconnect()
+            area.style.removeProperty("--transaction-filters-height")
+        }
+    }, [ready])
     if (!reference.data || !result.data)
         return (
             <WorkspaceQueryState
@@ -69,19 +89,24 @@ export function CachedTransactions({
                 accountId={id}
                 periodQuery={periodQuery(period)}
             />
-            <PeriodControls
-                period={period}
-                basePath={base}
-                query={currentQuery}
-            />
             <ActivitySummary compact activity={activity} />
-            <TransactionControls
-                accountId={id}
-                period={period}
-                filters={filters}
-                wallets={wallets}
-                categories={categories}
-            />
+            <div
+                ref={filterBar}
+                className="sticky-filter-bar flex flex-col gap-3"
+            >
+                <PeriodControls
+                    period={period}
+                    basePath={base}
+                    query={currentQuery}
+                />
+                <TransactionControls
+                    accountId={id}
+                    period={period}
+                    filters={filters}
+                    wallets={wallets}
+                    categories={categories}
+                />
+            </div>
             {history.transactions.length ? (
                 <section aria-label="Transaction history">
                     <div className="mb-4 flex items-center justify-between gap-4">

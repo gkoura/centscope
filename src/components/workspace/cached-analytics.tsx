@@ -33,7 +33,7 @@ export function CachedAnalyticsControls({ accountId, query }: Props) {
     if (!today) return <SectionLoading label="Loading period controls…" />
     const period = resolveAccountPeriod(analyticsPeriodInput(query), today)
     return (
-        <div className="flex flex-col gap-3">
+        <div className="contents">
             <PeriodControls
                 period={period}
                 basePath={`/dashboard/accounts/${accountId}/analytics`}

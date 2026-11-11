@@ -84,7 +84,7 @@ export function BulkTransactionFeed({
         })
     return (
         <div className="flex flex-col gap-4">
-            <div className="sticky top-20 z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-3">
+            <div className="transaction-selection-bar sticky z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-3">
                 {selecting ? (
                     <>
                         <div className="flex flex-wrap items-center gap-3">

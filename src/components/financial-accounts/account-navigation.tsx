@@ -1,6 +1,6 @@
 "use client"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { useTransition } from "react"
+import { useEffect, useRef, useTransition } from "react"
 import {
     Select,
     SelectTrigger,
@@ -30,6 +30,24 @@ export function AccountNavigation({
         query = useSearchParams(),
         router = useRouter()
     const [pending, startTransition] = useTransition()
+    const toolbar = useRef<HTMLElement>(null)
+    useEffect(() => {
+        const element = toolbar.current
+        const area = element?.closest<HTMLElement>(".account-area")
+        if (!element || !area) return
+        const update = () =>
+            area.style.setProperty(
+                "--account-toolbar-height",
+                `${element.getBoundingClientRect().height}px`
+            )
+        update()
+        const observer = new ResizeObserver(update)
+        observer.observe(element)
+        return () => {
+            observer.disconnect()
+            area.style.removeProperty("--account-toolbar-height")
+        }
+    }, [])
     const base = `/dashboard/accounts/${accountId}`
     const inTransactions = pathname.startsWith(`${base}/transactions`)
     const inBudgets = pathname.startsWith(`${base}/budgets`)
@@ -71,7 +89,7 @@ export function AccountNavigation({
         )
     }
     return (
-        <header className="account-toolbar" aria-busy={pending}>
+        <header ref={toolbar} className="account-toolbar" aria-busy={pending}>
             <div className="account-toolbar-inner">
                 <div className="min-w-0 flex-1 md:max-w-64">
                     <span className="mb-1 block text-[10px] font-medium tracking-widest text-muted-foreground uppercase">

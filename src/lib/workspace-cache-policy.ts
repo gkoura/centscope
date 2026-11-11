@@ -38,6 +38,16 @@ export type WorkspaceRequest = {
     query?: TransactionQuery
 }
 
+/** These responses invalidate saved values instead of falling back to them. */
+export function workspaceReadRejected(error: unknown) {
+    return (
+        typeof error === "object" &&
+        error !== null &&
+        "status" in error &&
+        [401, 403, 404, 409, 410].includes(Number(error.status))
+    )
+}
+
 /** URL spelling/order and irrelevant form return URLs must not create duplicate cache entries. */
 export function canonicalWorkspaceRequest(
     request: WorkspaceRequest,

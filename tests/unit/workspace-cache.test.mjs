@@ -198,7 +198,7 @@ test("response schema upgrades reject v1 snapshots even with an unchanged financ
 })
 
 test("access/revision rejection cannot turn saved data back into success on reload", async () => {
-    for (const status of [401, 403, 404, 409]) {
+    for (const status of [401, 403, 404, 409, 410]) {
         const source = client()
         source.setQueryData(key(), { private: "previously allowed data" })
         await assert.rejects(
@@ -370,4 +370,57 @@ test("pending-payment caches roll over at UTC midnight while lifetime trends kee
             today
         )
     )
+})
+
+test("new popup prefetches cannot evict budget period summaries from the persistence budget", () => {
+    const source = client()
+    const summary = workspaceQueryKey(
+        "alice",
+        "v1",
+        canonicalWorkspaceRequest(
+            {
+                resource: "budgets",
+                accountId: "account-a",
+                query: {
+                    cadence: "MONTHLY",
+                    date: "2026-11-01",
+                    mode: "actual",
+                },
+            },
+            today
+        )
+    )
+    source.setQueryData(
+        summary,
+        { period: "November", budgets: [] },
+        { updatedAt: 1 }
+    )
+    for (let n = 0; n < WORKSPACE_CACHE_MAX_QUERIES + 10; n++) {
+        source.setQueryData(
+            workspaceQueryKey(
+                "alice",
+                "v1",
+                canonicalWorkspaceRequest(
+                    {
+                        resource: "budgetTransactions",
+                        accountId: "account-a",
+                        query: {
+                            budgetId: String(n),
+                            cadence: "MONTHLY",
+                            date: "2026-11-01",
+                            page: "0",
+                        },
+                    },
+                    today
+                )
+            ),
+            { rows: [] },
+            { updatedAt: n + 2 }
+        )
+    }
+    const state = persistedWorkspaceState(dehydrate(source), "alice", "v1")
+    assert.equal(state.queries.length, WORKSPACE_CACHE_MAX_QUERIES)
+    assert.equal(state.queries[0].queryKey[4].resource, "budgets")
+    assert.ok(state.queries.some((q) => q.state.data.period === "November"))
+    source.clear()
 })

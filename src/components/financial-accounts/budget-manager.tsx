@@ -3,7 +3,7 @@ import { CategoryMultiSelect } from "./category-multi-select"
 import { ALL_CATEGORIES } from "@/lib/category-selection"
 
 import { useActionState, useEffect, useState, useCallback } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { ChevronDown, Plus, Target } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/collapsible"
 import { BudgetTransactionsDialog } from "./budget-transactions-dialog"
 import { useBudgetPrefetch } from "./budget-prefetch"
+import { useBudgetSectionPreferences } from "./use-budget-section-preferences"
 import type { BudgetMode } from "@/lib/budget-contribution"
 import { BudgetCard, type Budget } from "./budget-card"
 import {
@@ -330,7 +331,10 @@ function BudgetSection({
             </div>
             <CollapsibleContent keepMounted className="data-closed:hidden">
                 <div className="grid min-w-0 gap-4 pt-4">
-                    <fieldset disabled={disabled || orderDirty}>
+                    <fieldset
+                        className="sticky-filter-bar"
+                        disabled={disabled || orderDirty}
+                    >
                         <BudgetPeriodPicker
                             cadence={cadence}
                             value={date}
@@ -400,35 +404,18 @@ function BudgetSection({
         </Collapsible>
     )
 }
-export function BudgetManager({
-    accountId,
-    requestedPeriods,
-}: {
-    accountId: string
-    requestedPeriods: Record<string, string>
-}) {
+export function BudgetManager({ accountId }: { accountId: string }) {
     const today = useWorkspaceDay() || "2000-01-01"
     const reference = useWorkspaceQuery("reference", accountId)
     const inventory = useWorkspaceQuery("budgetInventory", accountId)
-    const router = useRouter(),
-        query = useSearchParams()
+    const query = useSearchParams()
     const [editor, setEditor] = useState<{
         budget?: Budget
         cadence: BudgetCadence
     } | null>(null)
     const [deleting, setDeleting] = useState<Budget | null>(null)
-    const [collapsedSections, setCollapsedSections] = useState<
-        Record<string, boolean>
-    >({})
-    const onExpandedChange = useCallback(
-        (cadence: BudgetCadence, expanded: boolean) => {
-            setCollapsedSections((previous) => ({
-                ...previous,
-                [`${accountId}-${cadence}`]: !expanded,
-            }))
-        },
-        [accountId]
-    )
+    const { isExpanded, setExpanded: onExpandedChange } =
+        useBudgetSectionPreferences(accountId)
     const [rootDirty, setRootDirty] = useState(false)
     const [sectionDirty, setSectionDirty] = useState<Record<string, boolean>>(
         {}
@@ -443,7 +430,7 @@ export function BudgetManager({
         []
     )
     const mode: BudgetMode =
-        requestedPeriods.mode === "smoothed" ? "smoothed" : "actual"
+        query.get("mode") === "smoothed" ? "smoothed" : "actual"
     const dirty = rootDirty || Object.values(sectionDirty).some(Boolean)
     if (!reference.data || !inventory.data)
         return (
@@ -456,9 +443,7 @@ export function BudgetManager({
     function changePeriod(cadence: BudgetCadence, date: string) {
         const next = new URLSearchParams(query.toString())
         next.set(budgetPeriodKey(cadence), budgetPeriod(cadence, date).from)
-        router.replace(`/dashboard/accounts/${accountId}/budgets?${next}`, {
-            scroll: false,
-        })
+        window.history.replaceState(null, "", `?${next}`)
     }
     return (
         <>
@@ -474,9 +459,10 @@ export function BudgetManager({
                                     query.toString()
                                 )
                                 next.set("mode", value)
-                                router.replace(
-                                    `/dashboard/accounts/${accountId}/budgets?${next}`,
-                                    { scroll: false }
+                                window.history.replaceState(
+                                    null,
+                                    "",
+                                    `?${next}`
                                 )
                             }}
                         >
@@ -546,8 +532,8 @@ export function BudgetManager({
                     onSave={(input) => reorderBudgetCadences(accountId, input)}
                     renderItem={(group, state) => {
                         const cadence = group.id
-                        const value = requestedPeriods[budgetPeriodKey(cadence)]
-                        const date = validBudgetDay(value ?? "") ? value : today
+                        const value = query.get(budgetPeriodKey(cadence)) ?? ""
+                        const date = validBudgetDay(value) ? value : today
                         return (
                             <BudgetSection
                                 accountId={accountId}
@@ -556,11 +542,7 @@ export function BudgetManager({
                                 mode={mode}
                                 disabled={state.disabled}
                                 dragging={state.dragging}
-                                expanded={
-                                    !collapsedSections[
-                                        `${accountId}-${cadence}`
-                                    ]
-                                }
+                                expanded={isExpanded(cadence)}
                                 onExpandedChange={onExpandedChange}
                                 onOrderDirty={onOrderDirty}
                                 onChange={(value) =>

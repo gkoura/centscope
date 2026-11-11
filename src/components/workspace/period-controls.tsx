@@ -63,7 +63,7 @@ export function PeriodControls({
     const previous = adjacentPeriod(period, -1),
         next = adjacentPeriod(period, 1)
     return (
-        <div className="period-controls" aria-busy={pending}>
+        <div className="period-controls sticky-filter-bar" aria-busy={pending}>
             {!monthlyOnly && (
                 <Tabs
                     value={period.view}

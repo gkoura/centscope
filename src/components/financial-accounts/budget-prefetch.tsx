@@ -7,29 +7,21 @@ import { startWorkspacePrefetch } from "@/lib/workspace-prefetch"
 import {
     workspaceRevision,
     publishWorkspaceEvent,
+    WORKSPACE_CACHE_EVENT,
+    type WorkspaceCacheEvent,
 } from "@/lib/workspace-cache-events"
 import {
     WorkspaceReadError,
     workspaceQueryOptions,
 } from "@/lib/workspace-query-options"
-import type { WorkspaceRequest } from "@/lib/workspace-cache-policy"
+import {
+    budgetDetailRequest,
+    budgetPrefetchRequests,
+} from "@/lib/budget-prefetch"
 import type { BudgetCadence } from "@/lib/budget-period"
 import type { BudgetMode } from "@/lib/budget-contribution"
 
-export function budgetDetailRequest(
-    accountId: string,
-    budgetId: string,
-    cadence: BudgetCadence,
-    date: string,
-    mode: BudgetMode,
-    page = 0
-): WorkspaceRequest & { resource: "budgetTransactions" } {
-    return {
-        resource: "budgetTransactions",
-        accountId,
-        query: { budgetId, cadence, date, mode, page: String(page) },
-    }
-}
+export { budgetDetailRequest } from "@/lib/budget-prefetch"
 function scheduleIdle(run: () => void) {
     let idle: number | undefined
     const timer = setTimeout(() => {
@@ -72,11 +64,14 @@ export function useBudgetPrefetch(
         const prefetch = startWorkspacePrefetch(
             client,
             scope,
-            key
-                .split(",")
-                .map((id) =>
-                    budgetDetailRequest(accountId, id, cadence, date, mode)
-                ),
+            budgetPrefetchRequests(
+                accountId,
+                key.split(","),
+                cadence,
+                date,
+                mode,
+                today
+            ),
             today,
             {
                 scheduleIdle,
@@ -92,11 +87,25 @@ export function useBudgetPrefetch(
             }
         )
         const resume = () => prefetch.resume()
+        const cacheEvent = (event: Event) => {
+            if (
+                (event as CustomEvent<WorkspaceCacheEvent>).detail?.type ===
+                "logout"
+            )
+                prefetch.stop()
+        }
+        window.addEventListener(WORKSPACE_CACHE_EVENT, cacheEvent)
         window.addEventListener("online", resume)
         window.addEventListener("focus", resume)
         document.addEventListener("visibilitychange", resume)
         return () => {
-            prefetch.stop()
+            prefetch.stop({
+                cancelInactive:
+                    workspaceRevision() !== revision ||
+                    window.location.pathname !==
+                        `/dashboard/accounts/${accountId}/budgets`,
+            })
+            window.removeEventListener(WORKSPACE_CACHE_EVENT, cacheEvent)
             window.removeEventListener("online", resume)
             window.removeEventListener("focus", resume)
             document.removeEventListener("visibilitychange", resume)

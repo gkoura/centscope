@@ -1,10 +1,12 @@
 import type { DehydratedState } from "@tanstack/react-query"
 import {
     belongsToWorkspace,
+    workspaceReadRejected,
     WORKSPACE_CACHE_MAX_AGE,
     WORKSPACE_CACHE_MAX_BYTES,
     WORKSPACE_CACHE_MAX_QUERIES,
     WORKSPACE_CACHE_VERSION,
+    type WorkspaceRequest,
 } from "./workspace-cache-policy.ts"
 
 export type SavedWorkspace = {
@@ -13,15 +15,6 @@ export type SavedWorkspace = {
     revision: string
     savedAt: number
     state: DehydratedState
-}
-
-function accessRejected(error: unknown) {
-    return (
-        typeof error === "object" &&
-        error !== null &&
-        "status" in error &&
-        [401, 403, 404, 409].includes(Number(error.status))
-    )
 }
 
 export function restoredWorkspaceState(
@@ -50,7 +43,7 @@ export function restoredWorkspaceState(
                 query.state.dataUpdatedAt <= now &&
                 now - query.state.dataUpdatedAt < WORKSPACE_CACHE_MAX_AGE &&
                 query.state.status === "success" &&
-                !accessRejected(query.state.error)
+                !workspaceReadRejected(query.state.error)
         ),
     }
 }
@@ -66,9 +59,21 @@ export function persistedWorkspaceState(
             (query) =>
                 belongsToWorkspace(query.queryKey, userId, revision) &&
                 query.state.data !== undefined &&
-                !accessRejected(query.state.error)
+                !workspaceReadRejected(query.state.error)
         )
-        .sort((a, b) => b.state.dataUpdatedAt - a.state.dataUpdatedAt)
+        .sort((a, b) => {
+            // Hover-prefetched budget popups must not evict the period summaries
+            // and reference data needed for navigation. Recency breaks ties.
+            const detail = (query: typeof a) =>
+                Number(
+                    (query.queryKey[4] as WorkspaceRequest | undefined)
+                        ?.resource === "budgetTransactions"
+                )
+            return (
+                detail(a) - detail(b) ||
+                b.state.dataUpdatedAt - a.state.dataUpdatedAt
+            )
+        })
     const queries: DehydratedState["queries"] = []
     let bytes = 1024 // Envelope and array separators.
     for (const query of candidates) {

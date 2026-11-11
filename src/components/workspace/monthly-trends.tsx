@@ -118,7 +118,7 @@ export function MonthlyTrends({
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex min-w-0 flex-col gap-5">
-                <div className="flex flex-wrap items-end justify-between gap-3">
+                <div className="sticky-filter-bar flex flex-wrap items-end justify-between gap-3">
                     <Tabs
                         value={type}
                         onValueChange={(value) => setType(value as typeof type)}
