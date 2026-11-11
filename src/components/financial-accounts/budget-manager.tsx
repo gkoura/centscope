@@ -430,7 +430,7 @@ export function BudgetManager({ accountId }: { accountId: string }) {
         []
     )
     const mode: BudgetMode =
-        query.get("mode") === "smoothed" ? "smoothed" : "actual"
+        query.get("mode") === "actual" ? "actual" : "smoothed"
     const dirty = rootDirty || Object.values(sectionDirty).some(Boolean)
     if (!reference.data || !inventory.data)
         return (
