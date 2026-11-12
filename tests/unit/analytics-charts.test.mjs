@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import {
     categorySpending,
     budgetComparison,
+    budgetsInSectionOrder,
     monthlyBudgetAmount,
 } from "../../src/lib/analytics-charts.ts"
 import { monthlyTrendBuckets } from "../../src/lib/monthly-trends.ts"
@@ -190,12 +191,87 @@ test("budget comparison cache window and mode are canonical and independent of p
         },
         "2026-11-12"
     )
-    assert.deepEqual(request.query, { month: "2026-10", mode: "smoothed" })
+    assert.deepEqual(request.query, {
+        month: "2026-10",
+        mode: "smoothed",
+        ordering: "sections-v1",
+    })
     assert.equal(
         canonicalWorkspaceRequest(
             { ...request, query: { month: "2026-10", mode: "actual" } },
             "2026-11-12"
         ).query.mode,
         "actual"
+    )
+})
+
+test("current-month exception appends a thirteenth month without dropping completed months", () => {
+    const rows = [
+        row({ paidOn: "2026-01-15" }),
+        row({ paidOn: "2025-01-01", amount: "7.00" }),
+    ]
+    const regular = budgetComparison([plan], rows, "2025-12", "actual")[0]
+        .points
+    const extended = budgetComparison(
+        [plan],
+        rows,
+        "2025-12",
+        "actual",
+        true
+    )[0].points
+    assert.equal(regular.length, 12)
+    assert.equal(extended.length, 13)
+    assert.equal(extended[0].month, "2025-01")
+    assert.equal(extended[12].month, "2026-01")
+    assert.equal(extended[12].spent, "30.00")
+    assert.equal(extended[12].budget, "50.00")
+    assert.equal(extended[12].remaining, "20.00")
+    assert.deepEqual(extended.slice(0, 12), regular)
+    const request = canonicalWorkspaceRequest(
+        {
+            resource: "budgetComparison",
+            accountId: "a",
+            query: { month: "2025-12", includeCurrent: "true" },
+        },
+        "2026-01-15"
+    )
+    assert.equal(request.query.includeCurrent, "true")
+    assert.equal(
+        canonicalWorkspaceRequest(
+            { ...request, query: { month: "2025-12" } },
+            "2026-01-15"
+        ).query.includeCurrent,
+        undefined
+    )
+})
+
+test("chart budgets follow account section order and preserve saved positions within sections", () => {
+    // SQL sorts per-section positions globally, interleaving cadences with the same positions.
+    const plans = [
+        { id: "yearly-first", recurrence: "YEARLY" },
+        { id: "monthly-first", recurrence: "MONTHLY" },
+        { id: "yearly-second", recurrence: "YEARLY" },
+        { id: "monthly-second", recurrence: "MONTHLY" },
+        { id: "monthly-third", recurrence: "MONTHLY" },
+    ]
+    assert.deepEqual(
+        budgetsInSectionOrder(plans, ["MONTHLY", "YEARLY"]).map((p) => p.id),
+        [
+            "monthly-first",
+            "monthly-second",
+            "monthly-third",
+            "yearly-first",
+            "yearly-second",
+        ]
+    )
+    assert.deepEqual(
+        budgetsInSectionOrder(plans, ["YEARLY", "MONTHLY"]).map((p) => p.id),
+        [
+            "yearly-first",
+            "yearly-second",
+            "monthly-first",
+            "monthly-second",
+            "monthly-third",
+        ]
     )
 })

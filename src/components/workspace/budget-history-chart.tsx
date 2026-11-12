@@ -37,7 +37,7 @@ import { trendEndMonth, trendMonths } from "@/lib/monthly-trends"
 import { formatWalletMoney } from "@/lib/wallet-input"
 import { currencyLabel } from "@/lib/currency"
 import { budgetCadenceLabels } from "@/lib/budget-period"
-import { moneyCents, centsMoney } from "@/lib/expense-spread"
+import { moneyCents, centsMoney, shiftMonth } from "@/lib/expense-spread"
 import type { BudgetMode } from "@/lib/budget-contribution"
 
 const config = {
@@ -57,9 +57,11 @@ export function BudgetHistoryChart({
     const [currency, setCurrency] = useState("")
     const [budgetId, setBudgetId] = useState("")
     const end = trendEndMonth("rolling", today)
+    const currentMonth = today.slice(0, 7)
     const result = useWorkspaceQuery("budgetComparison", accountId, {
         month: end,
         mode,
+        includeCurrent: "true",
     })
     const reference = useWorkspaceQuery("reference", accountId)
     const currencies = [
@@ -77,25 +79,28 @@ export function BudgetHistoryChart({
         result.data?.filter((p) => p.currency === activeCurrency) ?? []
     const plan = plans.find((p) => p.id === budgetId) ?? plans[0]
     const budgetIndex = plans.findIndex((p) => p.id === plan?.id)
-    const points = trendMonths(end).map((month) => {
-        const point = plan?.points.find((p) => p.month === month)
-        return {
-            month,
-            spent: point?.spent ?? null,
-            budget: point?.budget ?? null,
-            remaining: point?.remaining ?? null,
-            actual: point ? Number(point.spent) : null,
-            budgetValue: point ? Number(point.budget) : null,
+    const points = trendMonths(currentMonth, shiftMonth(end, -11)).map(
+        (month) => {
+            const point = plan?.points.find((p) => p.month === month)
+            return {
+                month,
+                spent: point?.spent ?? null,
+                budget: point?.budget ?? null,
+                remaining: point?.remaining ?? null,
+                actual: point ? Number(point.spent) : null,
+                budgetValue: point ? Number(point.budget) : null,
+            }
         }
-    })
+    )
+    const completedPoints = points.filter((point) => point.month <= end)
     const averageAmount = plan
         ? centsMoney(
-              (points.reduce(
+              (completedPoints.reduce(
                   (sum, point) => sum + moneyCents(point.spent ?? "0.00"),
                   BigInt(0)
               ) +
-                  BigInt(Math.floor(points.length / 2))) /
-                  BigInt(points.length)
+                  BigInt(Math.floor(completedPoints.length / 2))) /
+                  BigInt(completedPoints.length)
           )
         : null
     const averageOverBudget =
@@ -124,17 +129,6 @@ export function BudgetHistoryChart({
         moneyCents(amount) < BigInt(0)
             ? `Overspent ${money(centsMoney(-moneyCents(amount)))}`
             : `Remaining ${money(amount)}`
-    const scope = plan?.categorySelection.all
-        ? "All expenses"
-        : (plan?.categoryLabel ?? "Selected categories")
-    const representation =
-        plan?.recurrence === "YEARLY"
-            ? "The yearly limit is divided into 12 monthly shares, with remainder cents assigned to earlier months. Monthly remaining amounts compare spending with that share, not the entire yearly limit."
-            : plan?.recurrence === "WEEKLY"
-              ? "Weekly limits run Monday–Sunday and are allocated by day to each month; remainder cents go to earlier days of the week."
-              : plan?.recurrence === "DAILY"
-                ? "Monthly budget is the daily limit multiplied by the number of calendar days in that month."
-                : "Each month uses the full monthly limit."
     return (
         <Card role="region" aria-labelledby={id}>
             <CardHeader>
@@ -142,8 +136,8 @@ export function BudgetHistoryChart({
                     <h2 id={id}>Budget vs Actual L12M</h2>
                 </CardTitle>
                 <CardDescription>
-                    {monthLabel(points[0].month)} – {monthLabel(end)} · Last 12
-                    completed months
+                    {monthLabel(points[0].month)} – {monthLabel(currentMonth)} ·
+                    Last 12 completed months + current month
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex min-w-0 flex-col gap-5">
@@ -162,6 +156,25 @@ export function BudgetHistoryChart({
                     />
                 ) : (
                     <>
+                        {result.error && (
+                            <div
+                                role="alert"
+                                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4 text-sm"
+                            >
+                                <p>
+                                    Couldn’t refresh budgets. Showing previously
+                                    loaded values.
+                                </p>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        void result.refetch()
+                                    }}
+                                >
+                                    Retry
+                                </Button>
+                            </div>
+                        )}
                         {plans.length > 0 && (
                             <Field className="min-w-0">
                                 <FieldLabel htmlFor={id + "-budget"}>
@@ -243,27 +256,12 @@ export function BudgetHistoryChart({
                             </p>
                         ) : (
                             <>
-                                <p className="text-xs leading-5 text-muted-foreground">
-                                    {scope}. {representation} Current budget
-                                    definitions apply to all historical months,
-                                    including months before creation; edits
-                                    recalculate the chart.{" "}
-                                    {mode === "smoothed"
-                                        ? "Spending uses the existing smoothed expense allocations."
-                                        : "Spending uses actual payment dates."}{" "}
-                                    Posted expenses only, in the budget’s
-                                    currency. Budget calculations include
-                                    historical archived wallets, as on the
-                                    Budgets page.
-                                    {averageAmount !== null &&
-                                        " The average line includes all 12 completed months, including months with no spending."}
-                                </p>
                                 {!points.some((p) => Number(p.spent)) && (
                                     <p
                                         role="status"
                                         className="text-sm text-muted-foreground"
                                     >
-                                        No matching posted expenses in these 12
+                                        No matching posted expenses in these 13
                                         months. The budget amounts are still
                                         shown.
                                     </p>
@@ -292,7 +290,13 @@ export function BudgetHistoryChart({
                                             tickMargin={10}
                                             minTickGap={8}
                                             tickFormatter={(value) =>
-                                                monthLabel(String(value), true)
+                                                monthLabel(
+                                                    String(value),
+                                                    true
+                                                ) +
+                                                (value === currentMonth
+                                                    ? "*"
+                                                    : "")
                                             }
                                         />
                                         <YAxis
@@ -329,6 +333,13 @@ export function BudgetHistoryChart({
                                                                 ]
                                                             }
                                                         </span>
+                                                        {p.month ===
+                                                            currentMonth && (
+                                                            <span className="text-muted-foreground">
+                                                                Current month ·
+                                                                recorded so far
+                                                            </span>
+                                                        )}
                                                         {p.budget === null ||
                                                         p.spent === null ||
                                                         p.remaining === null ? (
@@ -479,6 +490,9 @@ export function BudgetHistoryChart({
                                                     className="px-3 py-2 text-left font-normal whitespace-nowrap"
                                                 >
                                                     {monthLabel(p.month)}
+                                                    {p.month === currentMonth
+                                                        ? " · so far"
+                                                        : ""}
                                                 </th>
                                                 {p.budget === null ||
                                                 p.spent === null ||

@@ -86,8 +86,12 @@ export function canonicalWorkspaceRequest(
                     ? month
                     : today.slice(0, 7),
         }
-        if (resource === "budgetComparison")
+        if (resource === "budgetComparison") {
+            // Retire persisted comparisons produced before section-aware ordering.
+            values.ordering = "sections-v1"
             values.mode = query.mode === "actual" ? "actual" : "smoothed"
+            if (query.includeCurrent === "true") values.includeCurrent = "true"
+        }
     } else if (resource === "budgets" || resource === "budgetTransactions") {
         const cadence = isBudgetCadence(query.cadence)
             ? query.cadence

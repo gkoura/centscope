@@ -1,5 +1,5 @@
 import "server-only"
-import { budgetComparison } from "@/lib/analytics-charts"
+import { budgetComparison, budgetsInSectionOrder } from "@/lib/analytics-charts"
 import { prisma } from "@/lib/prisma"
 import { financialAccess } from "@/lib/financial-access"
 import {
@@ -344,19 +344,36 @@ export async function getBudgetTransactions(
 export async function getBudgetComparison(
     accountId: string,
     endMonth: string,
-    mode: BudgetMode
+    mode: BudgetMode,
+    includeCurrent = false
 ) {
     await financialAccess(accountId)
     const from = `${shiftMonth(endMonth, -11)}-01`
-    const until = `${shiftMonth(endMonth, 1)}-01`
-    const [plans, entries] = await prisma.$transaction(
-        [
-            prisma.recurringBudget.findMany({
+    const until = `${shiftMonth(endMonth, includeCurrent ? 2 : 1)}-01`
+    const [plans, entries, account] = await prisma.$transaction(
+        async (tx) => {
+            // Await reads on this connection; do not queue concurrent transaction queries.
+            const account = await tx.financialAccount.findUniqueOrThrow({
+                where: { id: accountId },
+                select: { budgetCadenceOrder: true },
+            })
+            const plans = await tx.recurringBudget.findMany({
                 where: { financialAccountId: accountId },
-                include: planInclude,
+                select: {
+                    id: true,
+                    name: true,
+                    currency: true,
+                    recurrence: true,
+                    spendingLimit: true,
+                    allCategories: true,
+                    includeUncategorized: true,
+                    categorySelections: {
+                        select: { categoryId: true, includeChildren: true },
+                    },
+                },
                 orderBy,
-            }),
-            prisma.ledgerEntry.findMany({
+            })
+            const entries = await tx.ledgerEntry.findMany({
                 where: {
                     financialAccountId: accountId,
                     transaction: windowWhere(from, until, mode),
@@ -377,26 +394,22 @@ export async function getBudgetComparison(
                         },
                     },
                 },
-            }),
-        ],
-        { isolationLevel: "RepeatableRead" }
+            })
+            return [plans, entries, account] as const
+        },
+        { isolationLevel: "RepeatableRead", maxWait: 10_000, timeout: 15_000 }
     )
     return budgetComparison(
-        plans.map((plan) => ({
-            id: plan.id,
-            name: plan.name,
-            currency: plan.currency,
-            recurrence: plan.recurrence,
-            spendingLimit: plan.spendingLimit.toFixed(2),
-            categorySelection: selectionOf(plan),
-            categoryLabel: categorySelectionLabels(
-                selectionOf(plan),
-                plan.categorySelections.flatMap((s) => [
-                    s.category,
-                    ...(s.category.parent ? [s.category.parent] : []),
-                ])
-            ).join(", "),
-        })),
+        budgetsInSectionOrder(plans, account.budgetCadenceOrder).map(
+            (plan) => ({
+                id: plan.id,
+                name: plan.name,
+                currency: plan.currency,
+                recurrence: plan.recurrence,
+                spendingLimit: plan.spendingLimit.toFixed(2),
+                categorySelection: selectionOf(plan),
+            })
+        ),
         entries.map((entry) => ({
             amount: entry.amount.negated().toFixed(2),
             paidOn: entry.transaction.occurredAt.toISOString().slice(0, 10),
@@ -406,6 +419,7 @@ export async function getBudgetComparison(
             spread: entry.transaction.expenseSpread,
         })),
         endMonth,
-        mode
+        mode,
+        includeCurrent
     )
 }

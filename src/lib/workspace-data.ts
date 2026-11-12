@@ -166,7 +166,8 @@ export async function readWorkspaceData(
             return getBudgetComparison(
                 id,
                 String(query.month),
-                query.mode === "actual" ? "actual" : "smoothed"
+                query.mode === "actual" ? "actual" : "smoothed",
+                query.includeCurrent === "true"
             )
         case "budgetInventory":
             return getBudgetInventory(id)

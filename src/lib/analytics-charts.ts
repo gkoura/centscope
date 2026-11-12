@@ -140,11 +140,15 @@ export function budgetComparison(
     plans: ChartBudget[],
     entries: BudgetChartEntry[],
     endMonth: string,
-    mode: BudgetMode
+    mode: BudgetMode,
+    includeCurrent = false
 ) {
     return plans.map((plan) => ({
         ...plan,
-        points: trendMonths(endMonth).map((month) => {
+        points: trendMonths(
+            includeCurrent ? shiftMonth(endMonth, 1) : endMonth,
+            shiftMonth(endMonth, -11)
+        ).map((month) => {
             const period = {
                 from: month + "-01",
                 until: shiftMonth(month, 1) + "-01",
@@ -179,4 +183,14 @@ export function budgetComparison(
             }
         }),
     }))
+}
+
+/** Plans arrive in saved order within each recurrence; keep the account's section order too. */
+export function budgetsInSectionOrder<T extends { recurrence: BudgetCadence }>(
+    plans: T[],
+    cadenceOrder: readonly string[]
+) {
+    return cadenceOrder.flatMap((cadence) =>
+        plans.filter((plan) => plan.recurrence === cadence)
+    )
 }
