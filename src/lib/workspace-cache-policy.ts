@@ -102,10 +102,18 @@ export function canonicalWorkspaceRequest(
                 : today
         values = {
             cadence,
-            date: budgetPeriod(cadence, date).from,
+            date: budgetPeriod(
+                resource === "budgetTransactions" && query.scope === "month"
+                    ? "MONTHLY"
+                    : cadence,
+                date
+            ).from,
             mode: query.mode === "smoothed" ? "smoothed" : "actual",
         }
         if (resource === "budgetTransactions") {
+            values.format = "category-groups-v1"
+            if (query.scope === "month") values.scope = "month"
+            if (query.grouped === "true") values.grouped = "true"
             values.budgetId =
                 typeof query.budgetId === "string"
                     ? query.budgetId.slice(0, 128)
@@ -116,6 +124,7 @@ export function canonicalWorkspaceRequest(
                     ? page
                     : 0
             )
+            if (query.grouped === "true") values.page = "0"
         }
     } else if (resource === "balanceHistory" || resource === "analysis") {
         values = {

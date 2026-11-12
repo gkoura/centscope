@@ -177,7 +177,9 @@ export async function readWorkspaceData(
                 String(query.budgetId),
                 String(query.date),
                 query.mode === "smoothed" ? "smoothed" : "actual",
-                Number(query.page ?? 0)
+                Number(query.page ?? 0),
+                query.scope === "month" ? "month" : "budget",
+                query.grouped === "true"
             )
         case "budgets":
             return getRecurringBudgets(

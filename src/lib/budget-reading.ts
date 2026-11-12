@@ -239,7 +239,9 @@ export async function getBudgetTransactions(
     budgetId: string,
     date: string,
     mode: BudgetMode,
-    page = 0
+    page = 0,
+    scope: "budget" | "month" = "budget",
+    grouped = false
 ) {
     await financialAccess(accountId)
     return prisma.$transaction(
@@ -252,7 +254,10 @@ export async function getBudgetTransactions(
                 throw new BudgetUnavailableError(
                     "This budget was removed. Close this popup and refresh the page."
                 )
-            const period = budgetPeriod(plan.recurrence, date),
+            const period = budgetPeriod(
+                    scope === "month" ? "MONTHLY" : plan.recurrence,
+                    date
+                ),
                 categorySelection = selectionOf(plan)
             const entries = await tx.ledgerEntry.findMany({
                 where: {
@@ -267,8 +272,9 @@ export async function getBudgetTransactions(
                     amount: true,
                     category: {
                         select: {
+                            id: true,
                             name: true,
-                            parent: { select: { name: true } },
+                            parent: { select: { id: true, name: true } },
                         },
                     },
                     accountWallet: {
@@ -313,6 +319,21 @@ export async function getBudgetTransactions(
                         allocations: contribution.allocations,
                         spread: entry.transaction.expenseSpread,
                         wallet: entry.accountWallet.wallet.name,
+                        categoryGroup: entry.category
+                            ? (entry.category.parent ?? {
+                                  id: entry.category.id,
+                                  name: entry.category.name,
+                              })
+                            : {
+                                  id: "__uncategorized__",
+                                  name: "Uncategorized",
+                              },
+                        subcategory: entry.category?.parent
+                            ? {
+                                  id: entry.category.id,
+                                  name: entry.category.name,
+                              }
+                            : null,
                         category: entry.category
                             ? `${entry.category.parent ? entry.category.parent.name + " / " : ""}${entry.category.name}`
                             : "Uncategorized",
@@ -333,7 +354,9 @@ export async function getBudgetTransactions(
                 count: rows.length,
                 page,
                 pageSize: 100,
-                transactions: rows.slice(page * 100, (page + 1) * 100),
+                transactions: grouped
+                    ? rows
+                    : rows.slice(page * 100, (page + 1) * 100),
             }
         },
         { isolationLevel: "RepeatableRead", timeout: 15_000 }

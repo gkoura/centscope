@@ -38,6 +38,8 @@ import { formatWalletMoney } from "@/lib/wallet-input"
 import { currencyLabel } from "@/lib/currency"
 import { budgetCadenceLabels } from "@/lib/budget-period"
 import { moneyCents, centsMoney, shiftMonth } from "@/lib/expense-spread"
+import { BudgetTransactionsDialog } from "@/components/financial-accounts/budget-transactions-dialog"
+import type { BudgetCadence } from "@/lib/budget-period"
 import type { BudgetMode } from "@/lib/budget-contribution"
 
 const config = {
@@ -56,6 +58,12 @@ export function BudgetHistoryChart({
     const [mode, setMode] = useState<BudgetMode>("smoothed")
     const [currency, setCurrency] = useState("")
     const [budgetId, setBudgetId] = useState("")
+    const [detail, setDetail] = useState<{
+        budgetId: string
+        cadence: BudgetCadence
+        month: string
+        mode: BudgetMode
+    } | null>(null)
     const end = trendEndMonth("rolling", today)
     const currentMonth = today.slice(0, 7)
     const result = useWorkspaceQuery("budgetComparison", accountId, {
@@ -402,6 +410,25 @@ export function BudgetHistoryChart({
                                         <Bar
                                             dataKey="actual"
                                             name={`Spending (${mode})`}
+                                            className="cursor-pointer"
+                                            onClick={(entry) => {
+                                                const month = (
+                                                    entry.payload as
+                                                        | { month?: unknown }
+                                                        | undefined
+                                                )?.month
+                                                if (
+                                                    plan &&
+                                                    typeof month === "string"
+                                                )
+                                                    setDetail({
+                                                        budgetId: plan.id,
+                                                        cadence:
+                                                            plan.recurrence,
+                                                        month,
+                                                        mode,
+                                                    })
+                                            }}
                                             fill="var(--color-actual)"
                                             radius={[4, 4, 0, 0]}
                                             maxBarSize={36}
@@ -506,7 +533,26 @@ export function BudgetHistoryChart({
                                                 ) : (
                                                     <>
                                                         <td className="px-3 py-2 tabular-nums">
-                                                            {money(p.spent)}
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                aria-label={`View ${plan?.name ?? "budget"} transactions for ${monthLabel(p.month)}`}
+                                                                onClick={() => {
+                                                                    if (plan)
+                                                                        setDetail(
+                                                                            {
+                                                                                budgetId:
+                                                                                    plan.id,
+                                                                                cadence:
+                                                                                    plan.recurrence,
+                                                                                month: p.month,
+                                                                                mode,
+                                                                            }
+                                                                        )
+                                                                }}
+                                                            >
+                                                                {money(p.spent)}
+                                                            </Button>
                                                         </td>
                                                         <td className="px-3 py-2 tabular-nums">
                                                             {money(p.budget)}
@@ -527,6 +573,18 @@ export function BudgetHistoryChart({
                     </>
                 )}
             </CardContent>
+            {detail && (
+                <BudgetTransactionsDialog
+                    key={`${detail.budgetId}-${detail.month}-${detail.mode}`}
+                    accountId={accountId}
+                    budgetId={detail.budgetId}
+                    cadence={detail.cadence}
+                    date={`${detail.month}-01`}
+                    mode={detail.mode}
+                    scope="month"
+                    onClose={() => setDetail(null)}
+                />
+            )}
         </Card>
     )
 }
