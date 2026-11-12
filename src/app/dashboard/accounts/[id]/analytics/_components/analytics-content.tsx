@@ -1,40 +1,21 @@
+import { CachedOverviewBalanceHistory } from "@/components/workspace/cached-overview"
 import {
-    CachedAnalyticsControls,
-    CachedAnalyticsActivity,
-    CachedAnalyticsCategories,
     CachedAnalyticsMonthlyTrends,
+    CachedAnalyticsCategoryHistory,
+    CachedAnalyticsBudgetHistory,
 } from "@/components/workspace/cached-analytics"
-import type { TransactionQuery } from "@/lib/transaction-filters"
-type Props = {
-    params: Promise<{ id: string }>
-    searchParams: Promise<TransactionQuery>
+
+type Props = { params: Promise<{ id: string }> }
+export async function AnalyticsBalanceHistory({ params }: Props) {
+    return <CachedOverviewBalanceHistory accountId={(await params).id} />
 }
-export async function AnalyticsMonthlyTrends({
-    params,
-}: Pick<Props, "params">) {
+export async function AnalyticsMonthlyTrends({ params }: Props) {
     return <CachedAnalyticsMonthlyTrends accountId={(await params).id} />
 }
-export async function AnalyticsControls({ params, searchParams }: Props) {
-    return (
-        <CachedAnalyticsControls
-            accountId={(await params).id}
-            query={await searchParams}
-        />
-    )
+
+export async function AnalyticsCategoryHistory({ params }: Props) {
+    return <CachedAnalyticsCategoryHistory accountId={(await params).id} />
 }
-export async function AnalyticsActivity({ params, searchParams }: Props) {
-    return (
-        <CachedAnalyticsActivity
-            accountId={(await params).id}
-            query={await searchParams}
-        />
-    )
-}
-export async function AnalyticsCategories({ params, searchParams }: Props) {
-    return (
-        <CachedAnalyticsCategories
-            accountId={(await params).id}
-            query={await searchParams}
-        />
-    )
+export async function AnalyticsBudgetHistory({ params }: Props) {
+    return <CachedAnalyticsBudgetHistory accountId={(await params).id} />
 }

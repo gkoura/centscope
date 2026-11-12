@@ -29,6 +29,7 @@ export const workspaceResources = [
     "pendingPayments",
     "budgets",
     "budgetInventory",
+    "budgetComparison",
     "budgetTransactions",
 ] as const
 export type WorkspaceResource = (typeof workspaceResources)[number]
@@ -71,8 +72,11 @@ export function canonicalWorkspaceRequest(
                     values[key] = query[key].slice(0, 512)
     } else if (resource === "pendingPayments") {
         values = { day: today }
-    } else if (resource === "monthlyTrends") {
-        if (query.view === "all")
+    } else if (
+        resource === "monthlyTrends" ||
+        resource === "budgetComparison"
+    ) {
+        if (resource === "monthlyTrends" && query.view === "all")
             return { resource, accountId, query: { view: "all" } }
         const month = resolveAccountPeriod({ month: query.month }, today).month
         // Leave room for the 12-month window and maximum 120-month expense spread.
@@ -82,6 +86,8 @@ export function canonicalWorkspaceRequest(
                     ? month
                     : today.slice(0, 7),
         }
+        if (resource === "budgetComparison")
+            values.mode = query.mode === "actual" ? "actual" : "smoothed"
     } else if (resource === "budgets" || resource === "budgetTransactions") {
         const cadence = isBudgetCadence(query.cadence)
             ? query.cadence

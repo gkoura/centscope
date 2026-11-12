@@ -1,4 +1,5 @@
 import "server-only"
+import { budgetComparison } from "@/lib/analytics-charts"
 import { prisma } from "@/lib/prisma"
 import { financialAccess } from "@/lib/financial-access"
 import {
@@ -336,5 +337,75 @@ export async function getBudgetTransactions(
             }
         },
         { isolationLevel: "RepeatableRead", timeout: 15_000 }
+    )
+}
+
+/** Same eligibility, category matching and expense allocation as budget progress. */
+export async function getBudgetComparison(
+    accountId: string,
+    endMonth: string,
+    mode: BudgetMode
+) {
+    await financialAccess(accountId)
+    const from = `${shiftMonth(endMonth, -11)}-01`
+    const until = `${shiftMonth(endMonth, 1)}-01`
+    const [plans, entries] = await prisma.$transaction(
+        [
+            prisma.recurringBudget.findMany({
+                where: { financialAccountId: accountId },
+                include: planInclude,
+                orderBy,
+            }),
+            prisma.ledgerEntry.findMany({
+                where: {
+                    financialAccountId: accountId,
+                    transaction: windowWhere(from, until, mode),
+                },
+                select: {
+                    amount: true,
+                    categoryId: true,
+                    category: { select: { parentId: true } },
+                    accountWallet: {
+                        select: { wallet: { select: { currency: true } } },
+                    },
+                    transaction: {
+                        select: {
+                            occurredAt: true,
+                            expenseSpread: {
+                                select: { startMonth: true, monthCount: true },
+                            },
+                        },
+                    },
+                },
+            }),
+        ],
+        { isolationLevel: "RepeatableRead" }
+    )
+    return budgetComparison(
+        plans.map((plan) => ({
+            id: plan.id,
+            name: plan.name,
+            currency: plan.currency,
+            recurrence: plan.recurrence,
+            spendingLimit: plan.spendingLimit.toFixed(2),
+            categorySelection: selectionOf(plan),
+            categoryLabel: categorySelectionLabels(
+                selectionOf(plan),
+                plan.categorySelections.flatMap((s) => [
+                    s.category,
+                    ...(s.category.parent ? [s.category.parent] : []),
+                ])
+            ).join(", "),
+        })),
+        entries.map((entry) => ({
+            amount: entry.amount.negated().toFixed(2),
+            paidOn: entry.transaction.occurredAt.toISOString().slice(0, 10),
+            categoryId: entry.categoryId,
+            parentId: entry.category?.parentId ?? null,
+            currency: entry.accountWallet.wallet.currency,
+            spread: entry.transaction.expenseSpread,
+        })),
+        endMonth,
+        mode
     )
 }

@@ -106,3 +106,18 @@ export function CachedOverviewBalanceHistory({
         />
     )
 }
+
+const MonthlyTrends = dynamic(
+    () => import("./monthly-trends").then((module) => module.MonthlyTrends),
+    { loading: () => <SectionLoading label="Loading monthly trends…" /> }
+)
+
+export function CachedOverviewMonthlyTrends({
+    accountId,
+}: {
+    accountId: string
+}) {
+    const today = useWorkspaceDay()
+    if (!today) return <SectionLoading label="Loading monthly trends…" />
+    return <MonthlyTrends key={accountId} accountId={accountId} today={today} />
+}

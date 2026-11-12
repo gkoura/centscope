@@ -37,7 +37,7 @@ test("due labels distinguish today, overdue and upcoming across calendar boundar
     assert.equal(paymentDue("2024-02-29", "2024-03-01").label, "1 day overdue")
     assert.equal(paymentDue("2026-10-25", "2026-10-26").label, "1 day overdue")
 })
-test("summary puts earliest unpaid items first and includes all payments in counts and exact per-currency totals", () => {
+test("summary puts earliest unpaid items first and includes only overdue payments in counts and exact per-currency totals", () => {
     const payments = Array.from({ length: 8 }, (_, i) =>
         payment({
             id: String(i),
@@ -57,21 +57,18 @@ test("summary puts earliest unpaid items first and includes all payments in coun
         [...payments].reverse(),
         "2026-11-07"
     )
-    assert.equal(summary.count, 9)
+    assert.equal(summary.count, 3)
     assert.equal(summary.overdue, 3)
-    assert.equal(summary.dueToday, 1)
-    assert.equal(summary.items.length, 6)
+    assert.equal(summary.dueToday, 0)
+    assert.equal(summary.items.length, 3)
     assert.equal(summary.items[0].date, "2026-11-04")
     assert.equal(summary.items[0].due.state, "overdue")
-    assert.deepEqual(summary.totals, [
-        { currency: "EUR", amount: "10000000000000000.06" },
-        { currency: "USD", amount: "2.00" },
-    ])
+    assert.deepEqual(summary.totals, [{ currency: "EUR", amount: "0.03" }])
     assert.equal(summary.from, "2026-11-04")
-    assert.equal(summary.to, "2026-12-01")
+    assert.equal(summary.to, "2026-11-06")
     assert.equal(payments[0].id, "0")
 })
-test("view-all link spans every pending payment, including items outside this month and the preview", () => {
+test("view-all link excludes future payments and includes older overdue payments", () => {
     const summary = summarizePendingPayments(
         [
             payment({ date: "2025-01-01" }),
@@ -89,7 +86,7 @@ test("view-all link spans every pending payment, including items outside this mo
         type: "EXPENSE",
         view: "custom",
         from: "2025-01-01",
-        to: "2027-12-31",
+        to: "2025-01-01",
     })
     assert.equal(summarizePendingPayments([], "2026-11-07").count, 0)
     assert.deepEqual(summarizePendingPayments([], "2026-11-07").totals, [])
@@ -106,4 +103,17 @@ test("pending summary caches roll over daily and ignore overview month/list filt
         )
     assert.deepEqual(request("2026-11-07").query, { day: "2026-11-07" })
     assert.notDeepEqual(request("2026-11-07"), request("2026-11-08"))
+})
+
+test("today and future pending payments produce no warning summary", () => {
+    const summary = summarizePendingPayments(
+        [
+            payment({ date: "2026-11-07" }),
+            payment({ id: "future", date: "2026-11-08" }),
+        ],
+        "2026-11-07"
+    )
+    assert.equal(summary.count, 0)
+    assert.deepEqual(summary.items, [])
+    assert.deepEqual(summary.totals, [])
 })

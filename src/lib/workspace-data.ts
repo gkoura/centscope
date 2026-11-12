@@ -1,6 +1,7 @@
 import "server-only"
 import {
     getRecurringBudgets,
+    getBudgetComparison,
     getBudgetInventory,
     getBudgetTransactions,
 } from "@/lib/budget-reading"
@@ -113,6 +114,7 @@ export type WorkspaceData = {
     analysis: Awaited<ReturnType<typeof analysis>>
     transferWallets: Awaited<ReturnType<typeof listOwnedTransferWallets>>
     recurring: Awaited<ReturnType<typeof listOwnedRecurringSummary>>
+    budgetComparison: Awaited<ReturnType<typeof getBudgetComparison>>
     budgetInventory: Awaited<ReturnType<typeof getBudgetInventory>>
     budgetTransactions: Awaited<ReturnType<typeof getBudgetTransactions>>
     budgets: Awaited<ReturnType<typeof getRecurringBudgets>>
@@ -160,6 +162,12 @@ export async function readWorkspaceData(
             return listOwnedTransferWallets(id)
         case "recurring":
             return listOwnedRecurringSummary(id)
+        case "budgetComparison":
+            return getBudgetComparison(
+                id,
+                String(query.month),
+                query.mode === "actual" ? "actual" : "smoothed"
+            )
         case "budgetInventory":
             return getBudgetInventory(id)
         case "budgetTransactions":

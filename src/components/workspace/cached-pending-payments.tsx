@@ -9,7 +9,7 @@ export function CachedPendingPayments({ accountId }: { accountId: string }) {
         return (
             <WorkspaceQueryState
                 queries={[result]}
-                label="Loading pending payments…"
+                label="Loading overdue payments…"
             />
         )
     return <PendingPayments accountId={accountId} summary={result.data} />

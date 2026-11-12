@@ -2,9 +2,7 @@
 import { NativeSelect } from "@/components/ui/native-select"
 
 import { useId, useState } from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
-import { Button } from "@/components/ui/button"
 import {
     Card,
     CardHeader,
@@ -45,20 +43,15 @@ export function MonthlyTrends({
     today: string
 }) {
     const headingId = useId()
-    const thisYear = Number(today.slice(0, 4))
-    const [range, setRange] = useState("rolling")
     const [type, setType] = useState<"INCOME" | "EXPENSE">("EXPENSE")
-    const [mode, setMode] = useState<"actual" | "smoothed">("actual")
+    const [mode, setMode] = useState<"actual" | "smoothed">("smoothed")
     const [currency, setCurrency] = useState("")
     const [selections, setSelections] = useState<
         Record<"INCOME" | "EXPENSE", string[] | null>
     >({ INCOME: null, EXPENSE: null })
-    const requestedEnd = trendEndMonth(
-        range === "all" ? "rolling" : range,
-        today
-    )
+    const requestedEnd = trendEndMonth("rolling", today)
     const result = useWorkspaceQuery("monthlyTrends", accountId, {
-        ...(range === "all" ? { view: "all" } : { month: requestedEnd }),
+        month: requestedEnd,
     })
     const reference = useWorkspaceQuery("reference", accountId)
     const endMonth = result.data?.endMonth ?? requestedEnd
@@ -91,150 +84,113 @@ export function MonthlyTrends({
         ...point,
         value: Number(point.amount),
     }))
-    const years = [
-        ...new Set([
-            ...(range === "rolling" || range === "all" ? [] : [Number(range)]),
-            ...Array.from({ length: 31 }, (_, index) => thisYear - index),
-        ]),
-    ].sort((a, b) => b - a)
     const label = type === "INCOME" ? "Income" : "Expenses"
     const flow = type === "INCOME" ? "income" : "expense"
-    const rangeLabel =
-        range === "all" && !result.data?.buckets.length
-            ? "All time"
-            : `${range === "all" ? "All time · " : ""}${monthLabel(data.points[0]?.month ?? endMonth)} – ${monthLabel(endMonth)}`
+    const rangeLabel = `${monthLabel(data.points[0]?.month ?? endMonth)} – ${monthLabel(endMonth)}`
     const hasAmount = points.some((point) => point.amount !== "0.00")
     const selectionCount = selections[type]?.length
 
     return (
         <Card role="region" aria-labelledby={headingId}>
-            <CardHeader>
-                <CardTitle>
-                    <h2 id={headingId}>Monthly trends</h2>
-                </CardTitle>
-                <CardDescription>
-                    Compare income and expenses month by month. This section
-                    uses its own range, independent of the period above.
-                </CardDescription>
+            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 flex-col gap-1">
+                    <CardTitle>
+                        <h2 id={headingId}>Monthly trends</h2>
+                    </CardTitle>
+                    <CardDescription>
+                        {rangeLabel} · Last 12 months
+                    </CardDescription>
+                </div>
+                <Tabs
+                    value={type}
+                    onValueChange={(value) => setType(value as typeof type)}
+                >
+                    <TabsList aria-label="Monthly trend type" className="h-11">
+                        <TabsTrigger value="EXPENSE" className="min-h-10">
+                            Expenses
+                        </TabsTrigger>
+                        <TabsTrigger value="INCOME" className="min-h-10">
+                            Income
+                        </TabsTrigger>
+                    </TabsList>
+                </Tabs>
             </CardHeader>
             <CardContent className="flex min-w-0 flex-col gap-5">
-                <div className="sticky-filter-bar flex flex-wrap items-end justify-between gap-3">
-                    <Tabs
-                        value={type}
-                        onValueChange={(value) => setType(value as typeof type)}
-                    >
-                        <TabsList
-                            aria-label="Monthly trend type"
-                            className="h-11"
-                        >
-                            <TabsTrigger value="EXPENSE" className="min-h-10">
-                                Expenses
-                            </TabsTrigger>
-                            <TabsTrigger value="INCOME" className="min-h-10">
-                                Income
-                            </TabsTrigger>
-                        </TabsList>
-                    </Tabs>
-                    <div className="flex w-full items-end gap-2 sm:w-auto">
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="size-11"
-                            aria-label="Previous trend year"
-                            disabled={
-                                range === "all" ||
-                                (range !== "rolling" && Number(range) <= 1901)
-                            }
-                            onClick={() =>
-                                setRange(
-                                    String(
-                                        (range === "rolling"
-                                            ? thisYear
-                                            : Number(range)) - 1
-                                    )
-                                )
-                            }
-                        >
-                            <ChevronLeft />
-                        </Button>
-                        <Field className="min-w-0 flex-1 sm:w-44">
-                            <FieldLabel
-                                htmlFor={`${headingId}-range`}
-                                className="sr-only"
-                            >
-                                Monthly trend range
-                            </FieldLabel>
-                            <NativeSelect
-                                id={`${headingId}-range`}
-                                className="w-full [&>select]:h-11"
-                                value={range}
-                                onChange={(event) =>
-                                    setRange(event.target.value)
+                <div className="flex flex-col gap-3 border-t pt-4">
+                    <div className="flex flex-wrap items-end gap-3">
+                        {type === "EXPENSE" && (
+                            <Tabs
+                                value={mode}
+                                onValueChange={(value) =>
+                                    setMode(value as typeof mode)
                                 }
                             >
-                                <option value="rolling">Last 12 months</option>
-                                <option value="all">All time</option>
-                                {years.map((year) => (
-                                    <option key={year} value={String(year)}>
-                                        {year}
-                                    </option>
-                                ))}
-                            </NativeSelect>
-                        </Field>
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="size-11"
-                            aria-label="Next trend year"
-                            disabled={
-                                range === "all" ||
-                                range === "rolling" ||
-                                Number(range) >= thisYear
-                            }
-                            onClick={() => setRange(String(Number(range) + 1))}
-                        >
-                            <ChevronRight />
-                        </Button>
+                                <TabsList
+                                    aria-label="Expense calculation"
+                                    className="h-11"
+                                >
+                                    <TabsTrigger
+                                        value="smoothed"
+                                        className="min-h-10"
+                                    >
+                                        Smoothed
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                        value="actual"
+                                        className="min-h-10"
+                                    >
+                                        Actual
+                                    </TabsTrigger>
+                                </TabsList>
+                            </Tabs>
+                        )}
+                        {result.data && reference.data && (
+                            <div className="flex min-w-0 flex-wrap items-end gap-3 sm:ml-auto">
+                                <MonthlyTrendFilters
+                                    key={`${accountId}-${type}`}
+                                    categories={categories}
+                                    selected={selections[type]}
+                                    onChange={(ids) =>
+                                        setSelections((current) => ({
+                                            ...current,
+                                            [type]: ids,
+                                        }))
+                                    }
+                                />
+                                {currencies.length > 1 && (
+                                    <Field className="w-32 shrink-0">
+                                        <FieldLabel
+                                            htmlFor={`${headingId}-currency`}
+                                        >
+                                            Currency
+                                        </FieldLabel>
+                                        <NativeSelect
+                                            id={`${headingId}-currency`}
+                                            className="w-full [&>select]:h-11"
+                                            value={activeCurrency}
+                                            onChange={(event) =>
+                                                setCurrency(event.target.value)
+                                            }
+                                        >
+                                            {currencies.map((item) => (
+                                                <option key={item} value={item}>
+                                                    {currencyLabel(item)}
+                                                </option>
+                                            ))}
+                                        </NativeSelect>
+                                    </Field>
+                                )}
+                            </div>
+                        )}
                     </div>
+                    <p className="text-xs leading-5 text-muted-foreground">
+                        {type === "INCOME"
+                            ? "Posted income across 12 completed months."
+                            : mode === "actual"
+                              ? "Posted expenses in the month they were paid."
+                              : "Spread expenses across their assigned months; other expenses use their payment month."}
+                    </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                    {rangeLabel} ·{" "}
-                    {range === "rolling" ? "12 completed months · " : ""}Posted
-                    entries only
-                </p>
-                {type === "EXPENSE" && (
-                    <div className="flex flex-col gap-2">
-                        <Tabs
-                            value={mode}
-                            onValueChange={(value) =>
-                                setMode(value as typeof mode)
-                            }
-                        >
-                            <TabsList
-                                aria-label="Expense calculation"
-                                className="h-11"
-                            >
-                                <TabsTrigger
-                                    value="actual"
-                                    className="min-h-10"
-                                >
-                                    Actual
-                                </TabsTrigger>
-                                <TabsTrigger
-                                    value="smoothed"
-                                    className="min-h-10"
-                                >
-                                    Smoothed
-                                </TabsTrigger>
-                            </TabsList>
-                        </Tabs>
-                        <p className="text-xs leading-5 text-muted-foreground">
-                            {mode === "actual"
-                                ? "Expenses count in the month the payment was made."
-                                : "Spread expenses count across their assigned months; other expenses use their payment month."}
-                        </p>
-                    </div>
-                )}
                 {!result.data || !reference.data ? (
                     <WorkspaceQueryState
                         queries={[result, reference]}
@@ -242,42 +198,6 @@ export function MonthlyTrends({
                     />
                 ) : (
                     <>
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                            <MonthlyTrendFilters
-                                key={`${accountId}-${type}`}
-                                categories={categories}
-                                selected={selections[type]}
-                                onChange={(ids) =>
-                                    setSelections((current) => ({
-                                        ...current,
-                                        [type]: ids,
-                                    }))
-                                }
-                            />
-                            {currencies.length > 1 && (
-                                <Field className="w-full shrink-0 sm:w-36">
-                                    <FieldLabel
-                                        htmlFor={`${headingId}-currency`}
-                                    >
-                                        Currency
-                                    </FieldLabel>
-                                    <NativeSelect
-                                        id={`${headingId}-currency`}
-                                        className="w-full [&>select]:h-11"
-                                        value={activeCurrency}
-                                        onChange={(event) =>
-                                            setCurrency(event.target.value)
-                                        }
-                                    >
-                                        {currencies.map((item) => (
-                                            <option key={item} value={item}>
-                                                {currencyLabel(item)}
-                                            </option>
-                                        ))}
-                                    </NativeSelect>
-                                </Field>
-                            )}
-                        </div>
                         {activeCurrency ? (
                             <>
                                 <div
@@ -323,7 +243,7 @@ export function MonthlyTrends({
                                     >
                                         {selectionCount === 0
                                             ? "Select at least one category, or clear filters to include everything."
-                                            : `No posted ${type === "INCOME" ? "income" : "expenses"} match these filters in this range. Try another period or clear the category filters.`}
+                                            : `No posted ${type === "INCOME" ? "income" : "expenses"} match these filters in this range. Try clearing the category filters.`}
                                     </p>
                                 )}
                                 <ChartContainer
@@ -353,7 +273,7 @@ export function MonthlyTrends({
                                                 monthLabel(
                                                     String(value),
                                                     true,
-                                                    range === "all"
+                                                    false
                                                 )
                                             }
                                         />

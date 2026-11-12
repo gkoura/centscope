@@ -1,21 +1,18 @@
 import { Suspense } from "react"
 import type { Metadata } from "next"
-import type { TransactionQuery } from "@/lib/transaction-filters"
 import { SectionLoading } from "@/components/site/section-loading"
 import {
-    AnalyticsControls,
-    AnalyticsActivity,
-    AnalyticsCategories,
+    AnalyticsBalanceHistory,
     AnalyticsMonthlyTrends,
+    AnalyticsCategoryHistory,
+    AnalyticsBudgetHistory,
 } from "./_components/analytics-content"
 
 export const metadata: Metadata = { title: "Analytics" }
 export default function AnalyticsPage({
     params,
-    searchParams,
 }: {
     params: Promise<{ id: string }>
-    searchParams: Promise<TransactionQuery>
 }) {
     return (
         <main className="workspace-page">
@@ -25,39 +22,28 @@ export default function AnalyticsPage({
                     Analytics
                 </h1>
                 <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                    Your income, spending, and category patterns for any period.
+                    Your balance, income, and spending over the last 12 months.
                 </p>
             </header>
             <Suspense
-                fallback={<SectionLoading label="Loading period controls…" />}
+                fallback={<SectionLoading label="Loading balance history…" />}
             >
-                <AnalyticsControls
-                    params={params}
-                    searchParams={searchParams}
-                />
-            </Suspense>
-            <Suspense
-                fallback={
-                    <SectionLoading label="Loading posted totals and wallet activity…" />
-                }
-            >
-                <AnalyticsActivity
-                    params={params}
-                    searchParams={searchParams}
-                />
-            </Suspense>
-            <Suspense
-                fallback={<SectionLoading label="Loading category spending…" />}
-            >
-                <AnalyticsCategories
-                    params={params}
-                    searchParams={searchParams}
-                />
+                <AnalyticsBalanceHistory params={params} />
             </Suspense>
             <Suspense
                 fallback={<SectionLoading label="Loading monthly trends…" />}
             >
                 <AnalyticsMonthlyTrends params={params} />
+            </Suspense>
+            <Suspense
+                fallback={<SectionLoading label="Loading category spending…" />}
+            >
+                <AnalyticsCategoryHistory params={params} />
+            </Suspense>
+            <Suspense
+                fallback={<SectionLoading label="Loading budget comparison…" />}
+            >
+                <AnalyticsBudgetHistory params={params} />
             </Suspense>
         </main>
     )

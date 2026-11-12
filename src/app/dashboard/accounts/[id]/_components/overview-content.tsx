@@ -5,6 +5,7 @@ import { AccountTools } from "@/components/financial-accounts/account-tools"
 import {
     CachedOverviewBalances,
     CachedOverviewBalanceHistory,
+    CachedOverviewMonthlyTrends,
 } from "@/components/workspace/cached-overview"
 import type { TransactionQuery } from "@/lib/transaction-filters"
 type Props = {
@@ -38,4 +39,8 @@ export async function OverviewTools({ params }: Pick<Props, "params">) {
 
 export async function OverviewRecurring({ params }: Pick<Props, "params">) {
     return <CachedRecurringSummary accountId={(await params).id} />
+}
+
+export async function OverviewMonthlyTrends({ params }: Pick<Props, "params">) {
+    return <CachedOverviewMonthlyTrends accountId={(await params).id} />
 }

@@ -467,10 +467,10 @@ export function BudgetManager({ accountId }: { accountId: string }) {
                             }}
                         >
                             <TabsList>
-                                <TabsTrigger value="actual">Actual</TabsTrigger>
                                 <TabsTrigger value="smoothed">
                                     Smoothed
                                 </TabsTrigger>
+                                <TabsTrigger value="actual">Actual</TabsTrigger>
                             </TabsList>
                         </Tabs>
                     </fieldset>

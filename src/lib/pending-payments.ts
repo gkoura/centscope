@@ -33,12 +33,14 @@ export function summarizePendingPayments(
     payments: PendingPayment[],
     today: string
 ) {
-    const sorted = [...payments].sort(
-        (a, b) =>
-            a.date.localeCompare(b.date) ||
-            a.name.localeCompare(b.name) ||
-            a.id.localeCompare(b.id)
-    )
+    const sorted = payments
+        .filter((payment) => payment.date < today)
+        .sort(
+            (a, b) =>
+                a.date.localeCompare(b.date) ||
+                a.name.localeCompare(b.name) ||
+                a.id.localeCompare(b.id)
+        )
     const amounts = new Map<string, bigint>()
     let overdue = 0,
         dueToday = 0
