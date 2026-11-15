@@ -277,7 +277,7 @@ export function CreateTransactionForm({
                 }
             />
             <fieldset disabled={pending} className="contents">
-                <FieldGroup className="gap-4 [&_[data-slot=field-label]]:min-h-5 [&_[data-slot=field]]:gap-1.5 [&_[data-slot=select-trigger]]:h-11 [&_button[id=transaction-date]]:h-11">
+                <FieldGroup className="gap-4 [&_[data-slot=date-picker]>button]:h-11 [&_[data-slot=field-label]]:min-h-5 [&_[data-slot=field]]:gap-1.5 [&_[data-slot=select-trigger]]:h-11">
                     <div className="flex items-end justify-between gap-6">
                         <div className="min-w-0 flex-1">
                             <TransactionSelect
@@ -443,6 +443,8 @@ export function CreateTransactionForm({
                             <DatePicker
                                 id="transaction-date"
                                 name="date"
+                                showShortcuts
+                                disabled={editScope !== "ONLY"}
                                 value={values.date}
                                 onChange={(value) => update("date", value)}
                                 aria-invalid={Boolean(state.errors?.date)}

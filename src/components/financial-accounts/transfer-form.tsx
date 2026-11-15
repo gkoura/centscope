@@ -243,6 +243,7 @@ export function TransferForm({
                         <DatePicker
                             id="transfer-date"
                             name="date"
+                            showShortcuts
                             value={values.date}
                             disabled={scope !== "ONLY"}
                             required

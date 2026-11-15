@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { format, parseISO, isValid } from "date-fns"
 import { CalendarDaysIcon, ChevronDownIcon } from "lucide-react"
+import { cn } from "cn"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -21,6 +22,7 @@ type DatePickerProps = {
     required?: boolean
     min?: string
     max?: string
+    showShortcuts?: boolean
     "aria-invalid"?: boolean
     "aria-describedby"?: string
 }
@@ -34,6 +36,7 @@ export function DatePicker({
     required = false,
     min,
     max,
+    showShortcuts = false,
     ...ariaProps
 }: DatePickerProps) {
     const [open, setOpen] = useState(false)
@@ -43,9 +46,38 @@ export function DatePicker({
     const minimum = min ? parseISO(min) : undefined
     const maximum = max ? parseISO(max) : undefined
 
+    function selectRelativeDate(offset: number) {
+        const date = new Date()
+        date.setUTCDate(date.getUTCDate() + offset)
+        const next = date.toISOString().slice(0, 10)
+        if (disabled || (min && next < min) || (max && next > max)) return
+        onChange(next)
+        setOpen(false)
+    }
+
     return (
-        <>
+        <div data-slot="date-picker" className="flex flex-wrap gap-2">
             <input type="hidden" name={name} value={value} />
+            {showShortcuts && (
+                <>
+                    <Button
+                        variant="outline"
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => selectRelativeDate(0)}
+                    >
+                        Today
+                    </Button>
+                    <Button
+                        variant="outline"
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => selectRelativeDate(-1)}
+                    >
+                        Yesterday
+                    </Button>
+                </>
+            )}
             <Popover open={open && !disabled} onOpenChange={setOpen}>
                 <PopoverTrigger
                     render={
@@ -54,8 +86,13 @@ export function DatePicker({
                             type="button"
                             id={id}
                             disabled={disabled}
-                            aria-required={required}
-                            className="w-full justify-start"
+                            aria-description={
+                                required ? "Required date" : undefined
+                            }
+                            className={cn(
+                                "min-w-0 justify-start",
+                                showShortcuts ? "flex-1 basis-48" : "w-full"
+                            )}
                             {...ariaProps}
                         />
                     }
@@ -93,6 +130,6 @@ export function DatePicker({
                     />
                 </PopoverContent>
             </Popover>
-        </>
+        </div>
     )
 }
