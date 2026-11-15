@@ -124,6 +124,7 @@ erDiagram
         DateTime createdAt
     }
     Category {
+        String iconKey "nullable"
         Int sortOrder
         String id PK
         String financialAccountId FK

@@ -92,7 +92,12 @@ function BudgetForm({
     }, [state, budget, onSaved])
     const choices = categories
         .filter((c) => c.type === "EXPENSE")
-        .map((c) => ({ id: c.id, name: c.name, parentId: c.parentId }))
+        .map((c) => ({
+            id: c.id,
+            name: c.name,
+            parentId: c.parentId,
+            iconKey: c.iconKey,
+        }))
     for (const category of budget?.selectedCategories ?? [])
         if (!choices.some((c) => c.id === category.id)) choices.push(category)
     return (

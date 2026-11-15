@@ -1,4 +1,5 @@
 import "server-only"
+import { isCategoryIconKey } from "@/lib/category-icons"
 import { lockFinancialAccess, financialAccess } from "@/lib/financial-access"
 
 import { requireVerifiedSession } from "@/lib/auth/session"
@@ -34,6 +35,7 @@ export async function listOwnedAccountCategories(financialAccountId: string) {
         select: {
             id: true,
             name: true,
+            iconKey: true,
             type: true,
             parentId: true,
             updatedAt: true,
@@ -59,6 +61,8 @@ export async function createOwnedCategory(
     input: CategoryInput,
     names = [input.name]
 ) {
+    if (input.iconKey != null && !isCategoryIconKey(input.iconKey))
+        throw new CategoryWriteError("Choose an icon from the list.")
     const parsed = parseCategoryNames(
         names.join("\n"),
         input.parentId ? "subcategories" : "categories"
@@ -111,9 +115,12 @@ export async function changeOwnedCategory(
         categoryId: string
         expectedUpdatedAt: string
         name: string
+        iconKey?: string | null
     },
     archive: boolean
 ) {
+    if (!archive && input.iconKey != null && !isCategoryIconKey(input.iconKey))
+        throw new CategoryWriteError("Choose an icon from the list.")
     const { user } = await requireVerifiedSession()
     await prisma.$transaction(
         async (tx) => {
@@ -155,7 +162,13 @@ export async function changeOwnedCategory(
                 where: { id: category.id },
                 data: archive
                     ? { archivedAt: updatedAt, updatedAt }
-                    : { name: input.name, updatedAt },
+                    : {
+                          name: input.name,
+                          ...(input.iconKey !== undefined
+                              ? { iconKey: input.iconKey }
+                              : {}),
+                          updatedAt,
+                      },
                 select: { id: true },
             })
         },

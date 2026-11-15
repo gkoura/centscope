@@ -1,3 +1,4 @@
+import { isCategoryIconKey, seededCategoryIcons } from "./category-icons.ts"
 export const categoryTypes = [
     { value: "EXPENSE", label: "Expense" },
     { value: "INCOME", label: "Income" },
@@ -12,14 +13,20 @@ export const defaultCategories = [
         "Health",
         "Leisure",
         "Other expenses",
-    ].map((name) => ({ name, type: "EXPENSE" as const })),
+    ].map((name) => ({
+        name,
+        iconKey: seededCategoryIcons[name],
+        type: "EXPENSE" as const,
+    })),
     ...["Salary", "Other income"].map((name) => ({
         name,
+        iconKey: seededCategoryIcons[name],
         type: "INCOME" as const,
     })),
 ]
 
 export type CategoryInput = {
+    iconKey?: string | null
     financialAccountId: string
     name: string
     type: "EXPENSE" | "INCOME"
@@ -49,7 +56,13 @@ export function validateCategoryInput(
     const name = text(form, "name")
     const type = text(form, "type")
     const parentId = text(form, "parentId") || null
+    const iconKey = text(form, "iconKey") || null
     const errors: NonNullable<CategoryFormState["errors"]> = {}
+    if (
+        (iconKey !== null && !isCategoryIconKey(iconKey)) ||
+        (form.has("iconKey") && typeof form.get("iconKey") !== "string")
+    )
+        errors.iconKey = "Choose an icon from the list."
     if (!financialAccountId || financialAccountId.length > 128)
         errors.financialAccountId = "This account is unavailable."
     if (!validCategoryName(name))
@@ -65,6 +78,7 @@ export function validateCategoryInput(
             name,
             type: type as CategoryInput["type"],
             parentId,
+            iconKey,
         },
     }
 }

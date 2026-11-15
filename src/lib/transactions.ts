@@ -738,6 +738,8 @@ export async function listOwnedAccountTransactions(
                         !e.accountWallet.wallet.archivedAt &&
                         !e.accountWallet.financialAccount.archivedAt
                 ),
+                categoryIconKey: entry.category?.iconKey ?? null,
+                parentCategoryIconKey: entry.category?.parent?.iconKey ?? null,
                 categoryName:
                     entry.category?.parent?.name ??
                     entry.category?.name ??

@@ -1,4 +1,5 @@
 "use client"
+import { CategoryIcon } from "@/components/financial-accounts/category-icon"
 import { useId, useState } from "react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import {
@@ -172,6 +173,10 @@ export function CategoryHistoryChart({
                                         return active && p ? (
                                             <div className="grid max-h-72 max-w-72 gap-1 overflow-auto rounded-lg border bg-popover px-3 py-2 text-xs shadow-md">
                                                 <strong>
+                                                    <CategoryIcon
+                                                        multiple
+                                                        className="mr-2 inline-block align-middle"
+                                                    />
                                                     {monthLabel(p.month)} ·
                                                     Total {money(p.total)}
                                                 </strong>
@@ -180,7 +185,15 @@ export function CategoryHistoryChart({
                                                         key={g.key}
                                                         className="flex justify-between gap-3"
                                                     >
-                                                        <span>{g.name}</span>
+                                                        <span>
+                                                            <CategoryIcon
+                                                                iconKey={
+                                                                    g.iconKey
+                                                                }
+                                                                className="mr-2 inline-block align-middle"
+                                                            />
+                                                            {g.name}
+                                                        </span>
                                                         <span className="tabular-nums">
                                                             {money(
                                                                 p.amounts[g.key]
@@ -228,6 +241,10 @@ export function CategoryHistoryChart({
                                         className="size-2 rounded-full"
                                         style={{ background: g.color }}
                                     />
+                                    <CategoryIcon
+                                        iconKey={g.iconKey}
+                                        className="mr-2 inline-block align-middle"
+                                    />
                                     {g.name}
                                 </span>
                             ))}
@@ -256,6 +273,10 @@ export function CategoryHistoryChart({
                                                     key={g.key}
                                                     className="px-3 py-2 text-right"
                                                 >
+                                                    <CategoryIcon
+                                                        iconKey={g.iconKey}
+                                                        className="mr-2 inline-block align-middle"
+                                                    />
                                                     {g.name}
                                                 </th>
                                             ))}
@@ -344,6 +365,19 @@ export function CategoryHistoryChart({
                                                     className="flex justify-between gap-4 text-sm"
                                                 >
                                                     <span className="min-w-0 break-words">
+                                                        <CategoryIcon
+                                                            iconKey={
+                                                                result.data?.categories.find(
+                                                                    (c) =>
+                                                                        c.id ===
+                                                                        child.id
+                                                                )?.iconKey
+                                                            }
+                                                            parentIconKey={
+                                                                group.iconKey
+                                                            }
+                                                            className="mr-2 inline-block align-middle"
+                                                        />
                                                         {child.name}
                                                     </span>
                                                     <span className="shrink-0 tabular-nums">

@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidateWorkspacePath } from "@/lib/workspace-cache-invalidation"
+import { isCategoryIconKey } from "@/lib/category-icons"
 import { Prisma } from "@/generated/prisma/client"
 import { requireVerifiedSession } from "@/lib/auth/session"
 import {
@@ -86,7 +87,11 @@ export async function renameCategory(
             },
         }
     try {
-        await changeOwnedCategory(input, false)
+        const rawIcon = form.get("iconKey")
+        const iconKey = rawIcon === "" ? null : rawIcon
+        if (iconKey !== null && !isCategoryIconKey(iconKey))
+            return { errors: { iconKey: "Choose an icon from the list." } }
+        await changeOwnedCategory({ ...input, iconKey }, false)
     } catch (error) {
         return { message: errorMessage(error) }
     }

@@ -1,5 +1,6 @@
 "use client"
 
+import { CategoryIconPicker } from "./category-icon-picker"
 import { useActionState, useState, useEffect } from "react"
 import {
     archiveCategory,
@@ -39,6 +40,7 @@ import {
 } from "@/components/ui/select"
 
 export type CategoryChoice = {
+    iconKey?: string | null
     id: string
     name: string
     type: "EXPENSE" | "INCOME"
@@ -218,6 +220,16 @@ export function CreateCategoryForm({
                         <FieldError>{state.errors.parentId}</FieldError>
                     ) : null}
                 </Field>
+                <CategoryIconPicker
+                    batch
+                    inherits={selectedParentId !== "root"}
+                    parentIconKey={
+                        categories.find((c) => c.id === selectedParentId)
+                            ?.iconKey
+                    }
+                    disabled={pending}
+                    error={state.errors?.iconKey}
+                />
             </FieldGroup>
             {state.message ? (
                 <p role="status" className="text-sm">
@@ -260,14 +272,17 @@ export function CategoryEditor({
     financialAccountId,
     category,
     disabled = false,
+    parentIconKey,
 }: {
     disabled?: boolean
+    parentIconKey?: string | null
     financialAccountId: string
     category: {
         id: string
         name: string
         parentId: string | null
         updatedAt: string
+        iconKey?: string | null
     }
 }) {
     const [renameState, rename, renaming] = useActionState(
@@ -313,7 +328,7 @@ export function CategoryEditor({
                         Edit {category.name}
                     </DialogTitle>
                     <DialogDescription>
-                        Update the name or manage this{" "}
+                        Update the name, icon or manage this{" "}
                         {category.parentId ? "subcategory" : "category"}.
                     </DialogDescription>
                 </DialogHeader>
@@ -338,6 +353,14 @@ export function CategoryEditor({
                                 </FieldError>
                             ) : null}
                         </Field>
+                        <CategoryIconPicker
+                            key={`${category.id}-${category.updatedAt}`}
+                            defaultValue={category.iconKey}
+                            parentIconKey={parentIconKey}
+                            inherits={!!category.parentId}
+                            disabled={renaming || archiving || deleting}
+                            error={renameState.errors?.iconKey}
+                        />
                         {renameState.message ? (
                             <FieldError role="alert">
                                 {renameState.message}
@@ -347,7 +370,7 @@ export function CategoryEditor({
                             type="submit"
                             disabled={renaming || archiving || deleting}
                         >
-                            {renaming ? "Saving…" : "Save name"}
+                            {renaming ? "Saving…" : "Save changes"}
                         </Button>
                     </form>
                     <div className="flex flex-col gap-3 border-t pt-5">

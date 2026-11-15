@@ -14,7 +14,12 @@ export function analyticsPeriodInput(
 }
 
 export function categorySpendingGroups(
-    categories: { name: string; currency: string; amount: string }[]
+    categories: {
+        name: string
+        currency: string
+        amount: string
+        iconKey?: string | null
+    }[]
 ) {
     return [...new Set(categories.map((category) => category.currency))].map(
         (currency) => {

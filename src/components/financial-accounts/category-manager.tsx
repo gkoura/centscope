@@ -1,12 +1,12 @@
 "use client"
 
+import { CategoryIcon } from "./category-icon"
 import { flushSync } from "react-dom"
 import { toast } from "sonner"
 import { useCallback, useState, useRef } from "react"
 import {
     ArrowDownLeft,
     ArrowUpRight,
-    CornerDownRight,
     Layers,
     Plus,
     Search,
@@ -484,6 +484,12 @@ export function CategoryManager({
                                                         </span>
                                                         <div className="min-w-0">
                                                             <h3 className="text-sm font-medium wrap-break-word">
+                                                                <CategoryIcon
+                                                                    iconKey={
+                                                                        root.iconKey
+                                                                    }
+                                                                    className="mr-2 inline-block align-middle"
+                                                                />
                                                                 {root.name}
                                                             </h3>
                                                             <p className="mt-1 text-xs text-muted-foreground">
@@ -572,9 +578,13 @@ export function CategoryManager({
                                                                 >
                                                                     <div className="flex min-w-0 items-center gap-3">
                                                                         <CategoryDragHandle />
-                                                                        <CornerDownRight
-                                                                            className="size-4 shrink-0 text-muted-foreground"
-                                                                            aria-hidden="true"
+                                                                        <CategoryIcon
+                                                                            iconKey={
+                                                                                child.iconKey
+                                                                            }
+                                                                            parentIconKey={
+                                                                                root.iconKey
+                                                                            }
                                                                         />
                                                                         <span className="text-sm wrap-break-word">
                                                                             {
@@ -592,6 +602,9 @@ export function CategoryManager({
                                                                         }
                                                                         financialAccountId={
                                                                             financialAccountId
+                                                                        }
+                                                                        parentIconKey={
+                                                                            root.iconKey
                                                                         }
                                                                         category={
                                                                             child

@@ -9,8 +9,8 @@ import {
 } from "./transaction-filters.ts"
 import { resolveAccountPeriod, periodQuery } from "./account-period.ts"
 
-// v9 removes budget history and health payloads while charts are deferred.
-export const WORKSPACE_CACHE_VERSION = 9
+// v10 includes category icon keys in reference, transaction and analytics payloads.
+export const WORKSPACE_CACHE_VERSION = 10
 export const WORKSPACE_CACHE_MAX_AGE = 24 * 60 * 60 * 1000
 export const WORKSPACE_CACHE_MAX_BYTES = 20 * 1024 * 1024
 export const WORKSPACE_CACHE_MAX_QUERIES = 60

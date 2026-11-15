@@ -87,6 +87,7 @@ export async function getOwnedMonthlyTrends(
                 select: {
                     id: true,
                     name: true,
+                    iconKey: true,
                     type: true,
                     parentId: true,
                     sortOrder: true,

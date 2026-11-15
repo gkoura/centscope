@@ -1,7 +1,8 @@
 "use client"
 
+import { CategoryIcon } from "./category-icon"
 import { useId, useState } from "react"
-import { ChevronDown, ChevronRight, ListFilter, Search, X } from "lucide-react"
+import { ChevronDown, ChevronRight, Search, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldLabel } from "@/components/ui/field"
@@ -116,6 +117,8 @@ export function CategorySelectionPicker({
     }
     function choice(label: string, ids: string[], description?: string) {
         const id = `${pickerId}-choice-${ids.join("-")}`
+        const category = categories.find((c) => c.id === ids[0])
+        const parent = categories.find((c) => c.id === category?.parentId)
         return (
             <Field orientation="horizontal" className="min-w-0 flex-1">
                 <Checkbox
@@ -127,6 +130,10 @@ export function CategorySelectionPicker({
                     htmlFor={id}
                     className="min-h-12 min-w-0 flex-1 cursor-pointer gap-3 py-2.5"
                 >
+                    <CategoryIcon
+                        iconKey={category?.iconKey}
+                        parentIconKey={parent?.iconKey}
+                    />
                     <span className="flex min-w-0 flex-col gap-0.5">
                         <span className="wrap-break-word">{label}</span>
                         {description && (
@@ -186,9 +193,7 @@ export function CategorySelectionPicker({
                             />
                         }
                     >
-                        <ListFilter
-                            data-icon={fullWidth ? undefined : "inline-start"}
-                        />{" "}
+                        <CategoryIcon multiple />{" "}
                         <span
                             className={cn(
                                 fullWidth && "min-w-0 flex-1 truncate text-left"
@@ -522,6 +527,21 @@ export function CategorySelectionPicker({
                             }
                             aria-label={`Remove ${chip.label} filter`}
                         >
+                            <CategoryIcon
+                                iconKey={
+                                    categories.find((c) => c.id === chip.ids[0])
+                                        ?.iconKey
+                                }
+                                parentIconKey={
+                                    categories.find(
+                                        (c) =>
+                                            c.id ===
+                                            categories.find(
+                                                (c) => c.id === chip.ids[0]
+                                            )?.parentId
+                                    )?.iconKey
+                                }
+                            />
                             <span className="min-w-0 wrap-break-word">
                                 {chip.label}
                             </span>

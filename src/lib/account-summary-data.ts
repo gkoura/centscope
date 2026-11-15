@@ -68,7 +68,11 @@ export const getOwnedAccountActivity = cache(
                     },
                 },
                 category: {
-                    select: { name: true, parent: { select: { name: true } } },
+                    select: {
+                        name: true,
+                        iconKey: true,
+                        parent: { select: { name: true, iconKey: true } },
+                    },
                 },
                 transaction: { select: { id: true, type: true, status: true } },
             },
@@ -82,6 +86,9 @@ export const getOwnedAccountActivity = cache(
                 walletId: entry.accountWalletId,
                 walletName: entry.accountWallet.wallet.name,
                 currency: entry.accountWallet.wallet.currency,
+                categoryIconKey: entry.category?.parent
+                    ? entry.category.parent.iconKey
+                    : entry.category?.iconKey,
                 parentCategory:
                     entry.category?.parent?.name ??
                     entry.category?.name ??

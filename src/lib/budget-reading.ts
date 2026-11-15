@@ -25,10 +25,16 @@ const planInclude = {
                 select: {
                     id: true,
                     name: true,
+                    iconKey: true,
                     parentId: true,
                     archivedAt: true,
                     parent: {
-                        select: { id: true, name: true, parentId: true },
+                        select: {
+                            id: true,
+                            name: true,
+                            parentId: true,
+                            iconKey: true,
+                        },
                     },
                 },
             },
@@ -196,6 +202,7 @@ export async function getRecurringBudgets(
         const selectedCategories = plan.categorySelections.flatMap((s) => [
             {
                 id: s.category.id,
+                iconKey: s.category.iconKey,
                 name:
                     s.category.name +
                     (s.category.archivedAt ? " (archived)" : ""),
@@ -274,7 +281,10 @@ export async function getBudgetTransactions(
                         select: {
                             id: true,
                             name: true,
-                            parent: { select: { id: true, name: true } },
+                            iconKey: true,
+                            parent: {
+                                select: { id: true, name: true, iconKey: true },
+                            },
                         },
                     },
                     accountWallet: {
@@ -319,10 +329,14 @@ export async function getBudgetTransactions(
                         allocations: contribution.allocations,
                         spread: entry.transaction.expenseSpread,
                         wallet: entry.accountWallet.wallet.name,
+                        categoryIconKey: entry.category?.iconKey ?? null,
+                        parentCategoryIconKey:
+                            entry.category?.parent?.iconKey ?? null,
                         categoryGroup: entry.category
                             ? (entry.category.parent ?? {
                                   id: entry.category.id,
                                   name: entry.category.name,
+                                  iconKey: entry.category.iconKey,
                               })
                             : {
                                   id: "__uncategorized__",

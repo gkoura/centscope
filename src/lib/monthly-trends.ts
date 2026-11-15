@@ -7,6 +7,7 @@ import {
 } from "./expense-spread.ts"
 
 export type TrendCategory = {
+    iconKey?: string | null
     id: string
     name: string
     parentId: string | null

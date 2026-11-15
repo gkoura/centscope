@@ -1,5 +1,6 @@
 "use client"
 
+import { CategoryIcon } from "@/components/financial-accounts/category-icon"
 import { useState } from "react"
 import { Percent } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -16,8 +17,18 @@ export function CategorySpending({
     categories,
     incomeCategories = [],
 }: {
-    categories: { name: string; currency: string; amount: string }[]
-    incomeCategories?: { name: string; currency: string; amount: string }[]
+    categories: {
+        name: string
+        currency: string
+        amount: string
+        iconKey?: string | null
+    }[]
+    incomeCategories?: {
+        name: string
+        currency: string
+        amount: string
+        iconKey?: string | null
+    }[]
 }) {
     const [type, setType] = useState("EXPENSE")
     const [percentage, setPercentage] = useState(false)
@@ -78,6 +89,10 @@ export function CategorySpending({
                             <div key={category.name}>
                                 <div className="mb-2 flex items-baseline justify-between gap-4 text-sm">
                                     <span className="min-w-0 wrap-break-word">
+                                        <CategoryIcon
+                                            iconKey={category.iconKey}
+                                            className="mr-2 inline-block align-middle"
+                                        />
                                         {category.name}
                                     </span>
                                     <span

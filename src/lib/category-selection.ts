@@ -1,4 +1,5 @@
 export type CategoryChoice = {
+    iconKey?: string | null
     id: string
     name: string
     parentId: string | null

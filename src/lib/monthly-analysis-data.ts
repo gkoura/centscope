@@ -56,7 +56,8 @@ export async function getOwnedMonthlyAnalysis(
                     category: {
                         select: {
                             name: true,
-                            parent: { select: { name: true } },
+                            iconKey: true,
+                            parent: { select: { name: true, iconKey: true } },
                         },
                     },
                     accountWallet: {
@@ -87,6 +88,8 @@ export async function getOwnedMonthlyAnalysis(
         amount: entry.amount.abs().toFixed(2),
         currency: entry.accountWallet.wallet.currency,
         walletName: entry.accountWallet.wallet.name,
+        categoryIconKey: entry.category?.iconKey ?? null,
+        parentCategoryIconKey: entry.category?.parent?.iconKey ?? null,
         category: entry.category
             ? `${entry.category.parent ? `${entry.category.parent.name} / ` : ""}${entry.category.name}`
             : "Uncategorized",

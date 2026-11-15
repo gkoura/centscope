@@ -1,5 +1,6 @@
 "use client"
 
+import { CategoryIcon } from "@/components/financial-accounts/category-icon"
 import { currencySymbol, currencyLabel } from "@/lib/currency"
 import { useWorkspaceQuery, useWorkspaceDay } from "./use-workspace-query"
 import { WorkspaceQueryState } from "./workspace-query-state"
@@ -189,6 +190,23 @@ export function CachedMonthlyAnalysis({
                                 className="flex justify-between gap-4 p-4"
                             >
                                 <span className="min-w-0 wrap-break-word">
+                                    <CategoryIcon
+                                        iconKey={
+                                            current.rows.find(
+                                                (row) =>
+                                                    row.category ===
+                                                    category.name
+                                            )?.categoryIconKey
+                                        }
+                                        parentIconKey={
+                                            current.rows.find(
+                                                (row) =>
+                                                    row.category ===
+                                                    category.name
+                                            )?.parentCategoryIconKey
+                                        }
+                                        className="mr-2 inline-block align-middle"
+                                    />
                                     {category.name}
                                 </span>
                                 <span className="shrink-0 tabular-nums">
@@ -226,7 +244,15 @@ export function CachedMonthlyAnalysis({
                                     </Link>
                                     <p className="text-xs text-muted-foreground">
                                         Payment date: {row.date} ·{" "}
-                                        {row.walletName} · {row.category}
+                                        {row.walletName} ·{" "}
+                                        <CategoryIcon
+                                            iconKey={row.categoryIconKey}
+                                            parentIconKey={
+                                                row.parentCategoryIconKey
+                                            }
+                                            className="mr-1 inline-block size-3 align-middle"
+                                        />
+                                        {row.category}
                                     </p>
                                     {row.allocated && (
                                         <Badge variant="secondary">

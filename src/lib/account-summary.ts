@@ -8,6 +8,7 @@ export type ActivityEntry = {
     walletName: string
     currency: string
     category: string | null
+    categoryIconKey?: string | null
     parentCategory?: string | null
 }
 export function summarizeActivity(
@@ -24,11 +25,21 @@ export function summarizeActivity(
     >()
     const categories = new Map<
         string,
-        { name: string; currency: string; amount: bigint }
+        {
+            name: string
+            currency: string
+            amount: bigint
+            iconKey?: string | null
+        }
     >()
     const incomeCategories = new Map<
         string,
-        { name: string; currency: string; amount: bigint }
+        {
+            name: string
+            currency: string
+            amount: bigint
+            iconKey?: string | null
+        }
     >()
     const ids = new Set<string>(),
         pendingIds = new Set<string>()
@@ -66,6 +77,9 @@ export function summarizeActivity(
                     key = JSON.stringify([entry.currency, name])
                 const category = categoryTotals.get(key) ?? {
                     name,
+                    ...(entry.categoryIconKey !== undefined
+                        ? { iconKey: entry.categoryIconKey }
+                        : {}),
                     currency: entry.currency,
                     amount: BigInt(0),
                 }

@@ -1,5 +1,6 @@
 "use client"
 
+import { CategoryIcon } from "./category-icon"
 import { useState } from "react"
 import { Check, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -11,7 +12,12 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover"
 
-type Category = { id: string; name: string; parentId: string | null }
+type Category = {
+    iconKey?: string | null
+    id: string
+    name: string
+    parentId: string | null
+}
 
 export function TransactionCategoryPicker({
     categories,
@@ -62,7 +68,11 @@ export function TransactionCategoryPicker({
                         />
                     }
                 >
-                    <span className="truncate">
+                    <CategoryIcon
+                        iconKey={selected?.iconKey}
+                        parentIconKey={selectedParent?.iconKey}
+                    />
+                    <span className="min-w-0 flex-1 truncate text-left">
                         {selectedParent
                             ? `${selectedParent.name} / ${selected?.name}`
                             : (selected?.name ?? "Choose a category")}
@@ -93,7 +103,10 @@ export function TransactionCategoryPicker({
                                 className="h-auto min-h-11 w-full justify-between text-left whitespace-normal"
                                 onClick={() => choose(parent.id)}
                             >
-                                <span>Use {parent.name}</span>
+                                <span className="flex items-center gap-2">
+                                    <CategoryIcon iconKey={parent.iconKey} />
+                                    Use {parent.name}
+                                </span>
                                 {value === parent.id && <Check />}
                             </Button>
                             <p className="px-3 py-1 text-xs text-muted-foreground">
@@ -119,7 +132,11 @@ export function TransactionCategoryPicker({
                                         : choose(category.id)
                                 }
                             >
-                                <span className="min-w-0 break-words">
+                                <CategoryIcon
+                                    iconKey={category.iconKey}
+                                    parentIconKey={parent?.iconKey}
+                                />
+                                <span className="min-w-0 flex-1 break-words">
                                     {category.name}
                                 </span>
                                 {nested ? (

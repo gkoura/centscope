@@ -253,3 +253,9 @@ are affected by palette choices.
 - `RecurringBudget.sortOrder` orders plans within each recurrence, with createdAt/id as stable tie-breakers. SQL enforces nonnegative positions. Account-row locking and exact previous-order validation reject concurrent reorder conflicts; affected budget versions increment so stale edits cannot overwrite them.
 - Budget reads include posted expense ledger entries only, scoped to the account, category union and currency. Actual uses payment dates. Smoothed uses the existing monthly spread shares; partial months distribute those shares over calendar days, assigning remainder cents to earlier days. Unspread expenses retain their payment date. Summaries and transaction popups share the same exact-cent contribution calculation.
 - Charts are deferred. Budget summaries read only the selected period. Detail responses return up to 100 contributors per page, with totals/counts calculated across the complete matching set.
+
+### Category icons — 2026-11-16
+
+- `Category.iconKey` is nullable text. Application writes accept only stable keys in `src/lib/category-icons.ts`; arbitrary SVG, executable content and unknown submitted keys are rejected in the server action and write service. Text rather than a database enum allows the curated registry to evolve without replacing an enum.
+- Null on a subcategory means inherit its parent’s current icon; null on a root uses Tag. Unknown stored keys safely follow the same resolution path. Inheritance is resolved for display, never copied into the child row, so clearing an override and later parent edits work consistently.
+- New account seeds save explicit defaults. The additive migration performs no name-based backfill or changes to existing records. Existing account locks, authorization, `updatedAt` conflict checks and category constraints remain in force. Icons do not participate in selection, ordering, filters or financial calculations.

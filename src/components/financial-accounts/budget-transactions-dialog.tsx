@@ -1,4 +1,5 @@
 "use client"
+import { CategoryIcon } from "./category-icon"
 import { useId, useState } from "react"
 import {
     Dialog,
@@ -85,7 +86,9 @@ export function BudgetTransactionsDialog({
                     </DialogDescription>
                 </DialogHeader>
                 <Field orientation="horizontal" className="justify-end">
-                    <FieldLabel htmlFor={groupedId}>Grouped by Category</FieldLabel>
+                    <FieldLabel htmlFor={groupedId}>
+                        Grouped by Category
+                    </FieldLabel>
                     <Switch
                         id={groupedId}
                         checked={grouped}
@@ -192,7 +195,22 @@ export function BudgetTransactionsDialog({
                                                 className="min-h-11 cursor-pointer px-3 py-3 font-medium"
                                             >
                                                 <span className="inline-flex max-w-full flex-wrap justify-between gap-x-3 gap-y-1">
-                                                    <span>{group.name}</span>
+                                                    <span>
+                                                        <CategoryIcon
+                                                            iconKey={
+                                                                group
+                                                                    .subgroups[0]
+                                                                    ?.rows[0]
+                                                                    ?.parentCategoryIconKey ??
+                                                                group
+                                                                    .subgroups[0]
+                                                                    ?.rows[0]
+                                                                    ?.categoryIconKey
+                                                            }
+                                                            className="mr-2 inline-block align-middle"
+                                                        />
+                                                        {group.name}
+                                                    </span>
                                                     <span className="tabular-nums">
                                                         {money(
                                                             group.total,
@@ -328,7 +346,13 @@ function BudgetTransactionList({
                                 {row.name}
                             </p>
                             <p className="mt-1 text-xs wrap-break-word text-muted-foreground">
-                                {row.wallet} · {row.category}
+                                {row.wallet} ·{" "}
+                                <CategoryIcon
+                                    iconKey={row.categoryIconKey}
+                                    parentIconKey={row.parentCategoryIconKey}
+                                    className="mr-1 inline-block size-3 align-middle"
+                                />
+                                {row.category}
                             </p>
                         </div>
                         <span className="shrink-0 font-semibold tabular-nums">

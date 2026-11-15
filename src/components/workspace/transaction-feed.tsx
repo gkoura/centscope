@@ -1,4 +1,5 @@
 "use client"
+import { CategoryIcon } from "@/components/financial-accounts/category-icon"
 import { useState } from "react"
 import Link from "next/link"
 import {
@@ -173,6 +174,17 @@ export function TransactionFeed({
                                                 </span>
                                                 <span className="mt-1 block truncate text-[11px] text-muted-foreground">
                                                     {transaction.walletName}
+                                                    {transaction.category && (
+                                                        <CategoryIcon
+                                                            iconKey={
+                                                                transaction.categoryIconKey
+                                                            }
+                                                            parentIconKey={
+                                                                transaction.parentCategoryIconKey
+                                                            }
+                                                            className="mx-1 inline-block size-3 align-middle"
+                                                        />
+                                                    )}
                                                     {transaction.category
                                                         ? ` · ${transaction.category}`
                                                         : transaction.transfer
@@ -382,6 +394,13 @@ export function TransactionFeed({
                             </div>
                             {selected.category && (
                                 <p className="text-sm text-muted-foreground">
+                                    <CategoryIcon
+                                        iconKey={selected.categoryIconKey}
+                                        parentIconKey={
+                                            selected.parentCategoryIconKey
+                                        }
+                                        className="mr-2 inline-block align-middle"
+                                    />
                                     {selected.category}
                                 </p>
                             )}

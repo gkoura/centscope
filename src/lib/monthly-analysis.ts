@@ -11,6 +11,8 @@ export type AnalysisExpense = {
     amount: string
     date: string
     currency: string
+    categoryIconKey?: string | null
+    parentCategoryIconKey?: string | null
     category: string
     walletName: string
     spread: ExpenseSpread | null
