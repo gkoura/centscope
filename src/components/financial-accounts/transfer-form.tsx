@@ -1,5 +1,5 @@
 "use client"
-import { NativeSelect } from "@/components/ui/native-select"
+import { WalletPicker } from "./wallet-picker"
 
 import { currencySymbol } from "@/lib/currency"
 import { useActionState, useState } from "react"
@@ -97,26 +97,20 @@ export function TransferForm({
             options = eligible(side),
             label = side === "source" ? "From" : "To"
         return (
-            <Field>
-                <FieldLabel htmlFor={`${side}-wallet`}>
-                    {label} wallet
-                </FieldLabel>
-                <NativeSelect
-                    id={`${side}-wallet`}
-                    name={idKey}
-                    className="w-full [&>select]:h-11"
-                    value={values[idKey]}
-                    required
-                    onChange={(event) => update(idKey, event.target.value)}
-                >
-                    {options.map((w) => (
-                        <option key={w.id} value={w.id}>
-                            {w.wallet.name} ({currencySymbol(w.wallet.currency)}
-                            )
-                        </option>
-                    ))}
-                </NativeSelect>
-            </Field>
+            <WalletPicker
+                id={`${side}-wallet`}
+                name={idKey}
+                label={`${label} wallet`}
+                value={values[idKey]}
+                wallets={options.map((w) => ({
+                    id: w.id,
+                    name: w.wallet.name,
+                    currency: w.wallet.currency,
+                }))}
+                onChange={(value) => update(idKey, value)}
+                disabled={pending}
+                error={state.errors?.[idKey]}
+            />
         )
     }
     return (

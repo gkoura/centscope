@@ -4,8 +4,10 @@ import { useState } from "react"
 import { format, parseISO, isValid } from "date-fns"
 import { CalendarDaysIcon, ChevronDownIcon } from "lucide-react"
 import { cn } from "cn"
+import { useUtcDay } from "@/hooks/use-utc-day"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
     Popover,
     PopoverContent,
@@ -40,6 +42,18 @@ export function DatePicker({
     ...ariaProps
 }: DatePickerProps) {
     const [open, setOpen] = useState(false)
+    const today = useUtcDay()
+    const yesterday = today
+        ? new Date(Date.parse(`${today}T00:00:00Z`) - 86_400_000)
+              .toISOString()
+              .slice(0, 10)
+        : ""
+    const shortcut =
+        today && value === today
+            ? "today"
+            : yesterday && value === yesterday
+              ? "yesterday"
+              : null
     // Parse as a local calendar date: UTC conversion can shift the selected day.
     const parsed = value ? parseISO(value) : undefined
     const selected = parsed && isValid(parsed) ? parsed : undefined
@@ -59,24 +73,23 @@ export function DatePicker({
         <div data-slot="date-picker" className="flex flex-wrap gap-2">
             <input type="hidden" name={name} value={value} />
             {showShortcuts && (
-                <>
-                    <Button
-                        variant="outline"
-                        type="button"
-                        disabled={disabled}
-                        onClick={() => selectRelativeDate(0)}
-                    >
+                <ToggleGroup
+                    variant="outline"
+                    aria-label="Quick date selection"
+                    value={shortcut ? [shortcut] : []}
+                    disabled={disabled}
+                    onValueChange={(next) => {
+                        if (next[0] === "today") selectRelativeDate(0)
+                        if (next[0] === "yesterday") selectRelativeDate(-1)
+                    }}
+                >
+                    <ToggleGroupItem value="today" type="button">
                         Today
-                    </Button>
-                    <Button
-                        variant="outline"
-                        type="button"
-                        disabled={disabled}
-                        onClick={() => selectRelativeDate(-1)}
-                    >
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="yesterday" type="button">
                         Yesterday
-                    </Button>
-                </>
+                    </ToggleGroupItem>
+                </ToggleGroup>
             )}
             <Popover open={open && !disabled} onOpenChange={setOpen}>
                 <PopoverTrigger

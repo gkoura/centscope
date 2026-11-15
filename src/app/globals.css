@@ -613,15 +613,49 @@ a:focus-visible {
     scroll-snap-type: x proximity;
     padding: 2px 2px 8px;
 }
+.wallet-balance-tile,
+.wallet-choice {
+    border: 1px solid var(--border);
+    background: var(--card);
+    scroll-snap-align: start;
+}
 .wallet-balance-tile {
     display: block;
     min-width: 165px;
     max-width: 260px;
     padding: 16px;
-    border: 1px solid var(--border);
     border-radius: 16px;
-    background: var(--card);
-    scroll-snap-align: start;
+}
+.wallet-choice-strip {
+    position: relative;
+    display: flex;
+    gap: 8px;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    padding: 2px;
+}
+.wallet-choice {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    min-height: 40px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.wallet-choice:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+}
+.wallet-choice[data-disabled] {
+    pointer-events: none;
+    opacity: 0.5;
 }
 .balance-summary-compact .balance-hero {
     padding: 0;
@@ -719,6 +753,7 @@ a {
 }
 @media (hover: hover) and (pointer: fine) {
     .wallet-balance-tile:hover,
+    .wallet-choice:hover,
     .transaction-open-button:hover {
         background: var(--accent);
     }
@@ -901,7 +936,8 @@ html:has(.app-shell) {
         padding: 10px;
     }
 }
-.wallet-balance-tile[aria-pressed="true"] {
+.wallet-balance-tile[aria-pressed="true"],
+.wallet-choice[aria-checked="true"] {
     border-color: var(--primary);
     background: var(--accent);
     box-shadow: inset 0 0 0 1px var(--primary);

@@ -24,6 +24,7 @@ import {
     type TransactionFormState,
 } from "@/lib/transaction-input"
 import { DatePicker } from "@/components/ui/date-picker"
+import { WalletPicker } from "./wallet-picker"
 import {
     Combobox,
     ComboboxInput,
@@ -277,7 +278,7 @@ export function CreateTransactionForm({
                 }
             />
             <fieldset disabled={pending} className="contents">
-                <FieldGroup className="gap-4 [&_[data-slot=date-picker]>button]:h-11 [&_[data-slot=field-label]]:min-h-5 [&_[data-slot=field]]:gap-1.5 [&_[data-slot=select-trigger]]:h-11">
+                <FieldGroup className="gap-4 [&_[data-slot=date-picker]_[data-slot=toggle-group-item]]:h-11 [&_[data-slot=date-picker]>button]:h-11 [&_[data-slot=field-label]]:min-h-5 [&_[data-slot=field]]:gap-1.5 [&_[data-slot=select-trigger]]:h-11">
                     <div className="flex items-end justify-between gap-6">
                         <div className="min-w-0 flex-1">
                             <TransactionSelect
@@ -468,14 +469,13 @@ export function CreateTransactionForm({
                             </FieldError>
                         ) : null}
                     </Field>
-                    <TransactionSelect
+                    <WalletPicker
+                        id="transaction-wallet"
                         name="accountWalletId"
                         label="Wallet"
                         value={accountWalletId}
-                        options={wallets.map((wallet) => ({
-                            value: wallet.id,
-                            label: `${wallet.name} (${currencySymbol(wallet.currency)})`,
-                        }))}
+                        wallets={wallets}
+                        disabled={pending}
                         onChange={(value) => update("accountWalletId", value)}
                         error={state.errors?.accountWalletId}
                     />

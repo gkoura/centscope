@@ -1,5 +1,7 @@
 "use client"
-import { useEffect, useSyncExternalStore } from "react"
+import { useEffect } from "react"
+import { useUtcDay as useWorkspaceDay } from "@/hooks/use-utc-day"
+export { useUtcDay as useWorkspaceDay } from "@/hooks/use-utc-day"
 import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import type {
@@ -14,19 +16,6 @@ import {
     publishWorkspaceEvent,
 } from "@/lib/workspace-cache-events"
 import { useWorkspaceScope } from "./workspace-cache-provider"
-
-function subscribeDay(update: () => void) {
-    const timer = setInterval(update, 60_000)
-    window.addEventListener("focus", update)
-    return () => {
-        clearInterval(timer)
-        window.removeEventListener("focus", update)
-    }
-}
-const utcDay = () => new Date().toISOString().slice(0, 10)
-export function useWorkspaceDay() {
-    return useSyncExternalStore(subscribeDay, utcDay, () => "")
-}
 
 export function useWorkspaceQuery<R extends WorkspaceResource>(
     resource: R,
