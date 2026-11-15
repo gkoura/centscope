@@ -1,4 +1,5 @@
 import { Suspense } from "react"
+import { InstallApp } from "@/components/pwa/install-app"
 import { SectionLoading } from "@/components/site/section-loading"
 import Link from "next/link"
 import {
@@ -53,6 +54,7 @@ export default function SecurityPage() {
             <Suspense fallback={<SectionLoading />}>
                 <DeleteAccountSettings />
             </Suspense>
+            <InstallApp />
         </main>
     )
 }

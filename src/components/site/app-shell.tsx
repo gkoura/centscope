@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Suspense } from "react"
+import { PwaStatus } from "@/components/pwa/pwa-provider"
 import { WorkspaceBrand } from "@/components/workspace/workspace-brand"
 import { WorkspaceCacheStatus } from "@/components/workspace/workspace-cache-status"
 import { WorkspaceSessionGuard } from "@/components/workspace/workspace-session-guard"
@@ -46,6 +47,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <WorkspaceHeader />
                 </Suspense>
                 <div id="main-content" tabIndex={-1} className="app-content">
+                    <PwaStatus />
                     <WorkspaceCacheStatus />
                     {children}
                 </div>

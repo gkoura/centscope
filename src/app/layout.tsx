@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import { AuthProviders } from "@/components/auth-providers"
 import { Suspense } from "react"
 import { WorkspaceRevisionSignal } from "@/components/workspace/workspace-revision-signal"
+import { PwaProvider } from "@/components/pwa/pwa-provider"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
 
@@ -21,6 +22,7 @@ export const viewport: Viewport = {
     width: "device-width",
     initialScale: 1,
     viewportFit: "cover",
+    interactiveWidget: "resizes-content",
     themeColor: [
         { media: "(prefers-color-scheme: light)", color: "#fafbf8" },
         { media: "(prefers-color-scheme: dark)", color: "#141c18" },
@@ -29,6 +31,12 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
     applicationName: "CentScope",
+    appleWebApp: {
+        capable: true,
+        title: "CentScope",
+        statusBarStyle: "default",
+    },
+    icons: { apple: "/icons/apple-touch-icon.png" },
     title: {
         default: "CentScope — Make sense of every cent.",
         template: "%s | CentScope",
@@ -58,18 +66,20 @@ export default function RootLayout({
                     Skip to content
                 </a>
                 <ThemeProvider>
-                    <AuthProviders
-                        baseURL={process.env.BETTER_AUTH_URL}
-                        googleEnabled={Boolean(
-                            process.env.GOOGLE_CLIENT_ID &&
-                            process.env.GOOGLE_CLIENT_SECRET
-                        )}
-                    >
-                        {children}
-                        <Suspense fallback={null}>
-                            <WorkspaceRevisionSignal />
-                        </Suspense>
-                    </AuthProviders>
+                    <PwaProvider>
+                        <AuthProviders
+                            baseURL={process.env.BETTER_AUTH_URL}
+                            googleEnabled={Boolean(
+                                process.env.GOOGLE_CLIENT_ID &&
+                                process.env.GOOGLE_CLIENT_SECRET
+                            )}
+                        >
+                            {children}
+                            <Suspense fallback={null}>
+                                <WorkspaceRevisionSignal />
+                            </Suspense>
+                        </AuthProviders>
+                    </PwaProvider>
                 </ThemeProvider>
                 <Analytics />
                 <SpeedInsights />

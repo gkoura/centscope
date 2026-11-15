@@ -64,3 +64,38 @@ Date calendars throughout the app start on Monday and use direct month/year drop
 ### All-time reporting
 
 Transactions and Analytics offer **All time** in their period tabs and period-selection dialogs. It includes the full account history without date bounds; transaction search, wallet, category, type and status filters are preserved. Period arrows are disabled in All time, and navigation between Transactions, Analytics and Overview retains the selection. The new-transaction date stays today. Monthly trends has its own All time option, spanning the first payment/allocation month through the last; totals remain exact and the monthly average uses the entire span, including zero months. Existing rolling/year chart ranges remain available.
+
+## Progressive Web App
+
+CentScope is installable from a supported browser on a stable HTTPS origin. Open
+**Settings → Install CentScope** for an install button when available, or browser
+instructions. The installed app uses the same server, authentication and database
+as the website. Verify Google sign-in and email verification/reset links on each
+target device after deployment.
+
+The service worker registers only in production (`pnpm build` then `pnpm start`).
+It precaches only the public offline document and four icons. Financial API
+responses, authenticated HTML, RSC requests, exports and mutations are never
+stored by the worker. If a full navigation cannot reach the server, a public
+screen offers **Try again** at the original URL. This release needs a connection
+to open the workspace and save changes; it does not queue financial writes or
+provide offline sign-in. Existing workspace IndexedDB persistence remains separate.
+
+Worker updates wait for the user to choose **Update and reload**, or until all
+app tabs are closed. Other open tabs are not automatically reloaded. Finish and
+save forms before applying an update. Bump `CACHE_NAME` in `public/sw.js` whenever
+its offline document or icons change. Keep the `/sw.js` no-cache response headers.
+
+Verification before release:
+
+- Run `pnpm test:unit`, `pnpm typecheck`, and `pnpm build`.
+- In a production browser, inspect `/manifest.webmanifest`, icons, and worker registration.
+- Load once online, disconnect, then reload: the offline screen should appear;
+  reconnect and choose **Try again** to return to the original route.
+- Inspect Cache Storage: only `/offline.html` and `/icons/…` belong in the
+  `centscope-public-*` cache. Check APIs and exports remain network-only.
+- Test worker updates with two tabs and an unsaved form: no tab should reload
+  until its user requests it. Check old public caches are removed.
+- Test installed mode on physical iPhone and Android devices: installation,
+  sign-in/Google redirects, email links, keyboard, safe areas, import/export and
+  session expiry/logout. Desktop emulation cannot verify these device behaviors.
