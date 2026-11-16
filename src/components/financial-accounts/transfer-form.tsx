@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input"
 import { FieldLabelWithHelp } from "@/components/ui/field-help"
 import { MoneyInput } from "./money-input"
 import { Textarea } from "@/components/ui/textarea"
+import type { TransferDraft } from "@/lib/transaction-duplicate"
 type Editing = NonNullable<Awaited<ReturnType<typeof getOwnedEditableTransfer>>>
 export function TransferForm({
     returnTo,
@@ -33,6 +34,7 @@ export function TransferForm({
     today,
     sourceId,
     editing,
+    initialValues,
 }: {
     returnTo?: string
     contextAccountId: string
@@ -41,7 +43,9 @@ export function TransferForm({
     today: string
     sourceId?: string
     editing?: Editing
+    initialValues?: TransferDraft
 }) {
+    const initial = editing ?? initialValues
     const first =
         wallets.find(
             (w) =>
@@ -50,9 +54,9 @@ export function TransferForm({
         wallets.find((w) => w.financialAccountId === contextAccountId) ??
         wallets[0]
     const [values, setValues] = useState({
-        sourceId: editing?.sourceId ?? first?.id ?? "",
+        sourceId: initial?.sourceId ?? first?.id ?? "",
         destinationId:
-            editing?.destinationId ??
+            initial?.destinationId ??
             wallets.find(
                 (w) =>
                     w.id !== first?.id &&
@@ -60,12 +64,12 @@ export function TransferForm({
             )?.id ??
             wallets.find((w) => w.id !== first?.id)?.id ??
             "",
-        amount: editing?.amount ?? "",
-        destinationAmount: editing?.destinationAmount ?? "",
-        name: editing?.name ?? "Transfer",
-        notes: editing?.notes ?? "",
-        date: editing?.date ?? today,
-        status: editing?.status ?? "POSTED",
+        amount: initial?.amount ?? "",
+        destinationAmount: initial?.destinationAmount ?? "",
+        name: initial?.name ?? "Transfer",
+        notes: initial?.notes ?? "",
+        date: initial?.date ?? today,
+        status: initial?.status ?? "POSTED",
     })
     const [scope, setScope] = useState<"ONLY" | "FUTURE" | "ALL">("ONLY"),
         [state, action, pending] = useActionState(
@@ -286,7 +290,9 @@ export function TransferForm({
                     ? "Saving…"
                     : editing
                       ? "Save transfer"
-                      : "Create transfer"}
+                      : initialValues
+                        ? "Create copy"
+                        : "Create transfer"}
             </Button>
         </form>
     )

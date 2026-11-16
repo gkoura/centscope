@@ -11,6 +11,7 @@ using Node's type stripping; no additional test framework is required.
 | `wallet-input.test.mjs` | Wallet validation, exact money parsing and formatting |
 | `category-input.test.mjs` | Category defaults, validation, selection and ordering |
 | `transaction-input.test.mjs` | Transaction input, status and edit validation |
+| `transaction-duplicate.test.mjs` | Standalone drafts, exact amounts, copied fields, chosen dates and rebased expense spreading |
 | `bulk-transaction-input.test.mjs` | Bounded versioned selections, recurring scopes, replacement targets and exact FX input |
 | `transaction-import.test.mjs` | CSV parsing, import preview and transaction filters |
 | `transaction-import-batch.test.mjs` | Import plans, signed batches, retries and progress |

@@ -34,6 +34,10 @@ Recurring entries offer **Only selected occurrences**, **This and future occurre
 
 Every action requires a fresh preview of the affected counts and exact Posted balance changes. Posting Pending FX transfers additionally requires actual sent/received amounts for each transfer. Changes commit together, reject stale previews, retain audits, and support identical retries after an interrupted response. Deletion is permanent and removes both transfer legs together.
 
+### Duplicate a transaction
+
+Open a transaction’s details and choose **Duplicate**. Pick the date, choose **Review copy**, adjust any details, then **Create copy**. Expenses, income and transfers keep their amounts, wallets, category, status and notes where applicable. Each copy is a new standalone transaction with Repeat off. A spread expense keeps its month count and starts spreading in the selected month. The original transaction and series stay unchanged; balances change only when you save a Posted copy.
+
 ### Recurring transactions
 
 Enable **Repeat** on an expense or income, or edit an existing transaction to start a series. Future copies are created **upfront as Pending**; they never post automatically. The original transaction keeps the date/status you select. Mark each Pending payment Posted when it happens. Dates alone do not affect balances.

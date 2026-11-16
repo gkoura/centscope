@@ -4,6 +4,7 @@ import { NativeSelect } from "@/components/ui/native-select"
 import Link from "next/link"
 import { useActionState, useEffect, useState } from "react"
 import { Pencil, Trash2 } from "lucide-react"
+import { DuplicateTransactionDialog } from "./duplicate-transaction-dialog"
 import {
     deleteTransaction,
     prepareRecurringDeletion,
@@ -120,6 +121,13 @@ export function TransactionActions({
                 <Pencil data-icon="inline-start" />
                 Edit
             </Button>
+            <DuplicateTransactionDialog
+                accountId={financialAccountId}
+                transaction={transaction}
+                returnTo={returnTo}
+                disabled={pending}
+                onNavigate={onEdit}
+            />
             <AlertDialog
                 open={open}
                 onOpenChange={(nextOpen, details) => {

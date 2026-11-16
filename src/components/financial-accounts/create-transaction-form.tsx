@@ -14,6 +14,7 @@ import { RecurrenceFields, type RecurrenceEditing } from "./recurrence-fields"
 import type { EditScope } from "@/lib/recurrence-input"
 import { ExpenseSpreadFields } from "./expense-spread-fields"
 import type { ExpenseSpread } from "@/lib/expense-spread"
+import type { TransactionDraft } from "@/lib/transaction-duplicate"
 import { useActionState, useState } from "react"
 import {
     createTransaction,
@@ -148,9 +149,11 @@ export function CreateTransactionForm({
     editing,
     returnTo,
     initialWalletId,
+    initialValues,
 }: {
     returnTo?: string
     initialWalletId?: string
+    initialValues?: TransactionDraft
     financialAccountId: string
     requestId: string
     today: string
@@ -172,13 +175,14 @@ export function CreateTransactionForm({
     }
     suggestions: TransactionSuggestion[]
 }) {
+    const initial = editing ?? initialValues
     const [extrasOpen, setExtrasOpen] = useState(
-        Boolean(editing?.recurrence || editing?.spread || editing?.notes)
+        Boolean(editing?.recurrence || initial?.spread || initial?.notes)
     )
     const [repeatEnabled, setRepeatEnabled] = useState(
         Boolean(editing?.recurrence)
     )
-    const [spreadEnabled, setSpreadEnabled] = useState(Boolean(editing?.spread))
+    const [spreadEnabled, setSpreadEnabled] = useState(Boolean(initial?.spread))
     const [editScope, setEditScope] = useState<EditScope>("ONLY")
     const [state, action, pending] = useActionState(
         async (previous: TransactionFormState, form: FormData) => {
@@ -209,21 +213,21 @@ export function CreateTransactionForm({
         )?.id ??
         ""
     const initialCategory = categories.find(
-        (category) => category.id === editing?.categoryId
+        (category) => category.id === initial?.categoryId
     )
     const [values, setValues] = useState({
-        name: editing?.name ?? "",
-        type: String(editing?.type ?? "EXPENSE"),
-        accountWalletId: editing?.accountWalletId ?? initialWalletId ?? "",
+        name: initial?.name ?? "",
+        type: String(initial?.type ?? "EXPENSE"),
+        accountWalletId: initial?.accountWalletId ?? initialWalletId ?? "",
         categoryId:
             initialCategory?.parentId ??
             initialCategory?.id ??
-            (editing ? "" : defaultCategory("EXPENSE")),
+            (initial ? "" : defaultCategory("EXPENSE")),
         subcategoryId: initialCategory?.parentId ? initialCategory.id : "none",
-        amount: editing?.amount ?? "",
-        date: editing?.date ?? today,
-        status: String(editing?.status ?? "POSTED"),
-        notes: editing?.notes ?? "",
+        amount: initial?.amount ?? "",
+        date: initial?.date ?? today,
+        status: String(initial?.status ?? "POSTED"),
+        notes: initial?.notes ?? "",
     })
     const update = (key: keyof typeof values, value: string) =>
         setValues((previous) => ({ ...previous, [key]: value }))
@@ -577,7 +581,7 @@ export function CreateTransactionForm({
                                     </p>
                                 )}
                                 <ExpenseSpreadFields
-                                    initial={editing?.spread}
+                                    initial={initial?.spread}
                                     onEnabledChange={setSpreadEnabled}
                                     date={values.date}
                                     amount={values.amount}
@@ -646,9 +650,11 @@ export function CreateTransactionForm({
                     ? "Saving…"
                     : editing
                       ? "Save changes"
-                      : values.type === "EXPENSE"
-                        ? "Add expense"
-                        : "Add income"}
+                      : initialValues
+                        ? "Create copy"
+                        : values.type === "EXPENSE"
+                          ? "Add expense"
+                          : "Add income"}
             </Button>
         </form>
     )
