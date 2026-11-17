@@ -36,7 +36,10 @@ export const metadata: Metadata = {
         title: "CentScope",
         statusBarStyle: "default",
     },
-    icons: { apple: "/icons/apple-touch-icon.png" },
+    icons: {
+        icon: { url: "/icon.svg", type: "image/svg+xml", sizes: "any" },
+        apple: "/icons/apple-touch-icon.png",
+    },
     title: {
         default: "CentScope — Make sense of every cent.",
         template: "%s | CentScope",
