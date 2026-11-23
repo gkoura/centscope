@@ -149,10 +149,12 @@ export function CreateTransactionForm({
     editing,
     returnTo,
     initialWalletId,
+    initialType = "EXPENSE",
     initialValues,
 }: {
     returnTo?: string
     initialWalletId?: string
+    initialType?: "EXPENSE" | "INCOME"
     initialValues?: TransactionDraft
     financialAccountId: string
     requestId: string
@@ -217,12 +219,12 @@ export function CreateTransactionForm({
     )
     const [values, setValues] = useState({
         name: initial?.name ?? "",
-        type: String(initial?.type ?? "EXPENSE"),
+        type: String(initial?.type ?? initialType),
         accountWalletId: initial?.accountWalletId ?? initialWalletId ?? "",
         categoryId:
             initialCategory?.parentId ??
             initialCategory?.id ??
-            (initial ? "" : defaultCategory("EXPENSE")),
+            (initial ? "" : defaultCategory(initialType)),
         subcategoryId: initialCategory?.parentId ? initialCategory.id : "none",
         amount: initial?.amount ?? "",
         date: initial?.date ?? today,

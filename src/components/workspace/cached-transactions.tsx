@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useWorkspaceQuery } from "./use-workspace-query"
 import { WorkspaceQueryState } from "./workspace-query-state"
 import { periodQuery } from "@/lib/account-period"
@@ -9,8 +9,7 @@ import { type TransactionQuery } from "@/lib/transaction-filters"
 import { PeriodControls } from "@/components/workspace/period-controls"
 import { TransactionControls } from "@/components/workspace/transaction-controls"
 import { BulkTransactionFeed } from "@/components/workspace/bulk-transaction-feed"
-import { ActivitySummary } from "@/components/workspace/activity-summary"
-import { BalanceSummary } from "@/components/workspace/balance-summary"
+import { TransactionSummary } from "@/components/workspace/transaction-summary"
 import { Button } from "@/components/ui/button"
 import {
     Empty,
@@ -32,6 +31,7 @@ export function CachedTransactions({
     const reference = useWorkspaceQuery("reference", id)
     const result = useWorkspaceQuery("transactions", id, query)
     const filterBar = useRef<HTMLDivElement>(null)
+    const [selecting, setSelecting] = useState(false)
     const ready = Boolean(reference.data && result.data)
     useEffect(() => {
         const element = filterBar.current
@@ -80,21 +80,21 @@ export function CachedTransactions({
         filters.status
     )
     return (
-        <div className="flex min-w-0 flex-col gap-5">
+        <div className="transaction-workspace flex min-w-0 flex-col gap-3">
             <RecurringSync accountId={id} />
-            <BalanceSummary
-                compact
-                selectedWalletId={filters.wallet}
+            <TransactionSummary
+                selectedWallets={filters.wallet}
                 wallets={wallets}
+                activity={activity}
                 accountId={id}
                 periodQuery={periodQuery(period)}
             />
-            <ActivitySummary compact activity={activity} />
             <div
                 ref={filterBar}
-                className="sticky-filter-bar flex flex-col gap-3"
+                className="transaction-toolbar sticky-filter-bar"
             >
                 <PeriodControls
+                    compact
                     period={period}
                     basePath={base}
                     query={currentQuery}
@@ -105,12 +105,21 @@ export function CachedTransactions({
                     filters={filters}
                     wallets={wallets}
                     categories={categories}
+                    onSelectTransactions={
+                        history.transactions.some(
+                            (transaction) =>
+                                transaction.type !== "OPENING_BALANCE" &&
+                                transaction.canChangeStatus
+                        )
+                            ? () => setSelecting(true)
+                            : undefined
+                    }
                 />
             </div>
             {history.transactions.length ? (
                 <section aria-label="Transaction history">
-                    <div className="mb-4 flex items-center justify-between gap-4">
-                        <h2 className="text-sm font-medium">
+                    <div className="sr-only">
+                        <h2>
                             {period.view === "month"
                                 ? "All transactions"
                                 : "Transactions"}
@@ -129,6 +138,8 @@ export function CachedTransactions({
                         wallets={wallets}
                         categories={categories}
                         accountId={id}
+                        selecting={selecting}
+                        onSelectingChange={setSelecting}
                         transactions={history.transactions}
                         returnTo={pageHref({
                             ...(before ? { before } : {}),

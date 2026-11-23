@@ -33,6 +33,7 @@ export function CachedTransactionForm({
         )
     const { account, wallets, categories } = reference.data
     const returnTo = transactionReturnPath(query.returnTo, id)
+    const initialType = query.type === "INCOME" ? "INCOME" : "EXPENSE"
     return (
         <>
             <Link
@@ -50,7 +51,8 @@ export function CachedTransactionForm({
                 <CardContent>
                     {wallets.length ? (
                         <CreateTransactionForm
-                            key={account.id}
+                            key={`${account.id}:${initialType}`}
+                            initialType={initialType}
                             returnTo={returnTo}
                             initialWalletId={
                                 wallets.some((w) => w.id === query.wallet)

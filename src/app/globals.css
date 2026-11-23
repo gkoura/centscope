@@ -51,6 +51,7 @@
 }
 
 :root {
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -720,8 +721,8 @@ a:focus-visible {
     width: 100%;
     align-items: center;
     gap: 12px;
-    min-height: 76px;
-    padding: 14px 16px;
+    min-height: 64px;
+    padding: 10px 16px;
     cursor: pointer;
     touch-action: manipulation;
 }
@@ -740,8 +741,96 @@ a:focus-visible {
     background: var(--muted);
     color: var(--muted-foreground);
 }
+.transaction-status-indicator {
+    position: absolute;
+    right: -4px;
+    bottom: -4px;
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--card);
+    border-radius: 50%;
+    background: var(--card);
+    color: var(--muted-foreground);
+}
+.transaction-status-indicator svg {
+    width: 14px;
+    height: 14px;
+}
+.transaction-status-indicator[data-overdue="true"] {
+    background: var(--destructive);
+    color: var(--card);
+}
 .transaction-add-button {
-    align-self: flex-end;
+    position: fixed;
+    right: max(24px, env(safe-area-inset-right));
+    bottom: max(24px, env(safe-area-inset-bottom));
+    z-index: 30;
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    border-radius: 50%;
+    box-shadow: 0 4px 16px #0002;
+    transition-property: background-color, color, box-shadow;
+}
+.transaction-add-button > svg {
+    width: 24px;
+    height: 24px;
+    transition: transform 180ms var(--ease-out);
+}
+.transaction-add-button[data-popup-open] > svg {
+    transform: rotate(45deg);
+}
+.transaction-create-menu {
+    width: 224px;
+    max-width: calc(100vw - 32px);
+    padding: 6px;
+    border-radius: 20px;
+    transform-origin: var(--transform-origin);
+    animation: none;
+    transition:
+        opacity 180ms var(--ease-out),
+        transform 180ms var(--ease-out);
+}
+.transaction-create-menu[data-starting-style],
+.transaction-create-menu[data-ending-style] {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+}
+.transaction-create-menu[data-ending-style] {
+    transition-duration: 125ms;
+}
+.transaction-create-icon {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    place-items: center;
+    border-radius: 12px;
+    background: var(--muted);
+    color: var(--primary);
+}
+.transaction-create-icon[data-flow="income"] {
+    background: color-mix(in oklab, var(--income) 12%, transparent);
+}
+.transaction-create-icon[data-flow="expense"] {
+    background: color-mix(in oklab, var(--expense) 12%, transparent);
+}
+.transaction-create-menu[data-quick-create-instant],
+.transaction-add-button[data-quick-create-instant] > svg {
+    transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+    .transaction-create-menu,
+    .transaction-create-menu[data-starting-style],
+    .transaction-create-menu[data-ending-style] {
+        transform: none;
+        transition: none;
+    }
+    .transaction-add-button > svg {
+        transition: none;
+    }
 }
 button,
 a {
@@ -863,7 +952,7 @@ a {
     }
     .transaction-row {
         gap: 10px;
-        padding: 14px 12px;
+        padding: 10px 12px;
     }
     .transaction-row > svg:last-child {
         display: none;
@@ -877,14 +966,8 @@ a {
         right: max(16px, env(safe-area-inset-right));
     }
     .transaction-add-button {
-        position: fixed;
         bottom: calc(80px + env(safe-area-inset-bottom));
         right: max(16px, env(safe-area-inset-right));
-        z-index: 30;
-        min-height: 48px;
-        border-radius: 999px;
-        padding-inline: 20px;
-        box-shadow: 0 4px 16px #0002;
     }
 }
 .balance-summary-compact .balance-hero > p:last-child {
@@ -961,10 +1044,6 @@ html:has(.app-shell) {
     background: color-mix(in oklab, var(--expense) 10%, transparent);
 }
 
-.transaction-entry .transaction-row {
-    min-height: 64px;
-    padding-bottom: 4px;
-}
 .transaction-open-button {
     cursor: pointer;
     touch-action: manipulation;
@@ -1210,4 +1289,134 @@ html:has(.app-shell) {
 
 .transaction-selection-bar {
     top: calc(var(--account-toolbar-height, 80px) + var(--transaction-filters-height, 0px));
+}
+
+/* Keep the transaction history close to the account controls. */
+.transactions-page {
+    gap: 12px;
+    padding-top: 16px;
+    padding-bottom: 100px;
+}
+.transaction-summary {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
+}
+.transaction-balance-trigger {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    gap: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    list-style: none;
+}
+.transaction-balance-trigger::-webkit-details-marker {
+    display: none;
+}
+.transaction-balance-trigger:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+.transaction-balance-details[open] > summary > svg {
+    transform: rotate(180deg);
+}
+.transaction-balance-details[open] + .transaction-period-totals {
+    display: none;
+}
+.transaction-period-totals {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+}
+.transaction-period-totals > p {
+    padding: 10px 12px;
+}
+.transaction-totals-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    padding: 8px;
+}
+.transaction-totals-row + .transaction-totals-row {
+    border-top: 1px solid var(--border);
+}
+.transaction-totals-row > div + div {
+    padding-left: 8px;
+    border-left: 1px solid var(--border);
+}
+.transaction-toolbar {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 8px;
+    padding-block: 4px;
+}
+.period-controls[data-compact] {
+    display: block;
+    min-width: 0;
+}
+.period-controls[data-compact] > .period-navigation {
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+.transaction-control-row > [data-slot="button"],
+.transaction-control-row > [data-slot="dialog-trigger"],
+.transaction-control-row > form > [data-slot="input-group"] {
+    min-height: 44px;
+}
+@media (min-width: 1024px) {
+    .transactions-page {
+        position: relative;
+    }
+    .transaction-page-heading {
+        position: absolute;
+        top: 23px;
+        left: 32px;
+    }
+    .transaction-balance-trigger {
+        padding-left: 190px;
+    }
+    .transaction-toolbar {
+        display: grid;
+        grid-template-columns: minmax(220px, 0.8fr) minmax(0, 2fr);
+        align-items: start;
+        gap: 16px;
+    }
+}
+@media (max-width: 767px) {
+    .transactions-page {
+        padding-top: 8px;
+    }
+    .transactions-page > .transaction-workspace {
+        gap: 8px;
+    }
+    .transaction-page-heading {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    .account-area:has(.transactions-page)
+        .account-toolbar-inner
+        > div:first-child
+        > span:first-child {
+        display: none;
+    }
+    .transaction-control-row > [data-slot="button"],
+    .transaction-control-row > [data-slot="dialog-trigger"] {
+        min-width: 44px;
+    }
+}
+@media (max-width: 360px) {
+    .transaction-totals-row dd {
+        font-size: 12px;
+    }
 }

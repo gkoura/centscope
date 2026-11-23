@@ -29,11 +29,13 @@ export function PeriodControls({
     basePath,
     query = {},
     monthlyOnly = false,
+    compact = false,
 }: {
     period: AccountPeriod
     basePath: string
     query?: Record<string, string>
     monthlyOnly?: boolean
+    compact?: boolean
 }) {
     const router = useRouter()
     const [dialogView, setDialogView] = useState<AccountPeriod["view"]>(
@@ -63,8 +65,12 @@ export function PeriodControls({
     const previous = adjacentPeriod(period, -1),
         next = adjacentPeriod(period, 1)
     return (
-        <div className="period-controls sticky-filter-bar" aria-busy={pending}>
-            {!monthlyOnly && (
+        <div
+            className="period-controls sticky-filter-bar"
+            data-compact={compact || undefined}
+            aria-busy={pending}
+        >
+            {!monthlyOnly && !compact && (
                 <Tabs
                     value={period.view}
                     onValueChange={(value) => {
@@ -97,7 +103,7 @@ export function PeriodControls({
                     </TabsList>
                 </Tabs>
             )}
-            <div className="flex min-w-0 items-center justify-between gap-2 rounded-xl border bg-card p-1">
+            <div className="period-navigation flex min-w-0 items-center justify-between gap-2 rounded-xl border bg-card p-1">
                 <Button
                     variant="ghost"
                     size="icon-lg"

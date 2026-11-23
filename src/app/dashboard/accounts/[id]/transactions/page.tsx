@@ -11,7 +11,7 @@ export default function TransactionsPage({
 }) {
     return (
         <main className="workspace-page transactions-page">
-            <header>
+            <header className="transaction-page-heading">
                 <h1 className="text-2xl font-semibold tracking-tight">
                     Transactions
                 </h1>

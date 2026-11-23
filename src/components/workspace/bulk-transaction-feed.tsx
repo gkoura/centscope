@@ -54,14 +54,17 @@ export function BulkTransactionFeed({
     returnTo,
     wallets,
     categories,
+    selecting,
+    onSelectingChange: setSelecting,
 }: {
     accountId: string
     transactions: Transaction[]
     returnTo: string
     wallets: Wallet[]
     categories: Category[]
+    selecting: boolean
+    onSelectingChange: (selecting: boolean) => void
 }) {
-    const [selecting, setSelecting] = useState(false)
     const [selected, setSelected] = useState<Record<string, number>>({})
     const [open, setOpen] = useState(false)
     const [notice, setNotice] = useState("")
@@ -84,97 +87,102 @@ export function BulkTransactionFeed({
         })
     return (
         <div className="flex flex-col gap-4">
-            <div className="transaction-selection-bar sticky z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-3">
-                {selecting ? (
-                    <>
-                        <div className="flex flex-wrap items-center gap-3">
-                            <span role="status" className="text-sm font-medium">
-                                {Object.keys(selected).length} selected
-                            </span>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                    setSelected(
-                                        Object.keys(selected).length ===
-                                            eligible.length
-                                            ? {}
-                                            : Object.fromEntries(
-                                                  eligible
-                                                      .slice(
-                                                          0,
-                                                          MAX_BULK_SELECTED
-                                                      )
-                                                      .map((t) => [
-                                                          t.id,
-                                                          t.version,
-                                                      ])
-                                              )
-                                    )
-                                }
+            {(selecting || notice) && (
+                <div className="transaction-selection-bar sticky z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-3">
+                    {selecting ? (
+                        <>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <span
+                                    role="status"
+                                    className="text-sm font-medium"
+                                >
+                                    {Object.keys(selected).length} selected
+                                </span>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                        setSelected(
+                                            Object.keys(selected).length ===
+                                                eligible.length
+                                                ? {}
+                                                : Object.fromEntries(
+                                                      eligible
+                                                          .slice(
+                                                              0,
+                                                              MAX_BULK_SELECTED
+                                                          )
+                                                          .map((t) => [
+                                                              t.id,
+                                                              t.version,
+                                                          ])
+                                                  )
+                                        )
+                                    }
+                                >
+                                    Select shown
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setSelected({})}
+                                >
+                                    Clear
+                                </Button>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button
+                                    ref={trigger}
+                                    type="button"
+                                    disabled={!chosen.length}
+                                    onClick={() => setOpen(true)}
+                                >
+                                    Bulk actions
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => {
+                                        setSelected({})
+                                        setSelecting(false)
+                                    }}
+                                >
+                                    Done
+                                </Button>
+                            </div>
+                            <p className="w-full text-xs text-muted-foreground">
+                                Selection covers shown rows only (up to{" "}
+                                {MAX_BULK_SELECTED.toLocaleString("en")}).
+                                Opening balances stay in wallet editing.
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <p
+                                role="status"
+                                className="text-sm text-muted-foreground"
                             >
-                                Select shown
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setSelected({})}
-                            >
-                                Clear
-                            </Button>
-                        </div>
-                        <div className="flex gap-2">
+                                {notice}
+                            </p>
                             <Button
                                 ref={trigger}
+                                variant="outline"
                                 type="button"
-                                disabled={!chosen.length}
-                                onClick={() => setOpen(true)}
-                            >
-                                Bulk actions
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="ghost"
+                                disabled={!eligible.length}
                                 onClick={() => {
-                                    setSelected({})
-                                    setSelecting(false)
+                                    setSelecting(true)
+                                    setNotice("")
                                 }}
                             >
-                                Done
+                                <ListChecks data-icon="inline-start" />
+                                Select transactions
                             </Button>
-                        </div>
-                        <p className="w-full text-xs text-muted-foreground">
-                            Selection covers shown rows only (up to{" "}
-                            {MAX_BULK_SELECTED.toLocaleString("en")}). Opening
-                            balances stay in wallet editing.
-                        </p>
-                    </>
-                ) : (
-                    <>
-                        <p
-                            role="status"
-                            className="text-sm text-muted-foreground"
-                        >
-                            {notice || "Update several transactions together."}
-                        </p>
-                        <Button
-                            ref={trigger}
-                            variant="outline"
-                            type="button"
-                            disabled={!eligible.length}
-                            onClick={() => {
-                                setSelecting(true)
-                                setNotice("")
-                            }}
-                        >
-                            <ListChecks data-icon="inline-start" />
-                            Select transactions
-                        </Button>
-                    </>
-                )}
-            </div>
+                        </>
+                    )}
+                </div>
+            )}
             <TransactionFeed
                 accountId={accountId}
                 transactions={transactions}

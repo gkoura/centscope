@@ -1,11 +1,12 @@
 "use client"
 import { CategoryIcon } from "@/components/financial-accounts/category-icon"
 import { useState } from "react"
+import { useUtcDay } from "@/hooks/use-utc-day"
 import Link from "next/link"
 import {
-    ArrowDownLeft,
-    ArrowUpRight,
     ArrowLeftRight,
+    CircleAlert,
+    Clock3,
     Wallet,
     Repeat2,
     CalendarRange,
@@ -40,6 +41,7 @@ export function TransactionFeed({
     returnTo: string
     selection?: { ids: string[]; toggle: (id: string) => void }
 }) {
+    const today = useUtcDay()
     const [selectedId, setSelectedId] = useState<string | null>(null)
     const selected = transactions.find(
         (transaction) => transaction.id === selectedId
@@ -80,14 +82,15 @@ export function TransactionFeed({
                         </div>
                         <ul className="overflow-hidden rounded-2xl border bg-card">
                             {rows.map((transaction) => {
-                                const Icon =
-                                    transaction.type === "TRANSFER"
-                                        ? ArrowLeftRight
-                                        : transaction.type === "INCOME"
-                                          ? ArrowDownLeft
-                                          : transaction.type === "EXPENSE"
-                                            ? ArrowUpRight
-                                            : Wallet
+                                const pending = transaction.status === "PENDING"
+                                const overdue = Boolean(
+                                    pending && today && transaction.date < today
+                                )
+                                const statusLabel = overdue
+                                    ? "Pending · Overdue"
+                                    : transaction.date === today
+                                      ? "Pending · Due today"
+                                      : "Pending · Scheduled"
                                 return (
                                     <li
                                         key={transaction.id}
@@ -118,6 +121,9 @@ export function TransactionFeed({
                                             aria-label={`View ${transaction.name}, ${transaction.status.toLowerCase()}, ${formatWalletMoney(transaction.amount, transaction.currency)}`}
                                             aria-describedby={
                                                 [
+                                                    pending
+                                                        ? `status-${transaction.id}`
+                                                        : "",
                                                     transaction.occurrence
                                                         ? `recurring-${transaction.id}`
                                                         : "",
@@ -130,61 +136,138 @@ export function TransactionFeed({
                                             }
                                         />
                                         <div className="transaction-row pointer-events-none relative">
-                                            {selection ? (
-                                                <span className="pointer-events-auto relative z-10 flex size-9 items-center justify-center">
-                                                    <Checkbox
-                                                        aria-label={`Select ${transaction.name}`}
-                                                        checked={selection.ids.includes(
-                                                            transaction.id
-                                                        )}
-                                                        disabled={
-                                                            transaction.type ===
-                                                                "OPENING_BALANCE" ||
-                                                            !transaction.canChangeStatus
-                                                        }
-                                                        onCheckedChange={() =>
-                                                            selection.toggle(
+                                            <span className="relative shrink-0">
+                                                {selection ? (
+                                                    <span className="pointer-events-auto relative z-10 flex size-9 items-center justify-center">
+                                                        <Checkbox
+                                                            aria-label={`Select ${transaction.name}`}
+                                                            aria-describedby={
+                                                                pending
+                                                                    ? `status-${transaction.id}`
+                                                                    : undefined
+                                                            }
+                                                            checked={selection.ids.includes(
                                                                 transaction.id
-                                                            )
+                                                            )}
+                                                            disabled={
+                                                                transaction.type ===
+                                                                    "OPENING_BALANCE" ||
+                                                                !transaction.canChangeStatus
+                                                            }
+                                                            onCheckedChange={() =>
+                                                                selection.toggle(
+                                                                    transaction.id
+                                                                )
+                                                            }
+                                                        />
+                                                    </span>
+                                                ) : (
+                                                    <span
+                                                        className="transaction-icon"
+                                                        data-flow={
+                                                            transaction.type ===
+                                                            "INCOME"
+                                                                ? "income"
+                                                                : transaction.type ===
+                                                                    "EXPENSE"
+                                                                  ? "expense"
+                                                                  : undefined
                                                         }
-                                                    />
-                                                </span>
-                                            ) : (
-                                                <span
-                                                    className="transaction-icon"
-                                                    data-flow={
+                                                    >
+                                                        {transaction.type ===
+                                                            "INCOME" ||
                                                         transaction.type ===
-                                                        "INCOME"
-                                                            ? "income"
-                                                            : transaction.type ===
-                                                                "EXPENSE"
-                                                              ? "expense"
-                                                              : undefined
-                                                    }
-                                                >
-                                                    <Icon
-                                                        className="size-4"
+                                                            "EXPENSE" ? (
+                                                            <CategoryIcon
+                                                                iconKey={
+                                                                    transaction.categoryIconKey
+                                                                }
+                                                                parentIconKey={
+                                                                    transaction.parentCategoryIconKey
+                                                                }
+                                                                className="text-inherit"
+                                                            />
+                                                        ) : transaction.type ===
+                                                          "TRANSFER" ? (
+                                                            <ArrowLeftRight
+                                                                className="size-4"
+                                                                aria-hidden="true"
+                                                            />
+                                                        ) : (
+                                                            <Wallet
+                                                                className="size-4"
+                                                                aria-hidden="true"
+                                                            />
+                                                        )}
+                                                    </span>
+                                                )}
+                                                {pending && (
+                                                    <span
+                                                        className="transaction-status-indicator"
+                                                        data-overdue={overdue}
+                                                        title={statusLabel}
                                                         aria-hidden="true"
-                                                    />
+                                                    >
+                                                        {overdue ? (
+                                                            <CircleAlert />
+                                                        ) : (
+                                                            <Clock3 />
+                                                        )}
+                                                    </span>
+                                                )}
+                                            </span>
+                                            {pending && (
+                                                <span
+                                                    id={`status-${transaction.id}`}
+                                                    className="sr-only"
+                                                >
+                                                    {statusLabel}
                                                 </span>
                                             )}
                                             <span className="min-w-0 flex-1 text-left">
-                                                <span className="block truncate text-sm font-medium">
-                                                    {transaction.name}
-                                                </span>
-                                                <span className="mt-1 block truncate text-[11px] text-muted-foreground">
-                                                    {transaction.walletName}
-                                                    {transaction.category && (
-                                                        <CategoryIcon
-                                                            iconKey={
-                                                                transaction.categoryIconKey
-                                                            }
-                                                            parentIconKey={
-                                                                transaction.parentCategoryIconKey
-                                                            }
-                                                            className="mx-1 inline-block size-3 align-middle"
-                                                        />
+                                                <span className="flex min-w-0 items-center gap-1.5">
+                                                    <span className="truncate text-sm font-medium">
+                                                        {transaction.name}
+                                                    </span>
+                                                    {transaction.occurrence && (
+                                                        <span
+                                                            id={`recurring-${transaction.id}`}
+                                                            className="shrink-0 text-muted-foreground"
+                                                            title="Part of a repeating transaction"
+                                                        >
+                                                            <Repeat2
+                                                                className="size-3.5"
+                                                                aria-hidden="true"
+                                                            />
+                                                            <span className="sr-only">
+                                                                Recurring
+                                                            </span>
+                                                        </span>
                                                     )}
+                                                    {transaction.expenseSpread && (
+                                                        <span
+                                                            id={`spread-${transaction.id}`}
+                                                            className="shrink-0 text-muted-foreground"
+                                                            title={`Expense allocated across ${transaction.expenseSpread.monthCount} months`}
+                                                        >
+                                                            <CalendarRange
+                                                                className="size-3.5"
+                                                                aria-hidden="true"
+                                                            />
+                                                            <span className="sr-only">
+                                                                Spread over{" "}
+                                                                {
+                                                                    transaction
+                                                                        .expenseSpread
+                                                                        .monthCount
+                                                                }{" "}
+                                                                months
+                                                            </span>
+                                                        </span>
+                                                    )}
+                                                </span>
+                                                <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                                                    {transaction.walletName}
                                                     {transaction.category
                                                         ? ` · ${transaction.category}`
                                                         : transaction.transfer
@@ -216,100 +299,6 @@ export function TransactionFeed({
                                                 className="size-3 shrink-0 text-muted-foreground"
                                                 aria-hidden="true"
                                             />
-                                        </div>
-                                        <div className="pointer-events-none relative flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 pb-2 sm:px-4">
-                                            <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                                {transaction.occurrence && (
-                                                    <Badge
-                                                        id={`recurring-${transaction.id}`}
-                                                        variant="secondary"
-                                                        title="Part of a repeating transaction"
-                                                    >
-                                                        <Repeat2
-                                                            data-icon="inline-start"
-                                                            aria-hidden="true"
-                                                        />
-                                                        Recurring
-                                                    </Badge>
-                                                )}
-                                                {transaction.expenseSpread && (
-                                                    <Badge
-                                                        id={`spread-${transaction.id}`}
-                                                        variant="secondary"
-                                                        title={`Expense allocated across ${transaction.expenseSpread.monthCount} months`}
-                                                    >
-                                                        <CalendarRange
-                                                            data-icon="inline-start"
-                                                            aria-hidden="true"
-                                                        />
-                                                        Spread ·{" "}
-                                                        {
-                                                            transaction
-                                                                .expenseSpread
-                                                                .monthCount
-                                                        }{" "}
-                                                        mo
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                            <div className="pointer-events-auto relative ml-auto max-w-full">
-                                                {selection ? (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {transaction.status ===
-                                                        "POSTED"
-                                                            ? "Posted"
-                                                            : "Pending"}
-                                                        {transaction.type ===
-                                                        "OPENING_BALANCE"
-                                                            ? " · Edit in wallet"
-                                                            : ""}
-                                                    </span>
-                                                ) : transaction.canChangeStatus ? (
-                                                    transaction.transfer ? (
-                                                        <TransferStatusForm
-                                                            compact
-                                                            financialAccountId={
-                                                                accountId
-                                                            }
-                                                            transaction={{
-                                                                ...transaction,
-                                                                transfer:
-                                                                    transaction.transfer,
-                                                            }}
-                                                        />
-                                                    ) : (
-                                                        <TransactionStatusForm
-                                                            compact
-                                                            financialAccountId={
-                                                                accountId
-                                                            }
-                                                            transactionId={
-                                                                transaction.id
-                                                            }
-                                                            name={
-                                                                transaction.name
-                                                            }
-                                                            status={
-                                                                transaction.status
-                                                            }
-                                                            version={
-                                                                transaction.version
-                                                            }
-                                                        />
-                                                    )
-                                                ) : (
-                                                    <span
-                                                        className="inline-flex min-h-11 items-center text-xs text-muted-foreground"
-                                                        title="This entry is read-only"
-                                                    >
-                                                        {transaction.status ===
-                                                        "POSTED"
-                                                            ? "Posted"
-                                                            : "Pending"}{" "}
-                                                        · Read-only
-                                                    </span>
-                                                )}
-                                            </div>
                                         </div>
                                     </li>
                                 )

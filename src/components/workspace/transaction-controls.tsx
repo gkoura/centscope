@@ -9,6 +9,7 @@ import {
 } from "@/lib/category-filter"
 import type { CategoryChoice } from "@/lib/category-selection"
 import { TransactionExportDialog } from "./transaction-export-dialog"
+import { TransactionCreateMenu } from "./transaction-create-menu"
 import { currencySymbol } from "@/lib/currency"
 import { periodEntryDate } from "@/lib/transaction-return"
 import Link from "next/link"
@@ -18,10 +19,10 @@ import {
     Search,
     SlidersHorizontal,
     MoreHorizontal,
-    Plus,
     ArrowLeftRight,
     Upload,
     Download,
+    ListChecks,
 } from "lucide-react"
 import { periodQuery, type AccountPeriod } from "@/lib/account-period"
 import type { TransactionFilters } from "@/lib/transaction-filters"
@@ -65,12 +66,14 @@ export function TransactionControls({
     filters,
     wallets,
     categories,
+    onSelectTransactions,
 }: {
     accountId: string
     period: AccountPeriod
     filters: TransactionFilters
     wallets: { id: string; name: string; currency: string }[]
     categories: CategoryChoice[]
+    onSelectTransactions?: () => void
 }) {
     const [open, setOpen] = useState(false),
         [exportOpen, setExportOpen] = useState(false),
@@ -125,8 +128,11 @@ export function TransactionControls({
         startTransition(() => router.push(`${base}?${next}`, { scroll: false }))
     }
     return (
-        <div aria-busy={pending} className="flex flex-col gap-3">
-            <div className="flex items-center gap-2">
+        <div
+            aria-busy={pending}
+            className="transaction-controls flex min-w-0 flex-col gap-2"
+        >
+            <div className="transaction-control-row flex min-w-0 items-center gap-2">
                 <form
                     role="search"
                     className="min-w-0 flex-1"
@@ -137,19 +143,19 @@ export function TransactionControls({
                     }}
                 >
                     <InputGroup className="h-11">
-                        <InputGroupAddon>
-                            <Search aria-hidden="true" />
-                        </InputGroupAddon>
                         <InputGroupInput
                             aria-label="Search transactions"
                             name="q"
+                            enterKeyHint="search"
                             defaultValue={filters.q}
                             maxLength={120}
                             placeholder="Search transactions…"
                         />
-                        <InputGroupAddon align="inline-end">
+                        <InputGroupAddon align="inline-end" className="p-0">
                             <InputGroupButton
                                 type="submit"
+                                size="icon-sm"
+                                className="size-11"
                                 aria-label="Run search"
                             >
                                 <Search />
@@ -352,6 +358,13 @@ export function TransactionControls({
                     <DropdownMenuContent align="end" className="w-64">
                         <DropdownMenuGroup>
                             <DropdownMenuItem
+                                disabled={!onSelectTransactions}
+                                onClick={onSelectTransactions}
+                            >
+                                <ListChecks />
+                                Select transactions
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
                                 onClick={() => setExportOpen(true)}
                             >
                                 <Download />
@@ -380,6 +393,16 @@ export function TransactionControls({
                         </DropdownMenuGroup>
                     </DropdownMenuContent>
                 </DropdownMenu>
+                <TransactionCreateMenu
+                    accountId={accountId}
+                    returnTo={returnTo}
+                    date={periodEntryDate(
+                        period,
+                        new Date().toISOString().slice(0, 10)
+                    )}
+                    walletId={singleWallet}
+                    hasWallets={wallets.length > 0}
+                />
             </div>
             {exportOpen && (
                 <TransactionExportDialog
@@ -406,22 +429,6 @@ export function TransactionControls({
                     </Link>
                 </div>
             )}
-            <Button
-                nativeButton={false}
-                render={
-                    <Link
-                        href={
-                            wallets.length
-                                ? `${base}/new?${new URLSearchParams({ returnTo, date: periodEntryDate(period, new Date().toISOString().slice(0, 10)), ...(singleWallet ? { wallet: singleWallet } : {}) })}`
-                                : `/dashboard/accounts/${accountId}/wallets/new`
-                        }
-                    />
-                }
-                className="transaction-add-button h-11"
-            >
-                <Plus data-icon="inline-start" />
-                {wallets.length ? "Add transaction" : "Add your first wallet"}
-            </Button>
         </div>
     )
 }
