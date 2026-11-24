@@ -22,7 +22,8 @@ export default function AnalyticsPage({
                     Analytics
                 </h1>
                 <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                    Your balance, income, and spending over the last 12 months.
+                    Your balance, income, and spending over the last 12
+                    completed months plus the current month.
                 </p>
             </header>
             <Suspense

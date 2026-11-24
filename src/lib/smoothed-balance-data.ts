@@ -7,7 +7,8 @@ import { smoothedBalanceHistory } from "@/lib/smoothed-balance"
 export async function getOwnedSmoothedBalanceHistory(
     accountId: string,
     endMonth: string,
-    currencies: string[]
+    currencies: string[],
+    startMonth?: string
 ) {
     const { ownerId } = await financialAccess(accountId)
     const entries = await prisma.$transaction(
@@ -69,6 +70,7 @@ export async function getOwnedSmoothedBalanceHistory(
             spread: entry.transaction.expenseSpread,
         })),
         endMonth,
-        currencies
+        currencies,
+        startMonth
     )
 }

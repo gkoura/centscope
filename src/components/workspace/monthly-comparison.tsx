@@ -19,7 +19,11 @@ import { Field, FieldLabel } from "@/components/ui/field"
 import { NativeSelect } from "@/components/ui/native-select"
 import { useWorkspaceQuery } from "./use-workspace-query"
 import { WorkspaceQueryState } from "./workspace-query-state"
-import { monthlyTrendSeries, trendEndMonth } from "@/lib/monthly-trends"
+import {
+    analyticsTrendQuery,
+    monthlyTrendSeries,
+    rollingTrendBounds,
+} from "@/lib/monthly-trends"
 import { appendCurrencySymbol, currencyLabel } from "@/lib/currency"
 import { formatWalletMoney } from "@/lib/wallet-input"
 
@@ -44,10 +48,8 @@ export function MonthlyComparison({
     const id = useId()
     const [currency, setCurrency] = useState("")
     const [mode, setMode] = useState<"actual" | "smoothed">("smoothed")
-    const requestedEnd = trendEndMonth("rolling", today)
-    const result = useWorkspaceQuery("monthlyTrends", accountId, {
-        month: requestedEnd,
-    })
+    const query = analyticsTrendQuery(today)
+    const result = useWorkspaceQuery("monthlyTrends", accountId, query)
     const reference = useWorkspaceQuery("reference", accountId)
     const currencies = [
         ...new Set([
@@ -61,7 +63,8 @@ export function MonthlyComparison({
         : currencies.includes(preferred)
           ? preferred
           : currencies[0]
-    const endMonth = result.data?.endMonth ?? requestedEnd
+    const { startMonth, endMonth } =
+        result.data ?? rollingTrendBounds(query.month, true)
     const series = (type: "INCOME" | "EXPENSE") =>
         monthlyTrendSeries(
             result.data?.buckets ?? [],
@@ -70,7 +73,8 @@ export function MonthlyComparison({
             activeCurrency ?? "",
             mode,
             null,
-            result.data?.startMonth
+            startMonth,
+            query.month
         )
     const income = series("INCOME")
     const expense = series("EXPENSE")
@@ -89,7 +93,7 @@ export function MonthlyComparison({
                     <h2 id={id}>Monthly trends L12M</h2>
                 </CardTitle>
                 <CardDescription>
-                    {range} · Last 12 completed months
+                    {range} · Last 12 completed months + current month
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex min-w-0 flex-col gap-5">
@@ -176,7 +180,7 @@ export function MonthlyComparison({
                                         )}
                                     </p>
                                     <p className="mt-3 text-xs text-muted-foreground">
-                                        Monthly average · {points.length} months
+                                        Monthly average · 12 completed months
                                     </p>
                                     <p
                                         data-flow={flow}
@@ -197,7 +201,7 @@ export function MonthlyComparison({
                                 role="status"
                                 className="text-sm text-muted-foreground"
                             >
-                                No posted income or expenses in these 12 months.
+                                No posted income or expenses in this range.
                             </p>
                         )}
                         <ChartContainer

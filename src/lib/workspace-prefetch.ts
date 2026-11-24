@@ -3,7 +3,7 @@ import { shiftMonth, validMonth } from "./expense-spread.ts"
 import { resolveAccountPeriod } from "./account-period.ts"
 import type { TransactionQuery } from "./transaction-filters.ts"
 import { analyticsPeriodInput } from "./analytics.ts"
-import { trendEndMonth } from "./monthly-trends.ts"
+import { analyticsTrendQuery, trendEndMonth } from "./monthly-trends.ts"
 import {
     canonicalWorkspaceRequest,
     type WorkspaceRequest,
@@ -70,7 +70,9 @@ export function workspacePrefetchPlan(
                 {
                     resource: "monthlyTrends",
                     accountId,
-                    query: { month: trendEndMonth("rolling", today) },
+                    query: analytics
+                        ? analyticsTrendQuery(today)
+                        : { month: trendEndMonth("rolling", today) },
                 },
                 today
             ),

@@ -72,6 +72,22 @@ export function trendEndMonth(range: string, today: string) {
         : `${range}-12`
 }
 
+export function analyticsTrendQuery(today: string) {
+    return { month: trendEndMonth("rolling", today), includeCurrent: "true" }
+}
+
+export function rollingTrendBounds(
+    completedEndMonth: string,
+    includeCurrent = false
+) {
+    return {
+        startMonth: shiftMonth(completedEndMonth, -11),
+        endMonth: includeCurrent
+            ? shiftMonth(completedEndMonth, 1)
+            : completedEndMonth,
+    }
+}
+
 /** Keep exact cents throughout allocation and aggregation; chart coordinates alone use numbers. */
 export function monthlyTrendBuckets(
     entries: TrendEntry[],
@@ -140,7 +156,8 @@ export function monthlyTrendSeries(
     currency: string,
     mode: "actual" | "smoothed",
     selectedIds: string[] | null,
-    startMonth = shiftMonth(endMonth, -11)
+    startMonth = shiftMonth(endMonth, -11),
+    averageEndMonth = endMonth
 ) {
     const selected = selectedIds === null ? null : new Set(selectedIds)
     const totals = new Map<string, bigint>()
@@ -167,12 +184,19 @@ export function monthlyTrendSeries(
         (sum, value) => sum + value,
         BigInt(0)
     )
+    const averagePoints = points.filter(
+        (point) => point.month <= averageEndMonth
+    )
+    const averageTotal = averagePoints.reduce(
+        (sum, point) => sum + (totals.get(point.month) ?? BigInt(0)),
+        BigInt(0)
+    )
     return {
         points,
         total: centsMoney(total),
         average: centsMoney(
-            (total + BigInt(Math.floor(points.length / 2))) /
-                BigInt(Math.max(1, points.length))
+            (averageTotal + BigInt(Math.floor(averagePoints.length / 2))) /
+                BigInt(Math.max(1, averagePoints.length))
         ),
     }
 }

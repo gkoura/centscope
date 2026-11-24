@@ -31,7 +31,7 @@ import {
     chartCurrency,
 } from "./analytics-chart-controls"
 import { categorySpending } from "@/lib/analytics-charts"
-import { trendEndMonth } from "@/lib/monthly-trends"
+import { analyticsTrendQuery, rollingTrendBounds } from "@/lib/monthly-trends"
 import { formatWalletMoney } from "@/lib/wallet-input"
 import { currencyLabel } from "@/lib/currency"
 import type { BudgetMode } from "@/lib/budget-contribution"
@@ -50,8 +50,8 @@ export function CategoryHistoryChart({
         month: string
         key: string
     } | null>(null)
-    const end = trendEndMonth("rolling", today)
-    const result = useWorkspaceQuery("monthlyTrends", accountId, { month: end })
+    const query = analyticsTrendQuery(today)
+    const result = useWorkspaceQuery("monthlyTrends", accountId, query)
     const reference = useWorkspaceQuery("reference", accountId)
     const currencies = [
         ...new Set([
@@ -64,12 +64,15 @@ export function CategoryHistoryChart({
         currency,
         reference.data?.account.reportingCurrency ?? ""
     )
+    const { startMonth, endMonth } =
+        result.data ?? rollingTrendBounds(query.month, true)
     const data = categorySpending(
         result.data?.buckets ?? [],
         result.data?.categories ?? [],
-        result.data?.endMonth ?? end,
+        endMonth,
         activeCurrency,
-        mode
+        mode,
+        startMonth
     )
     const groups = data.groups.filter((group) =>
         data.points.some((point) => Number(point.amounts[group.key]) !== 0)
@@ -90,8 +93,8 @@ export function CategoryHistoryChart({
                     <h2 id={id}>Spending by category L12M</h2>
                 </CardTitle>
                 <CardDescription>
-                    {monthLabel(data.points[0].month)} – {monthLabel(end)} ·
-                    Last 12 completed months
+                    {monthLabel(startMonth)} – {monthLabel(endMonth)} · Last 12
+                    completed months + current month
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex min-w-0 flex-col gap-5">
@@ -121,8 +124,7 @@ export function CategoryHistoryChart({
                         role="status"
                         className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground"
                     >
-                        No posted expenses in this currency during these 12
-                        months.
+                        No posted expenses in this currency during this range.
                     </p>
                 ) : (
                     <>

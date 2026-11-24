@@ -6,7 +6,13 @@ import {
     budgetsInSectionOrder,
     monthlyBudgetAmount,
 } from "../../src/lib/analytics-charts.ts"
-import { monthlyTrendBuckets } from "../../src/lib/monthly-trends.ts"
+import {
+    analyticsTrendQuery,
+    monthlyTrendBuckets,
+    monthlyTrendSeries,
+    rollingTrendBounds,
+} from "../../src/lib/monthly-trends.ts"
+import { smoothedBalanceHistory } from "../../src/lib/smoothed-balance.ts"
 import { moneyCents } from "../../src/lib/expense-spread.ts"
 import { canonicalWorkspaceRequest } from "../../src/lib/workspace-cache-policy.ts"
 const categories = [
@@ -243,6 +249,73 @@ test("current-month exception appends a thirteenth month without dropping comple
         ).query.includeCurrent,
         undefined
     )
+})
+
+test("analytics charts append the current month across a year boundary", () => {
+    const today = "2026-01-15"
+    const query = analyticsTrendQuery(today)
+    const { startMonth, endMonth } = rollingTrendBounds(query.month, true)
+    assert.deepEqual([startMonth, endMonth], ["2025-01", "2026-01"])
+    const entries = [
+        entry({ month: "2025-01", amount: "-120.00", spread: null }),
+        entry({ month: "2026-01", amount: "-24.00", spread: null }),
+        entry({ month: "2026-02", amount: "-12.00", spread: null }),
+    ]
+    const buckets = monthlyTrendBuckets(entries, endMonth, startMonth)
+    const trends = monthlyTrendSeries(
+        buckets,
+        endMonth,
+        "EXPENSE",
+        "EUR",
+        "actual",
+        null,
+        startMonth,
+        query.month
+    )
+    const categoriesByMonth = categorySpending(
+        buckets,
+        categories,
+        endMonth,
+        "EUR",
+        "actual",
+        startMonth
+    )
+    const [balance] = smoothedBalanceHistory(
+        entries.map((item) => ({
+            ...item,
+            status: "POSTED",
+            date: `${item.month}-01`,
+        })),
+        endMonth,
+        ["EUR"],
+        startMonth
+    )
+    for (const { points } of [trends, categoriesByMonth, balance]) {
+        assert.equal(points.length, 13)
+        assert.equal(points[0].month, "2025-01")
+        assert.equal(points.at(-1).month, "2026-01")
+    }
+    assert.equal(trends.points.at(-1).amount, "24.00")
+    assert.equal(trends.total, "144.00")
+    assert.equal(trends.average, "10.00")
+    assert.equal(categoriesByMonth.points.at(-1).total, "24.00")
+    assert.equal(balance.points.at(-1).balance, "-144.00")
+    for (const resource of ["monthlyTrends", "balanceHistory"]) {
+        assert.deepEqual(
+            canonicalWorkspaceRequest(
+                { resource, accountId: "a", query },
+                today
+            ).query,
+            query
+        )
+        assert.deepEqual(
+            canonicalWorkspaceRequest(
+                { resource, accountId: "a", query: { month: query.month } },
+                today
+            ).query,
+            { month: "2025-12" }
+        )
+    }
 })
 
 test("chart budgets follow account section order and preserve saved positions within sections", () => {

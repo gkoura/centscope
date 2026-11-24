@@ -7,7 +7,12 @@ import {
 
 type Props = { params: Promise<{ id: string }> }
 export async function AnalyticsBalanceHistory({ params }: Props) {
-    return <CachedOverviewBalanceHistory accountId={(await params).id} />
+    return (
+        <CachedOverviewBalanceHistory
+            accountId={(await params).id}
+            includeCurrent
+        />
+    )
 }
 export async function AnalyticsMonthlyTrends({ params }: Props) {
     return <CachedAnalyticsMonthlyTrends accountId={(await params).id} />

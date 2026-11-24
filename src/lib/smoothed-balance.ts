@@ -4,6 +4,7 @@ import {
     shiftMonth,
     type ExpenseSpread,
 } from "./expense-spread.ts"
+import { trendMonths } from "./monthly-trends.ts"
 
 export type BalanceEntry = {
     type: string
@@ -22,11 +23,10 @@ export const BALANCE_HISTORY_MONTHS = 11
 export function smoothedBalanceHistory(
     entries: BalanceEntry[],
     endMonth: string,
-    currencies: string[]
+    currencies: string[],
+    startMonth = shiftMonth(endMonth, 1 - BALANCE_HISTORY_MONTHS)
 ) {
-    const months = Array.from({ length: BALANCE_HISTORY_MONTHS }, (_, index) =>
-        shiftMonth(endMonth, index - BALANCE_HISTORY_MONTHS + 1)
-    )
+    const months = trendMonths(endMonth, startMonth)
     return [...new Set(currencies)].map((currency) => ({
         currency,
         points: months.map((month) => {

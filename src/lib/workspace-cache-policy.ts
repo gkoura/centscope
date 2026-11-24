@@ -90,8 +90,8 @@ export function canonicalWorkspaceRequest(
             // Retire persisted comparisons produced before section-aware ordering.
             values.ordering = "sections-v1"
             values.mode = query.mode === "actual" ? "actual" : "smoothed"
-            if (query.includeCurrent === "true") values.includeCurrent = "true"
         }
+        if (query.includeCurrent === "true") values.includeCurrent = "true"
     } else if (resource === "budgets" || resource === "budgetTransactions") {
         const cadence = isBudgetCadence(query.cadence)
             ? query.cadence
@@ -135,7 +135,8 @@ export function canonicalWorkspaceRequest(
             for (const key of ["currency", "wallet"])
                 if (typeof query[key] === "string")
                     values[key] = query[key].slice(0, 128)
-        }
+        } else if (query.includeCurrent === "true")
+            values.includeCurrent = "true"
     }
     return {
         resource,

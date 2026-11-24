@@ -12,7 +12,7 @@ import { BalanceSummary } from "@/components/workspace/balance-summary"
 import { RecurringSync } from "@/components/financial-accounts/recurring-sync"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
-import { shiftMonth } from "@/lib/expense-spread"
+import { analyticsTrendQuery, trendEndMonth } from "@/lib/monthly-trends"
 
 // The chart library must not delay the balance and account controls on a cold load.
 const BalanceHistoryChart = dynamic(
@@ -80,14 +80,22 @@ export function CachedOverviewBalances({
 }
 export function CachedOverviewBalanceHistory({
     accountId: id,
+    includeCurrent = false,
 }: {
     accountId: string
+    includeCurrent?: boolean
 }) {
     const reference = useWorkspaceQuery("reference", id)
     const today = useWorkspaceDay()
-    const history = useWorkspaceQuery("balanceHistory", id, {
-        month: today ? shiftMonth(today.slice(0, 7), -1) : undefined,
-    })
+    const history = useWorkspaceQuery(
+        "balanceHistory",
+        id,
+        today
+            ? includeCurrent
+                ? analyticsTrendQuery(today)
+                : { month: trendEndMonth("rolling", today) }
+            : undefined
+    )
     if (!reference.data || !history.data || !today)
         return (
             <WorkspaceQueryState

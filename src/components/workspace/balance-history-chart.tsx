@@ -19,10 +19,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BalanceHistoryHelp } from "./balance-history-help"
 import { formatWalletMoney } from "@/lib/wallet-input"
-import {
-    BALANCE_HISTORY_MONTHS,
-    type smoothedBalanceHistory,
-} from "@/lib/smoothed-balance"
+import type { smoothedBalanceHistory } from "@/lib/smoothed-balance"
 import {
     Card,
     CardHeader,
@@ -53,13 +50,16 @@ export function BalanceHistoryChart({
     const current =
         series.find((item) => item.currency === currency) ?? series[0]
     if (!current) return null
-    const points = current.points
-        .slice(-BALANCE_HISTORY_MONTHS)
-        .map((point) => ({
-            ...point,
-            value: Number(point.balance),
-        }))
+    const points = current.points.map((point) => ({
+        ...point,
+        value: Number(point.balance),
+    }))
     const last = points[points.length - 1]
+    const currentMonth = today.slice(0, 7)
+    const balanceLabel =
+        last.month >= currentMonth
+            ? "Smoothed monthly balance"
+            : "Smoothed end-of-month balance"
     return (
         <Card>
             <CardHeader>
@@ -68,8 +68,8 @@ export function BalanceHistoryChart({
                     <BalanceHistoryHelp />
                 </CardTitle>
                 <CardDescription>
-                    Smoothed end-of-month balance ·{" "}
-                    {monthLabel(points[0].month)} – {monthLabel(last.month)}
+                    {balanceLabel} · {monthLabel(points[0].month)} –{" "}
+                    {monthLabel(last.month)}
                 </CardDescription>
                 {series.length > 1 && (
                     <Tabs value={current.currency} onValueChange={setCurrency}>
@@ -91,7 +91,7 @@ export function BalanceHistoryChart({
                     {formatWalletMoney(last.balance, current.currency)}
                     <span className="mt-1 block text-xs font-normal tracking-normal text-muted-foreground">
                         {monthLabel(last.month)}
-                        {last.month >= today.slice(0, 7)
+                        {last.month >= currentMonth
                             ? " · recorded entries so far"
                             : ""}
                     </span>
@@ -152,7 +152,7 @@ export function BalanceHistoryChart({
                                                 current.currency
                                             )}
                                         </strong>
-                                        {point.month >= today.slice(0, 7) && (
+                                        {point.month >= currentMonth && (
                                             <span className="text-muted-foreground">
                                                 Recorded entries so far
                                             </span>
@@ -189,8 +189,7 @@ export function BalanceHistoryChart({
                     </summary>
                     <table className="w-full border-t text-sm">
                         <caption className="sr-only">
-                            Smoothed end-of-month balances in{" "}
-                            {currencySymbol(current.currency)}
+                            {balanceLabel} in {currencySymbol(current.currency)}
                         </caption>
                         <thead>
                             <tr>

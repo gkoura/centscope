@@ -20,6 +20,7 @@ import {
 import { getOwnedAccountActivity } from "@/lib/account-summary-data"
 import { getOwnedSmoothedBalanceHistory } from "@/lib/smoothed-balance-data"
 import { getOwnedMonthlyTrends } from "@/lib/monthly-trends-data"
+import { rollingTrendBounds } from "@/lib/monthly-trends"
 import { getOwnedMonthlyAnalysis } from "@/lib/monthly-analysis-data"
 import { listOwnedTransferWallets } from "@/lib/transfers"
 import { resolveAccountPeriod } from "@/lib/account-period"
@@ -64,12 +65,18 @@ async function transactions(
     ])
     return { history, activity, period, filters }
 }
-async function balanceHistory(accountId: string, month: string) {
+async function balanceHistory(
+    accountId: string,
+    month: string,
+    includeCurrent: boolean
+) {
     const wallets = await workspaceWallets(accountId)
+    const bounds = includeCurrent ? rollingTrendBounds(month, true) : null
     return getOwnedSmoothedBalanceHistory(
         accountId,
-        month,
-        wallets.map((wallet) => wallet.currency)
+        bounds?.endMonth ?? month,
+        wallets.map((wallet) => wallet.currency),
+        bounds?.startMonth
     )
 }
 async function analysis(
@@ -148,11 +155,16 @@ export async function readWorkspaceData(
             })
         }
         case "balanceHistory":
-            return balanceHistory(id, String(query.month))
+            return balanceHistory(
+                id,
+                String(query.month),
+                query.includeCurrent === "true"
+            )
         case "monthlyTrends":
             return getOwnedMonthlyTrends(
                 id,
-                query.view === "all" ? "all" : String(query.month)
+                query.view === "all" ? "all" : String(query.month),
+                query.includeCurrent === "true"
             )
         case "suggestions":
             return listOwnedTransactionSuggestions(id)

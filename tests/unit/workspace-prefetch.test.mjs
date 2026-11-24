@@ -436,7 +436,7 @@ test("Analytics shares unfiltered month summaries and warms only its default rol
     assert.deepEqual(plan.requests.at(-1), {
         resource: "monthlyTrends",
         accountId: "personal",
-        query: { month: "2026-10" },
+        query: { month: "2026-10", includeCurrent: "true" },
     })
     const annual = workspacePrefetchPlan(
         "personal",
@@ -456,7 +456,7 @@ test("Analytics shares unfiltered month summaries and warms only its default rol
         today
     )
     assert.equal(overview.foreground.resource, "reference")
-    assert.equal(overview.requests.at(-1).query.month, "2026-10")
+    assert.deepEqual(overview.requests.at(-1).query, { month: "2026-10" })
 })
 
 test("a transaction response supplies Analytics without another request, with cursor and filter isolation", async (t) => {

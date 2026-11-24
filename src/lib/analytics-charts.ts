@@ -17,7 +17,8 @@ export function categorySpending(
     categories: TrendCategory[],
     endMonth: string,
     currency: string,
-    mode: BudgetMode
+    mode: BudgetMode,
+    startMonth?: string
 ) {
     const expenses = categories.filter((c) => c.type === "EXPENSE")
     const byId = new Map(expenses.map((c) => [c.id, c]))
@@ -31,7 +32,7 @@ export function categorySpending(
         iconKey: byId.get(id)?.iconKey,
         color: `var(--chart-${(index % 5) + 1})`,
     }))
-    const points = trendMonths(endMonth).map((month) => {
+    const points = trendMonths(endMonth, startMonth).map((month) => {
         const amounts: Record<string, string> = {}
         const breakdown: Record<
             string,

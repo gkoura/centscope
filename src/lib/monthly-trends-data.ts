@@ -4,17 +4,21 @@ import { financialAccess } from "@/lib/financial-access"
 import { shiftMonth } from "@/lib/expense-spread"
 import {
     monthlyTrendBuckets,
+    rollingTrendBounds,
     trendBounds,
     type TrendEntry,
 } from "@/lib/monthly-trends"
 
 export async function getOwnedMonthlyTrends(
     accountId: string,
-    endMonth: string
+    completedEndMonth: string,
+    includeCurrent = false
 ) {
     const { ownerId } = await financialAccess(accountId)
-    const allTime = endMonth === "all"
-    const startMonth = allTime ? "" : shiftMonth(endMonth, -11)
+    const rolling =
+        completedEndMonth === "all"
+            ? null
+            : rollingTrendBounds(completedEndMonth, includeCurrent)
     const [entries, categories] = await prisma.$transaction(
         [
             prisma.ledgerEntry.findMany({
@@ -31,17 +35,16 @@ export async function getOwnedMonthlyTrends(
                     transaction: {
                         status: "POSTED",
                         type: { in: ["INCOME", "EXPENSE"] },
-                        ...(allTime
-                            ? {}
-                            : {
+                        ...(rolling
+                            ? {
                                   OR: [
                                       {
                                           occurredAt: {
                                               gte: new Date(
-                                                  `${startMonth}-01T00:00:00Z`
+                                                  `${rolling.startMonth}-01T00:00:00Z`
                                               ),
                                               lt: new Date(
-                                                  `${shiftMonth(endMonth, 1)}-01T00:00:00Z`
+                                                  `${shiftMonth(rolling.endMonth, 1)}-01T00:00:00Z`
                                               ),
                                           },
                                       },
@@ -50,15 +53,16 @@ export async function getOwnedMonthlyTrends(
                                           expenseSpread: {
                                               startMonth: {
                                                   gte: shiftMonth(
-                                                      startMonth,
+                                                      rolling.startMonth,
                                                       -119
                                                   ),
-                                                  lte: endMonth,
+                                                  lte: rolling.endMonth,
                                               },
                                           },
                                       },
                                   ],
-                              }),
+                              }
+                            : {}),
                     },
                 },
                 select: {
@@ -105,9 +109,8 @@ export async function getOwnedMonthlyTrends(
         categoryId: entry.categoryId,
         spread: entry.transaction.expenseSpread,
     }))
-    const bounds = allTime
-        ? trendBounds(rows, new Date().toISOString().slice(0, 7))
-        : { startMonth, endMonth }
+    const bounds =
+        rolling ?? trendBounds(rows, new Date().toISOString().slice(0, 7))
     return {
         categories,
         ...bounds,
